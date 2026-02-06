@@ -366,6 +366,55 @@ Daily arXiv 功能自动爬取最新 arXiv 论文，并使用 AI 进行智能分
 
 ----
 
+### 2.6 用户注册与登录（基于 Supabase）
+
+Resophy 现已支持通过 Supabase Auth 实现用户注册与登录，并在后端对所有 `/api/*` 路由进行会话鉴权（必须携带 `Authorization: Bearer <access_token>`）。以下为配置与使用指南。
+
+#### 一、准备工作（在 Supabase 控制台）
+- 创建一个 Supabase Project
+- 获取以下两项：
+  - `SUPABASE_URL`（形如 `https://xxxx.supabase.co`）
+  - `SUPABASE_ANON_KEY`（anon/publishable key）
+- 配置邮箱确认跳转（保证邮件确认后的跳转正确）：
+  - 控制台 → Authentication → URL Configuration
+    - Site URL：设置为 `http://127.0.0.1:7191`（或你的实际域名/端口）
+    - Redirect URLs：添加 `http://127.0.0.1:7191/*` 与 `http://localhost:7191/*`
+  - 这样邮件里的确认链接会跳回 Resophy 的端口，而不是默认的 `localhost:3000`
+- 是否允许公开注册（可选）：
+  - 控制台 → Authentication → Providers → Email → Email Signups
+  - 开启：任何人都可注册；关闭：仅已存在用户可登录（页面上 Sign Up 会提示被拒绝）
+
+#### 二、后端环境变量（必须）
+Resophy 后端会把 Supabase 配置注入到前端，并通过 Supabase 的 `/auth/v1/user` 接口校验会话 token。请在启动服务前设置：
+
+```bash
+export SUPABASE_URL="https://xxxx.supabase.co"
+export SUPABASE_ANON_KEY="你的anon_key"
+python app.py --port 7191 --debug
+```
+
+说明：
+- 前端的 Supabase 客户端会自动从后端注入的变量中读取这两个值（无需手动改前端文件）。
+- 后端在 `@app.before_request` 拦截所有 `/api/*`，要求带 `Authorization: Bearer <access_token>`，否则返回 `401 未登录`。
+
+#### 三、前端使用方法
+- 打开首页后会看到登录弹窗：
+  - Log In：邮箱 + 密码登录，成功后自动加载主界面并对所有 `/api/*` 请求注入 Bearer token
+  - Sign Up：邮箱 + 密码注册（受 Supabase 控制台“公开注册”开关影响）
+- 邮件确认跳转地址：
+  - 注册时前端会传入 `emailRedirectTo = window.location.origin + '/'`
+  - 同时需确保 Supabase 控制台的 Site URL/Redirect URLs 已按上文“一、准备工作”配置
+
+#### 四、后端鉴权行为
+- 所有 `/api/*` 请求均需携带 `Authorization: Bearer <access_token>`
+- 后端使用 `SUPABASE_URL` + `SUPABASE_ANON_KEY` 调用 Supabase 的 `/auth/v1/user` 校验 token，并做 60 秒缓存
+- 未配置这两个变量时，接口会返回 `500` 并提示需要配置
+
+#### 五、常见问题与排查
+- 点击邮件确认链接跳到 `localhost:3000`：未在 Supabase 控制台正确配置 Site URL/Redirect URLs；请参考上文“一、准备工作”
+- 登录后接口仍返回 `401 未登录`：前端未拿到 session 或未为 `/api/*` 注入 token；强制刷新页面（Ctrl+F5/Cmd+Shift+R）后重试
+- 注册按钮提示被拒绝：Supabase 控制台关闭了 Email Signups；根据需要打开或保留关闭
+
 ## 3. 💻 Vibe Coding
 
 Resophy 采用 **Vibe Coding** 的开发理念，这意味着你可以通过自然语言与 AI Coding Agent 对话，轻松自定义和扩展功能。无需深入了解复杂的代码结构，只需描述你的需求，AI 就能帮你实现。

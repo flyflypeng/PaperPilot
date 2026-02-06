@@ -253,6 +253,9 @@ When uploading papers (via arXiv URL or dragging PDF), the system automatically 
   
 </details>
 
+### 2.6 User Registration & Login (Supabase)
+- Refer to the Chinese documentation for full setup and usage: [用户注册与登录（基于 Supabase）](file:///home/flyflypeng/agent/Resophy/docs/README_cn.md#L369-L418)
+
 ### 2.3. AI Translation
 
 <details open>
@@ -497,4 +500,3 @@ The following are some common customization need examples, you can refer to thes
 
 ## 4. LICENSE
 Resophy uses the [CC BY-NC 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.en) open source license, please refer to the [LICENSE](LICENSE) file.
-

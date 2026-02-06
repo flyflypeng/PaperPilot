@@ -2,11 +2,13 @@ import argparse
 import json
 import os
 import threading
+import time
 from datetime import datetime
 from functools import partial
 from typing import Optional
 
-from flask import Flask, jsonify, render_template, request
+import requests
+from flask import Flask, g, jsonify, render_template, request
 
 from resophy.core.base_paper import Paper
 from resophy.core.paper_store import paper_store
@@ -57,6 +59,77 @@ parser.add_argument("--debug", action="store_true", help="Enable debug mode")
 
 app = Flask(__name__)
 app.config["MAX_CONTENT_LENGTH"] = 100 * 1024 * 1024  # 100MB max file size
+
+_auth_cache: dict[str, tuple[float, str]] = {}
+_auth_cache_lock = threading.Lock()
+
+
+def _verify_supabase_access_token(access_token: str) -> str | None:
+    supabase_url = os.getenv("SUPABASE_URL", "").strip().rstrip("/")
+    supabase_anon_key = os.getenv("SUPABASE_ANON_KEY", "").strip()
+    if not (supabase_url and supabase_anon_key):
+        return None
+
+    now = time.time()
+    with _auth_cache_lock:
+        cached = _auth_cache.get(access_token)
+        if cached and cached[0] > now:
+            return cached[1]
+
+    try:
+        resp = requests.get(
+            f"{supabase_url}/auth/v1/user",
+            headers={
+                "Authorization": f"Bearer {access_token}",
+                "apikey": supabase_anon_key,
+            },
+            timeout=15,
+        )
+        if resp.status_code >= 400:
+            return None
+        data = resp.json()
+        email = (data.get("email") or "").strip().lower()
+        if not email:
+            return None
+
+        with _auth_cache_lock:
+            _auth_cache[access_token] = (now + 60.0, email)
+        return email
+    except Exception:
+        return None
+
+
+@app.before_request
+def _require_auth_for_api():
+    if not request.path.startswith("/api/"):
+        return None
+
+    supabase_url = os.getenv("SUPABASE_URL", "").strip()
+    supabase_anon_key = os.getenv("SUPABASE_ANON_KEY", "").strip()
+    if not (supabase_url and supabase_anon_key):
+        return (
+            jsonify(
+                {
+                    "error": "Supabase后端鉴权未配置，请设置 SUPABASE_URL / SUPABASE_ANON_KEY",
+                }
+            ),
+            500,
+        )
+
+    auth = request.headers.get("Authorization", "")
+    if not auth.lower().startswith("bearer "):
+        return jsonify({"error": "未登录"}), 401
+
+    access_token = auth.split(" ", 1)[1].strip()
+    if not access_token:
+        return jsonify({"error": "未登录"}), 401
+
+    email = _verify_supabase_access_token(access_token)
+    if not email:
+        return jsonify({"error": "登录已失效"}), 401
+
+    g.user_email = email
+    return None
 
 # Configuration file storage path (will be set in main function according to parameters)
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -313,6 +386,7 @@ def init_app(papers_dir=None):
         with open(DAILY_ARXIV_SETTINGS_FILE, "w", encoding="utf-8") as f:
             json.dump(DEFAULT_DAILY_ARXIV_SETTINGS, f, ensure_ascii=False, indent=2)
 
+
     # Bind basic tool functions
     init_categories = partial(category_manager.init_categories, CATEGORIES_FILE)
     get_categories = partial(category_manager.get_categories, CATEGORIES_FILE)
@@ -351,7 +425,11 @@ analysis_tasks_lock = threading.Lock()  # Protect interpretation task dictionary
 
 @app.route("/")
 def index():
-    return render_template("index.html")
+    return render_template(
+        "index.html",
+        supabase_url=os.getenv("SUPABASE_URL", ""),
+        supabase_anon_key=os.getenv("SUPABASE_ANON_KEY", ""),
+    )
 
 
 def register_routes():

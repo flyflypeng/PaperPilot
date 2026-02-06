@@ -304,40 +304,44 @@ function expandToCategoryPath(targetCategoryId) {
     }
 }
 
-// App initialization
-document.addEventListener('DOMContentLoaded', async function() {
+async function bootstrapApp() {
+    if (window.__RESOPHY_APP_BOOTSTRAPPED) {
+        return;
+    }
+    window.__RESOPHY_APP_BOOTSTRAPPED = true;
+
     try {
         await loadCategories();
         setupEventListeners();
         setupNavigation();
         loadAgenticSettings().catch(err => {
             console.error('Error loading agentic settings:', err);
-        });  // unified AI configuration
+        });
         await initImportFeature();
-        // Initialize Daily arXiv
         await initDailyArxiv();
-        // Initialize navbar avatar
         updateAvatars();
     } catch (e) {
         console.error('Error during app initialization:', e);
     }
-    // Load reading list count before restoring view
     await updateReadingListCount();
-    // Restore queue state, then running tasks
     restoreQueuesFromStorage();
     cleanupCompletedQueues();
     await restoreActiveTasks();
-    // After restoring queues, continue processing
     if (translationQueue.length > 0 && !isTranslating) {
         processTranslationQueue();
     }
     if (analysisQueue.length > 0 && !isAnalyzing) {
         processAnalysisQueue();
     }
-    // Restore last view state (readingListCount is ready now)
     await restoreViewState();
     updateTaskIndicator();
-});
+}
+
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', bootstrapApp);
+} else {
+    bootstrapApp();
+}
 
 // Wire up DOM event listeners
 function setupEventListeners() {
@@ -13275,4 +13279,3 @@ async function checkAndShowOnboarding() {
         initOnboarding();
     }
 })();
-

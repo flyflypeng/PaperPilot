@@ -1,11 +1,12 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Resophy - Agentic Paper Reading</title>
     <link rel="icon" type="image/png" href="{{ url_for('static', filename='images/website_logo.png') }}">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}?v=1.1">
     <!-- PDF.js (CDN) for client-side PDF metadata parsing -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js"></script>
@@ -29,13 +30,21 @@
     </script>
     <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js"></script>
 </head>
+
 <body>
+    <script>
+        window.__SUPABASE_URL = {{ supabase_url | tojson }};
+        window.__SUPABASE_ANON_KEY = {{ supabase_anon_key | tojson }};
+    </script>
     <!-- Navbar -->
     <nav class="navbar">
         <div class="navbar-content">
             <div class="navbar-brand" id="navbar-brand" style="cursor: pointer;" title="Back to Home">
-                <img src="{{ url_for('static', filename='images/hompage_logo.png') }}" alt="Resophy" class="navbar-logo" id="navbar-logo" onerror="this.style.display='none'; this.nextElementSibling.style.display='inline-block';">
-                <span class="navbar-brand-text" id="navbar-brand-text" style="display:none;"><i class="fas fa-book"></i> Resophy</span>
+                <img src="{{ url_for('static', filename='images/hompage_logo.png') }}" alt="Resophy" class="navbar-logo"
+                    id="navbar-logo"
+                    onerror="this.style.display='none'; this.nextElementSibling.style.display='inline-block';">
+                <span class="navbar-brand-text" id="navbar-brand-text" style="display:none;"><i class="fas fa-book"></i>
+                    Resophy</span>
             </div>
             <div class="navbar-tabs" style="margin-left:auto; display:flex; align-items:center; gap:12px;">
                 <button id="btn-show-translating" class="ti-item ti-translate" title="View papers being translated">
@@ -57,8 +66,17 @@
                     <i class="fas fa-file-pdf"></i> <span class="ti-label">Paper</span>
                 </button>
                 <button class="nav-tab ti-item ti-daily-arxiv" data-tab="daily-arxiv" title="Daily arXiv">
-                    <img src="{{ url_for('static', filename='images/arxiv-logo.svg') }}" alt="arXiv" class="arxiv-logo-icon">
+                    <img src="{{ url_for('static', filename='images/arxiv-logo.svg') }}" alt="arXiv"
+                        class="arxiv-logo-icon">
                     <span class="ti-label">Daily arXiv</span>
+                </button>
+                <button id="logout-btn" class="ti-item" title="Log Out" style="display: none;">
+                    <i class="fas fa-sign-out-alt"></i>
+                    <span class="ti-label">Log Out</span>
+                </button>
+                <button id="login-btn" class="ti-item" title="Log In" style="display: none;">
+                    <i class="fas fa-sign-in-alt"></i>
+                    <span class="ti-label">Log In</span>
                 </button>
                 <div class="nav-avatar" id="nav-avatar" data-tab="setting" title="Settings">
                     <canvas id="nav-avatar-canvas" width="32" height="32"></canvas>
@@ -74,7 +92,8 @@
             <div class="sidebar-resizer" id="sidebar-resizer"></div>
             <div class="sidebar-header">
                 <h3><i class="fas fa-folder-tree"></i> My Library</h3>
-                <button id="add-root-category" class="btn-add" title="Add category (add subcategory if one is selected, otherwise add root category)">
+                <button id="add-root-category" class="btn-add"
+                    title="Add category (add subcategory if one is selected, otherwise add root category)">
                     <i class="fas fa-plus"></i>
                 </button>
             </div>
@@ -91,7 +110,8 @@
                 <h3 id="current-category">Select a category to view PDFs</h3>
                 <div class="content-actions">
                     <div class="search-box">
-                        <input id="global-search" type="text" placeholder="Search Title / Authors / Abstract / Notes" autocomplete="off" />
+                        <input id="global-search" type="text" placeholder="Search Title / Authors / Abstract / Notes"
+                            autocomplete="off" />
                         <div id="search-results" class="search-results" style="display:none;"></div>
                     </div>
                     <div class="sort-controls" id="sort-controls" style="display: none;">
@@ -127,10 +147,14 @@
                     <span id="batch-count">Selected 0 items</span>
                 </div>
                 <div class="batch-actions">
-                    <button class="btn" id="batch-analyze" title="AI Interpretation"><i class="fas fa-brain"></i> Analyze</button>
-                    <button class="btn" id="batch-translate" title="AI Translation"><i class="fas fa-language"></i> Translate</button>
-                    <button class="btn btn-danger" id="batch-delete" title="Delete"><i class="fas fa-trash"></i> Delete</button>
-                    <button class="btn btn-secondary" id="batch-cancel" title="Exit multi-select"><i class="fas fa-times"></i> Cancel</button>
+                    <button class="btn" id="batch-analyze" title="AI Interpretation"><i class="fas fa-brain"></i>
+                        Analyze</button>
+                    <button class="btn" id="batch-translate" title="AI Translation"><i class="fas fa-language"></i>
+                        Translate</button>
+                    <button class="btn btn-danger" id="batch-delete" title="Delete"><i class="fas fa-trash"></i>
+                        Delete</button>
+                    <button class="btn btn-secondary" id="batch-cancel" title="Exit multi-select"><i
+                            class="fas fa-times"></i> Cancel</button>
                 </div>
             </div>
             <div class="papers-list" id="papers-list">
@@ -160,7 +184,8 @@
     <div class="daily-arxiv-view" id="daily-arxiv-view" style="display: none;">
         <div class="daily-arxiv-header">
             <div class="daily-arxiv-title">
-                <h2><img src="{{ url_for('static', filename='images/arxiv-logo.svg') }}" alt="arXiv" class="arxiv-logo-icon"> Daily arXiv</h2>
+                <h2><img src="{{ url_for('static', filename='images/arxiv-logo.svg') }}" alt="arXiv"
+                        class="arxiv-logo-icon"> Daily arXiv</h2>
                 <!-- Date selector -->
                 <div class="daily-arxiv-date-selector" id="daily-arxiv-date-selector">
                     <button class="date-nav-btn" id="daily-arxiv-prev-date" title="Previous day">
@@ -177,7 +202,8 @@
             <div class="daily-arxiv-actions">
                 <!-- Daily arXiv search: title / authors / institution / abstract -->
                 <div class="daily-arxiv-search-box">
-                    <input id="daily-arxiv-search" type="text" placeholder="Search title / author / institution / abstract..." />
+                    <input id="daily-arxiv-search" type="text"
+                        placeholder="Search title / author / institution / abstract..." />
                     <i class="fas fa-search"></i>
                 </div>
                 <button class="btn btn-outline" id="daily-arxiv-filter" title="Filter current papers">
@@ -191,7 +217,7 @@
                 </button>
             </div>
         </div>
-        
+
         <!-- Progress bar -->
         <div class="daily-arxiv-progress" id="daily-arxiv-progress" style="display: none;">
             <div class="progress-header">
@@ -203,7 +229,7 @@
             </div>
             <div class="progress-current" id="daily-arxiv-progress-current"></div>
         </div>
-        
+
         <!-- Loading state -->
         <div class="daily-arxiv-loading" id="daily-arxiv-loading" style="display: none;">
             <div class="loading-spinner">
@@ -211,17 +237,18 @@
             </div>
             <p>Fetching latest papers...</p>
         </div>
-        
+
         <!-- Empty state: no categories configured -->
         <div class="daily-arxiv-empty" id="daily-arxiv-empty" style="display: none;">
             <i class="fas fa-cog fa-3x"></i>
             <h3>Please configure arXiv categories first</h3>
-            <p>Click the "Settings" button in the top right to add arXiv categories you care about, e.g., cs.CV, cs.AI</p>
+            <p>Click the "Settings" button in the top right to add arXiv categories you care about, e.g., cs.CV, cs.AI
+            </p>
             <button class="btn btn-primary" onclick="showDailyArxivSettingsModal()">
                 <i class="fas fa-plus"></i> Add category
             </button>
         </div>
-        
+
         <!-- Filters + paper grid -->
         <div class="daily-arxiv-main">
             <!-- Filter panel -->
@@ -229,7 +256,8 @@
                 <div class="daily-arxiv-filter-resizer" id="daily-arxiv-filter-resizer"></div>
                 <div class="filter-panel-header">
                     <h3>Filters</h3>
-                    <button class="filter-clear-btn" id="daily-arxiv-filter-clear" type="button" title="Clear all filters">
+                    <button class="filter-clear-btn" id="daily-arxiv-filter-clear" type="button"
+                        title="Clear all filters">
                         <i class="fas fa-times"></i>
                         <span>Clear filters</span>
                     </button>
@@ -292,7 +320,8 @@
                 </div>
                 <input type="file" id="avatar-upload" accept="image/*" style="display: none;">
                 <div class="setting-user-info">
-                    <span class="setting-user-name" id="setting-user-name" title="Double-click to edit name">Paper Reader</span>
+                    <span class="setting-user-name" id="setting-user-name" title="Double-click to edit name">Paper
+                        Reader</span>
                     <span class="setting-user-stats" id="setting-total-stats">0 papers · 0h reading</span>
                 </div>
             </div>
@@ -306,7 +335,8 @@
                     <span>Agentic</span>
                 </button>
                 <button class="setting-nav-item" data-setting="daily-arxiv">
-                    <img src="{{ url_for('static', filename='images/arxiv-logo.svg') }}" alt="arXiv" class="setting-nav-arxiv-icon">
+                    <img src="{{ url_for('static', filename='images/arxiv-logo.svg') }}" alt="arXiv"
+                        class="setting-nav-arxiv-icon">
                     <span>Daily arXiv</span>
                 </button>
                 <button class="setting-nav-item" data-setting="import">
@@ -327,7 +357,7 @@
                 <div class="overview-header">
                     <h2>Reading Activity</h2>
                 </div>
-                
+
                 <!-- Stats cards -->
                 <div class="stats-cards">
                     <div class="stat-card">
@@ -432,7 +462,7 @@
                     <h2><i class="fas fa-robot"></i> Agentic Settings</h2>
                     <p>AI feature configuration (translation, interpretation, daily arXiv, etc.)</p>
                 </div>
-                
+
                 <!-- LLM API configuration -->
                 <div class="setting-card">
                     <div class="setting-card-header">
@@ -441,22 +471,25 @@
                     </div>
                     <div class="setting-card-body">
                         <p style="color: #666; margin-bottom: 20px; font-size: 14px;">
-                            <i class="fas fa-info-circle"></i> 
-                            Unified LLM API configuration used for AI translation, AI interpretation, Daily arXiv and all other AI features.
+                            <i class="fas fa-info-circle"></i>
+                            Unified LLM API configuration used for AI translation, AI interpretation, Daily arXiv and
+                            all other AI features.
                         </p>
                         <div class="setting-row">
                             <div class="setting-info">
                                 <label for="llm-model">Model Name</label>
                                 <small>LLM model name</small>
                             </div>
-                            <input type="text" id="llm-model" placeholder="ai_server/Qwen3-4B-Instruct-2507" class="setting-input" />
+                            <input type="text" id="llm-model" placeholder="ai_server/Qwen3-4B-Instruct-2507"
+                                class="setting-input" />
                         </div>
                         <div class="setting-row">
                             <div class="setting-info">
                                 <label for="llm-base-url">Base URL</label>
                                 <small>OpenAI-compatible API base URL</small>
                             </div>
-                            <input type="text" id="llm-base-url" placeholder="http://0.0.0.0:6002/v1" class="setting-input" />
+                            <input type="text" id="llm-base-url" placeholder="http://0.0.0.0:6002/v1"
+                                class="setting-input" />
                         </div>
                         <div class="setting-row">
                             <div class="setting-info">
@@ -464,8 +497,10 @@
                                 <small>API access key</small>
                             </div>
                             <div style="display: flex; gap: 8px; align-items: center;">
-                                <input type="password" id="llm-api-key" placeholder="token-abc123" class="setting-input" style="width: 300px; max-width: 300px;" />
-                                <button id="test-llm-api" class="btn btn-secondary" style="white-space: nowrap;" title="Test LLM API connection">
+                                <input type="password" id="llm-api-key" placeholder="token-abc123" class="setting-input"
+                                    style="width: 300px; max-width: 300px;" />
+                                <button id="test-llm-api" class="btn btn-secondary" style="white-space: nowrap;"
+                                    title="Test LLM API connection">
                                     <i class="fas fa-vial"></i> Test
                                 </button>
                             </div>
@@ -482,8 +517,9 @@
                     </div>
                     <div class="setting-card-body">
                         <p style="color: #666; margin-bottom: 20px; font-size: 14px;">
-                            <i class="fas fa-info-circle"></i> 
-                            Select the output language for AI features. This setting applies to AI translation, AI interpretation, and Daily arXiv summary generation.
+                            <i class="fas fa-info-circle"></i>
+                            Select the output language for AI features. This setting applies to AI translation, AI
+                            interpretation, and Daily arXiv summary generation.
                         </p>
                         <div class="setting-row">
                             <div class="setting-info">
@@ -506,10 +542,10 @@
                     </div>
                     <div class="setting-card-body">
                         <p style="color: #666; margin-bottom: 20px; font-size: 14px;">
-                            <i class="fas fa-info-circle"></i> 
+                            <i class="fas fa-info-circle"></i>
                             Used by AI analysis to convert PDF to Markdown format.
                         </p>
-                        
+
                         <!-- MinerU Mode Selection -->
                         <div class="setting-row">
                             <div class="setting-info">
@@ -527,7 +563,7 @@
                                 </label>
                             </div>
                         </div>
-                        
+
                         <!-- Local Mode Configuration -->
                         <div id="mineru-local-config">
                             <div class="setting-row">
@@ -536,30 +572,35 @@
                                     <small>Local PDF parsing service URL</small>
                                 </div>
                                 <div style="display: flex; gap: 8px; align-items: center;">
-                                    <input type="text" id="mineru-server-url" placeholder="http://0.0.0.0:6002" class="setting-input" style="width: 300px; max-width: 300px;" />
-                                    <button id="test-mineru-btn" class="btn btn-secondary" style="white-space: nowrap;" title="Test MinerU connection">
+                                    <input type="text" id="mineru-server-url" placeholder="http://0.0.0.0:6002"
+                                        class="setting-input" style="width: 300px; max-width: 300px;" />
+                                    <button id="test-mineru-btn" class="btn btn-secondary" style="white-space: nowrap;"
+                                        title="Test MinerU connection">
                                         <i class="fas fa-vial"></i> Test
                                     </button>
                                 </div>
                             </div>
                         </div>
-                        
+
                         <!-- API Mode Configuration -->
                         <div id="mineru-api-config" style="display: none;">
                             <div class="setting-row">
                                 <div class="setting-info">
                                     <label for="mineru-api-token">MinerU API Token</label>
-                                    <small>Get your token at <a href="https://mineru.net/" target="_blank" style="color: #2196F3;">https://mineru.net/</a></small>
+                                    <small>Get your token at <a href="https://mineru.net/" target="_blank"
+                                            style="color: #2196F3;">https://mineru.net/</a></small>
                                 </div>
                                 <div style="display: flex; gap: 8px; align-items: center;">
-                                    <input type="password" id="mineru-api-token" placeholder="Enter your API token" class="setting-input" style="width: 400px; max-width: 400px;" />
-                                    <button id="test-mineru-btn" class="btn btn-secondary" style="white-space: nowrap;" title="Test MinerU API token">
+                                    <input type="password" id="mineru-api-token" placeholder="Enter your API token"
+                                        class="setting-input" style="width: 400px; max-width: 400px;" />
+                                    <button id="test-mineru-btn" class="btn btn-secondary" style="white-space: nowrap;"
+                                        title="Test MinerU API token">
                                         <i class="fas fa-vial"></i> Test
                                     </button>
                                 </div>
                             </div>
                         </div>
-                        
+
                         <div id="mineru-test-result" style="margin-top: 8px; display: none;"></div>
                     </div>
                 </div>
@@ -570,7 +611,8 @@
             <!-- Daily arXiv Panel -->
             <div class="setting-panel" id="setting-panel-daily-arxiv" style="display:none;">
                 <div class="panel-header">
-                    <h2><img src="{{ url_for('static', filename='images/arxiv-logo.svg') }}" alt="arXiv" class="panel-header-arxiv-icon"> Daily arXiv Settings</h2>
+                    <h2><img src="{{ url_for('static', filename='images/arxiv-logo.svg') }}" alt="arXiv"
+                            class="panel-header-arxiv-icon"> Daily arXiv Settings</h2>
                     <p>Configure daily arXiv paper fetching</p>
                 </div>
                 <div class="setting-card">
@@ -588,7 +630,8 @@
                                 <!-- Category tags will be rendered here -->
                             </div>
                             <div class="daily-arxiv-add-category">
-                                <input type="text" id="daily-arxiv-new-category" placeholder="Enter category name, e.g., cs.CV" class="setting-input" />
+                                <input type="text" id="daily-arxiv-new-category"
+                                    placeholder="Enter category name, e.g., cs.CV" class="setting-input" />
                                 <button class="btn btn-secondary" onclick="addDailyArxivCategory()">
                                     <i class="fas fa-plus"></i> Add
                                 </button>
@@ -601,7 +644,8 @@
                             <button class="suggestion-tag" onclick="addDailyArxivCategoryQuick('cs.LG')">cs.LG</button>
                             <button class="suggestion-tag" onclick="addDailyArxivCategoryQuick('cs.CL')">cs.CL</button>
                             <button class="suggestion-tag" onclick="addDailyArxivCategoryQuick('cs.RO')">cs.RO</button>
-                            <button class="suggestion-tag" onclick="addDailyArxivCategoryQuick('stat.ML')">stat.ML</button>
+                            <button class="suggestion-tag"
+                                onclick="addDailyArxivCategoryQuick('stat.ML')">stat.ML</button>
                         </div>
                     </div>
                 </div>
@@ -616,14 +660,16 @@
                                 <label for="daily-arxiv-retention-days">Retention days</label>
                                 <small>Papers older than this days will be automatically cleaned up</small>
                             </div>
-                            <input type="number" id="daily-arxiv-retention-days" min="1" max="30" value="7" class="setting-input" />
+                            <input type="number" id="daily-arxiv-retention-days" min="1" max="30" value="7"
+                                class="setting-input" />
                         </div>
                         <div class="setting-row">
                             <div class="setting-info">
                                 <label for="daily-arxiv-check-interval">Check interval (minutes)</label>
                                 <small>Interval for automatically checking new papers</small>
                             </div>
-                            <input type="number" id="daily-arxiv-check-interval" min="5" max="60" value="10" class="setting-input" />
+                            <input type="number" id="daily-arxiv-check-interval" min="5" max="60" value="10"
+                                class="setting-input" />
                         </div>
                     </div>
                 </div>
@@ -638,7 +684,8 @@
                                 <label for="daily-arxiv-max-keywords">Max keywords</label>
                                 <small>Maximum number of keywords extracted by AI (1-3)</small>
                             </div>
-                            <input type="number" id="daily-arxiv-max-keywords" min="1" max="3" value="1" class="setting-input" />
+                            <input type="number" id="daily-arxiv-max-keywords" min="1" max="3" value="1"
+                                class="setting-input" />
                         </div>
                         <div class="setting-row full-width">
                             <div class="setting-info">
@@ -649,7 +696,8 @@
                                 <!-- Keyword tags will be rendered here -->
                             </div>
                             <div class="daily-arxiv-add-keyword">
-                                <input type="text" id="daily-arxiv-new-keyword" placeholder="Enter keyword, press Enter to add" class="setting-input" />
+                                <input type="text" id="daily-arxiv-new-keyword"
+                                    placeholder="Enter keyword, press Enter to add" class="setting-input" />
                             </div>
                         </div>
                     </div>
@@ -663,12 +711,14 @@
                         <div class="setting-row full-width">
                             <div class="setting-info">
                                 <label>Configured institutions</label>
-                                <small>Double-click an institution tag to edit abbreviation and full-name variants</small>
+                                <small>Double-click an institution tag to edit abbreviation and full-name
+                                    variants</small>
                             </div>
                             <div class="custom-institution-list" id="custom-institution-list">
                                 <!-- Custom institution tags will be rendered here -->
                             </div>
-                            <button class="btn btn-secondary" onclick="showAddInstitutionModal()" style="margin-top: 12px;">
+                            <button class="btn btn-secondary" onclick="showAddInstitutionModal()"
+                                style="margin-top: 12px;">
                                 <i class="fas fa-plus"></i> Add institution
                             </button>
                         </div>
@@ -682,7 +732,7 @@
                     <h2><i class="fas fa-file-import"></i> Import Data</h2>
                     <p>Import your paper library from Zotero or other sources</p>
                 </div>
-                
+
                 <!-- Import type tabs -->
                 <div class="import-type-tabs">
                     <button class="import-type-tab active" data-import-type="zotero">
@@ -694,15 +744,15 @@
                         Import from export file
                     </button>
                 </div>
-                
+
                 <!-- Zotero import -->
                 <div id="import-zotero-panel" class="import-content-panel">
-                <div class="setting-card">
-                    <div class="setting-card-header">
-                        <i class="fas fa-upload"></i>
-                        <span>Upload RDF file</span>
-                    </div>
-                    <div class="setting-card-body">
+                    <div class="setting-card">
+                        <div class="setting-card-header">
+                            <i class="fas fa-upload"></i>
+                            <span>Upload RDF file</span>
+                        </div>
+                        <div class="setting-card-body">
                             <div class="import-options">
                                 <div class="import-target-category">
                                     <label><i class="fas fa-folder"></i> Import into folder:</label>
@@ -711,200 +761,215 @@
                                         <!-- Category list will be filled by JS -->
                                     </select>
                                     <small>Zotero collections will be created under the selected folder</small>
+                                </div>
                             </div>
-                        </div>
-                        
-                        <div class="import-drop-zone" id="import-drop-zone">
-                            <div class="drop-zone-content" id="drop-zone-content">
-                                <i class="fas fa-cloud-upload-alt"></i>
-                                <p>Drag Zotero RDF file here</p>
-                                <span>or <a href="#" onclick="document.getElementById('rdf-file-input').click(); return false;">click to choose a file</a></span>
-                                <small>Export from Zotero: File → Export Library → choose RDF format</small>
+
+                            <div class="import-drop-zone" id="import-drop-zone">
+                                <div class="drop-zone-content" id="drop-zone-content">
+                                    <i class="fas fa-cloud-upload-alt"></i>
+                                    <p>Drag Zotero RDF file here</p>
+                                    <span>or <a href="#"
+                                            onclick="document.getElementById('rdf-file-input').click(); return false;">click
+                                            to choose a file</a></span>
+                                    <small>Export from Zotero: File → Export Library → choose RDF format</small>
+                                </div>
+                                <input type="file" id="rdf-file-input" accept=".rdf" style="display: none;">
                             </div>
-                            <input type="file" id="rdf-file-input" accept=".rdf" style="display: none;">
-                        </div>
-                        
-                        <!-- Parsing progress -->
-                        <div class="import-progress-container" id="import-progress-container" style="display: none;">
-                            <div class="import-status">
-                                <i class="fas fa-spinner fa-spin" id="import-status-icon"></i>
-                                <span id="import-status-text">Parsing RDF file...</span>
-                                <!-- Cancel import button is hidden -->
-                                <!-- <button class="btn btn-danger btn-sm" id="cancel-import-btn" onclick="cancelImport()" style="margin-left: 10px; display: none;">
+
+                            <!-- Parsing progress -->
+                            <div class="import-progress-container" id="import-progress-container"
+                                style="display: none;">
+                                <div class="import-status">
+                                    <i class="fas fa-spinner fa-spin" id="import-status-icon"></i>
+                                    <span id="import-status-text">Parsing RDF file...</span>
+                                    <!-- Cancel import button is hidden -->
+                                    <!-- <button class="btn btn-danger btn-sm" id="cancel-import-btn" onclick="cancelImport()" style="margin-left: 10px; display: none;">
                                     <i class="fas fa-times"></i> Cancel import
                                 </button> -->
-                            </div>
-                            <div class="import-progress-bar">
-                                <div class="import-progress-fill" id="import-progress-fill" style="width: 0%"></div>
-                            </div>
-                            <div class="import-progress-detail" id="import-progress-detail">
-                                Preparing...
-                            </div>
-                        </div>
-                        
-                        <!-- Import result -->
-                        <div class="import-result" id="import-result" style="display: none;">
-                            <div class="import-result-summary">
-                                <div class="result-stat success">
-                                    <i class="fas fa-check-circle"></i>
-                                    <span id="import-success-count">0</span>
-                                    <label>Imported</label>
                                 </div>
-                                <div class="result-stat failed">
-                                    <i class="fas fa-times-circle"></i>
-                                    <span id="import-failed-count">0</span>
-                                    <label>Failed</label>
+                                <div class="import-progress-bar">
+                                    <div class="import-progress-fill" id="import-progress-fill" style="width: 0%"></div>
                                 </div>
-                                <div class="result-stat skipped">
-                                    <i class="fas fa-forward"></i>
-                                    <span id="import-skipped-count">0</span>
-                                    <label>Skipped</label>
-                                </div>
-                                <div class="result-stat duplicate">
-                                    <i class="fas fa-clone"></i>
-                                    <span id="import-duplicate-count">0</span>
-                                    <label>Duplicates</label>
+                                <div class="import-progress-detail" id="import-progress-detail">
+                                    Preparing...
                                 </div>
                             </div>
-                            <div class="import-result-detail" id="import-result-detail" style="display: none;">
-                                <p><i class="fas fa-folder" style="color: #8b949e;"></i> <strong id="import-others-count">0</strong> papers without categories were placed into the "Others" folder.</p>
-                            </div>
-                            <div class="import-result-actions">
-                                <button class="btn btn-primary" onclick="resetImport()">
-                                    <i class="fas fa-redo"></i> Import again
-                                </button>
-                                <button class="btn btn-secondary" onclick="switchToOverview()">
-                                    <i class="fas fa-arrow-left"></i> Back to Overview
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                
-                <!-- Import instructions -->
-                <div class="setting-card">
-                    <div class="setting-card-header">
-                        <i class="fas fa-info-circle"></i>
-                        <span>How to import</span>
-                    </div>
-                    <div class="setting-card-body">
-                        <div class="import-instructions">
-                            <div class="instruction-step">
-                                <span class="step-number">1</span>
-                                <div class="step-content">
-                                    <strong>Export Zotero library</strong>
-                                    <p>In Zotero, select "My Library", right-click and choose "Export Library", select <code>Zotero RDF</code> to get an .rdf file.</p>
+
+                            <!-- Import result -->
+                            <div class="import-result" id="import-result" style="display: none;">
+                                <div class="import-result-summary">
+                                    <div class="result-stat success">
+                                        <i class="fas fa-check-circle"></i>
+                                        <span id="import-success-count">0</span>
+                                        <label>Imported</label>
+                                    </div>
+                                    <div class="result-stat failed">
+                                        <i class="fas fa-times-circle"></i>
+                                        <span id="import-failed-count">0</span>
+                                        <label>Failed</label>
+                                    </div>
+                                    <div class="result-stat skipped">
+                                        <i class="fas fa-forward"></i>
+                                        <span id="import-skipped-count">0</span>
+                                        <label>Skipped</label>
+                                    </div>
+                                    <div class="result-stat duplicate">
+                                        <i class="fas fa-clone"></i>
+                                        <span id="import-duplicate-count">0</span>
+                                        <label>Duplicates</label>
+                                    </div>
                                 </div>
-                            </div>
-                            <div class="instruction-step">
-                                <span class="step-number">2</span>
-                                <div class="step-content">
-                                    <strong>Upload RDF file</strong>
-                                    <p>Drag the exported .rdf file into the area above, the system will parse it automatically.</p>
+                                <div class="import-result-detail" id="import-result-detail" style="display: none;">
+                                    <p><i class="fas fa-folder" style="color: #8b949e;"></i> <strong
+                                            id="import-others-count">0</strong> papers without categories were placed
+                                        into the "Others" folder.</p>
                                 </div>
-                            </div>
-                            <div class="instruction-step">
-                                <span class="step-number">3</span>
-                                <div class="step-content">
-                                    <strong>Auto-download PDFs</strong>
-                                    <p>The system will automatically download PDFs from arXiv based on paper information.</p>
+                                <div class="import-result-actions">
+                                    <button class="btn btn-primary" onclick="resetImport()">
+                                        <i class="fas fa-redo"></i> Import again
+                                    </button>
+                                    <button class="btn btn-secondary" onclick="switchToOverview()">
+                                        <i class="fas fa-arrow-left"></i> Back to Overview
+                                    </button>
                                 </div>
                             </div>
                         </div>
                     </div>
+
+                    <!-- Import instructions -->
+                    <div class="setting-card">
+                        <div class="setting-card-header">
+                            <i class="fas fa-info-circle"></i>
+                            <span>How to import</span>
+                        </div>
+                        <div class="setting-card-body">
+                            <div class="import-instructions">
+                                <div class="instruction-step">
+                                    <span class="step-number">1</span>
+                                    <div class="step-content">
+                                        <strong>Export Zotero library</strong>
+                                        <p>In Zotero, select "My Library", right-click and choose "Export Library",
+                                            select <code>Zotero RDF</code> to get an .rdf file.</p>
+                                    </div>
+                                </div>
+                                <div class="instruction-step">
+                                    <span class="step-number">2</span>
+                                    <div class="step-content">
+                                        <strong>Upload RDF file</strong>
+                                        <p>Drag the exported .rdf file into the area above, the system will parse it
+                                            automatically.</p>
+                                    </div>
+                                </div>
+                                <div class="instruction-step">
+                                    <span class="step-number">3</span>
+                                    <div class="step-content">
+                                        <strong>Auto-download PDFs</strong>
+                                        <p>The system will automatically download PDFs from arXiv based on paper
+                                            information.</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
-                </div>
-                
+
                 <!-- Import from export file -->
                 <div id="import-export-panel" class="import-content-panel" style="display:none;">
-                <div class="setting-card">
-                    <div class="setting-card-header">
-                        <i class="fas fa-file-archive"></i>
-                        <span>Upload export file</span>
+                    <div class="setting-card">
+                        <div class="setting-card-header">
+                            <i class="fas fa-file-archive"></i>
+                            <span>Upload export file</span>
+                        </div>
+                        <div class="setting-card-body">
+                            <div class="export-info-box" style="margin-bottom: 20px;">
+                                <i class="fas fa-info-circle"></i>
+                                <div class="export-info-text">
+                                    <p><strong>About importing from export files:</strong></p>
+                                    <ul>
+                                        <li>Supports importing ZIP files generated by the Export feature.</li>
+                                        <li>Will automatically restore pdfs, folder structure.</li>
+                                        <li>If a category already exists, it will be merged automatically.</li>
+                                        <li>Duplicate papers will be skipped.</li>
+                                    </ul>
+                                </div>
+                            </div>
+
+                            <div class="import-drop-zone" id="export-import-drop-zone">
+                                <div class="drop-zone-content" id="export-drop-zone-content">
+                                    <i class="fas fa-cloud-upload-alt"></i>
+                                    <p>Drag exported ZIP file here</p>
+                                    <span>or <a href="#"
+                                            onclick="document.getElementById('export-file-input').click(); return false;">click
+                                            to choose a file</a></span>
+                                    <small>ZIP file generated by the Export feature</small>
+                                </div>
+                                <input type="file" id="export-file-input" accept=".zip" style="display: none;">
+                            </div>
+
+                            <!-- Import progress -->
+                            <div id="export-import-progress-container" style="display:none; margin-top: 20px;">
+                                <div class="import-progress-header">
+                                    <span id="export-import-status-text">Importing...</span>
+                                    <span id="export-import-progress-percent">0%</span>
+                                </div>
+                                <div class="import-progress-bar">
+                                    <div id="export-import-progress-fill" class="import-progress-fill"
+                                        style="width: 0%;"></div>
+                                </div>
+                                <div id="export-import-current-item" class="import-current-item"></div>
+                                <div class="import-details" id="export-import-details">
+                                    <span>Success: <strong id="export-import-success-count">0</strong></span>
+                                    <span>Failed: <strong id="export-import-failed-count">0</strong></span>
+                                    <span>Skipped: <strong id="export-import-skipped-count">0</strong></span>
+                                    <span>Duplicates: <strong id="export-import-duplicate-count">0</strong></span>
+                                </div>
+                            </div>
+                        </div>
                     </div>
-                    <div class="setting-card-body">
-                        <div class="export-info-box" style="margin-bottom: 20px;">
+
+                    <!-- Usage instructions -->
+                    <div class="setting-card">
+                        <div class="setting-card-header">
                             <i class="fas fa-info-circle"></i>
-                            <div class="export-info-text">
-                                <p><strong>About importing from export files:</strong></p>
-                                <ul>
-                                    <li>Supports importing ZIP files generated by the Export feature.</li>
-                                    <li>Will automatically restore pdfs, folder structure.</li>
-                                    <li>If a category already exists, it will be merged automatically.</li>
-                                    <li>Duplicate papers will be skipped.</li>
-                                </ul>
-                            </div>
+                            <span>Usage</span>
                         </div>
-                        
-                        <div class="import-drop-zone" id="export-import-drop-zone">
-                            <div class="drop-zone-content" id="export-drop-zone-content">
-                                <i class="fas fa-cloud-upload-alt"></i>
-                                <p>Drag exported ZIP file here</p>
-                                <span>or <a href="#" onclick="document.getElementById('export-file-input').click(); return false;">click to choose a file</a></span>
-                                <small>ZIP file generated by the Export feature</small>
-                            </div>
-                            <input type="file" id="export-file-input" accept=".zip" style="display: none;">
-                        </div>
-                        
-                        <!-- Import progress -->
-                        <div id="export-import-progress-container" style="display:none; margin-top: 20px;">
-                            <div class="import-progress-header">
-                                <span id="export-import-status-text">Importing...</span>
-                                <span id="export-import-progress-percent">0%</span>
-                            </div>
-                            <div class="import-progress-bar">
-                                <div id="export-import-progress-fill" class="import-progress-fill" style="width: 0%;"></div>
-                            </div>
-                            <div id="export-import-current-item" class="import-current-item"></div>
-                            <div class="import-details" id="export-import-details">
-                                <span>Success: <strong id="export-import-success-count">0</strong></span>
-                                <span>Failed: <strong id="export-import-failed-count">0</strong></span>
-                                <span>Skipped: <strong id="export-import-skipped-count">0</strong></span>
-                                <span>Duplicates: <strong id="export-import-duplicate-count">0</strong></span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                
-                <!-- Usage instructions -->
-                <div class="setting-card">
-                    <div class="setting-card-header">
-                        <i class="fas fa-info-circle"></i>
-                        <span>Usage</span>
-                    </div>
-                    <div class="setting-card-body">
-                        <div class="import-instructions">
-                            <div class="instruction-step">
-                                <span class="step-number">1</span>
-                                <div class="step-content">
-                                    <strong>Prepare export file</strong>
-                                    <p>Make sure you have a ZIP file generated by the Export feature. This file contains a backup of your paper library.</p>
+                        <div class="setting-card-body">
+                            <div class="import-instructions">
+                                <div class="instruction-step">
+                                    <span class="step-number">1</span>
+                                    <div class="step-content">
+                                        <strong>Prepare export file</strong>
+                                        <p>Make sure you have a ZIP file generated by the Export feature. This file
+                                            contains a backup of your paper library.</p>
+                                    </div>
                                 </div>
-                            </div>
-                            <div class="instruction-step">
-                                <span class="step-number">2</span>
-                                <div class="step-content">
-                                    <strong>Upload ZIP file</strong>
-                                    <p>Drag the exported ZIP file into the area above or click "Choose file" to select it.</p>
+                                <div class="instruction-step">
+                                    <span class="step-number">2</span>
+                                    <div class="step-content">
+                                        <strong>Upload ZIP file</strong>
+                                        <p>Drag the exported ZIP file into the area above or click "Choose file" to
+                                            select it.</p>
+                                    </div>
                                 </div>
-                            </div>
-                            <div class="instruction-step">
-                                <span class="step-number">3</span>
-                                <div class="step-content">
-                                    <strong>Automatic import</strong>
-                                    <p>The system will automatically parse the ZIP file and import all papers, folder structure, translations, and analyses. This may take some time.</p>
+                                <div class="instruction-step">
+                                    <span class="step-number">3</span>
+                                    <div class="step-content">
+                                        <strong>Automatic import</strong>
+                                        <p>The system will automatically parse the ZIP file and import all papers,
+                                            folder structure, translations, and analyses. This may take some time.</p>
+                                    </div>
                                 </div>
-                            </div>
-                            <div class="instruction-step">
-                                <span class="step-number">4</span>
-                                <div class="step-content">
-                                    <strong>View results</strong>
-                                    <p>After import completes, you can view the imported papers and folder structure in the main interface.</p>
+                                <div class="instruction-step">
+                                    <span class="step-number">4</span>
+                                    <div class="step-content">
+                                        <strong>View results</strong>
+                                        <p>After import completes, you can view the imported papers and folder structure
+                                            in the main interface.</p>
+                                    </div>
                                 </div>
                             </div>
                         </div>
                     </div>
-                </div>
                 </div>
             </div>
 
@@ -914,7 +979,7 @@
                     <h2><i class="fas fa-file-export"></i> Export Data</h2>
                     <p>Export your paper library data to restore on another server or installation</p>
                 </div>
-                
+
                 <div class="setting-card">
                     <div class="setting-card-header">
                         <i class="fas fa-box-archive"></i>
@@ -925,20 +990,24 @@
                             <i class="fas fa-exclamation-triangle"></i>
                             <div>
                                 <strong>Browser limitations</strong>
-                                <p>Due to browser upload size limits, Export only includes <strong>JSON metadata and folder structure</strong>, not PDF files, AI translations, or AI analyses.</p>
+                                <p>Due to browser upload size limits, Export only includes <strong>JSON metadata and
+                                        folder structure</strong>, not PDF files, AI translations, or AI analyses.</p>
                                 <p>When importing, the system will re-download PDFs from arXiv.</p>
                             </div>
                         </div>
-                        
+
                         <div class="export-info-box">
                             <i class="fas fa-server"></i>
                             <div>
                                 <strong>Full data migration</strong>
-                                <p>To migrate full data including PDFs, translations, and analyses, copy the entire <code>papers</code> directory on the server:</p>
-                                <code id="papers-dir-path" style="display: block; margin-top: 8px; padding: 8px; background: rgba(0,0,0,0.05); border-radius: 4px; word-break: break-all;">Loading...</code>
+                                <p>To migrate full data including PDFs, translations, and analyses, copy the entire
+                                    <code>papers</code> directory on the server:
+                                </p>
+                                <code id="papers-dir-path"
+                                    style="display: block; margin-top: 8px; padding: 8px; background: rgba(0,0,0,0.05); border-radius: 4px; word-break: break-all;">Loading...</code>
                             </div>
                         </div>
-                        
+
                         <div class="export-info-box">
                             <i class="fas fa-info-circle"></i>
                             <div class="export-info-text">
@@ -952,14 +1021,14 @@
                                 </ul>
                             </div>
                         </div>
-                        
+
                         <div class="export-actions">
                             <button id="btn-start-export" class="btn btn-primary">
                                 <i class="fas fa-download"></i>
                                 Start export
                             </button>
                         </div>
-                        
+
                         <!-- Export progress -->
                         <div id="export-progress-container" style="display:none; margin-top: 20px;">
                             <div class="export-progress-header">
@@ -983,7 +1052,7 @@
                         </div>
                     </div>
                 </div>
-                
+
                 <!-- Export instructions -->
                 <div class="setting-card">
                     <div class="setting-card-header">
@@ -996,21 +1065,25 @@
                                 <span class="step-number">1</span>
                                 <div class="step-content">
                                     <strong>Start export</strong>
-                                    <p>Click "Start export" and the system will collect all paper JSON metadata and folder structure into a ZIP file.</p>
+                                    <p>Click "Start export" and the system will collect all paper JSON metadata and
+                                        folder structure into a ZIP file.</p>
                                 </div>
                             </div>
                             <div class="instruction-step">
                                 <span class="step-number">2</span>
                                 <div class="step-content">
                                     <strong>Download and save</strong>
-                                    <p>After export finishes, click "Download export file". The ZIP contains paper metadata, category structure, and configuration.</p>
+                                    <p>After export finishes, click "Download export file". The ZIP contains paper
+                                        metadata, category structure, and configuration.</p>
                                 </div>
                             </div>
                             <div class="instruction-step">
                                 <span class="step-number">3</span>
                                 <div class="step-content">
                                     <strong>Import into a new environment</strong>
-                                    <p>In a new environment, go to the Import panel and upload the exported ZIP file. The system will restore the folder structure and re-download PDFs from arXiv.</p>
+                                    <p>In a new environment, go to the Import panel and upload the exported ZIP file.
+                                        The system will restore the folder structure and re-download PDFs from arXiv.
+                                    </p>
                                 </div>
                             </div>
                         </div>
@@ -1047,15 +1120,33 @@
                 <i class="fas fa-palette"></i> Change icon color
                 <i class="fas fa-chevron-right submenu-arrow"></i>
                 <div class="color-submenu">
-                    <div class="color-option" data-color="#7d4a9d" style="background: linear-gradient(135deg, #e8d9f2 0%, #dfc8ec 50%, #d6b7e6 100%);" title="Purple (default)"></div>
-                    <div class="color-option" data-color="#5b8fd8" style="background: linear-gradient(135deg, #d0e8f8 0%, #b8daf2 50%, #a5d0ed 100%);" title="Blue"></div>
-                    <div class="color-option" data-color="#66bb6a" style="background: linear-gradient(135deg, #c8e6c9 0%, #a5d6a7 50%, #81c784 100%);" title="Green"></div>
-                    <div class="color-option" data-color="#ef5350" style="background: linear-gradient(135deg, #ffcdd2 0%, #ef9a9a 50%, #e57373 100%);" title="Red"></div>
-                    <div class="color-option" data-color="#ab47bc" style="background: linear-gradient(135deg, #f3e5f5 0%, #e1bee7 50%, #ce93d8 100%);" title="Deep purple"></div>
-                    <div class="color-option" data-color="#ffa726" style="background: linear-gradient(135deg, #ffe0b2 0%, #ffcc80 50%, #ffb74d 100%);" title="Orange"></div>
-                    <div class="color-option" data-color="#26c6da" style="background: linear-gradient(135deg, #b2ebf2 0%, #80deea 50%, #4dd0e1 100%);" title="Cyan"></div>
-                    <div class="color-option" data-color="#ec407a" style="background: linear-gradient(135deg, #fce4ec 0%, #f8bbd0 50%, #f48fb1 100%);" title="Pink"></div>
-                    <div class="color-option" data-color="#78909c" style="background: linear-gradient(135deg, #cfd8dc 0%, #b0bec5 50%, #90a4ae 100%);" title="Gray"></div>
+                    <div class="color-option" data-color="#7d4a9d"
+                        style="background: linear-gradient(135deg, #e8d9f2 0%, #dfc8ec 50%, #d6b7e6 100%);"
+                        title="Purple (default)"></div>
+                    <div class="color-option" data-color="#5b8fd8"
+                        style="background: linear-gradient(135deg, #d0e8f8 0%, #b8daf2 50%, #a5d0ed 100%);"
+                        title="Blue"></div>
+                    <div class="color-option" data-color="#66bb6a"
+                        style="background: linear-gradient(135deg, #c8e6c9 0%, #a5d6a7 50%, #81c784 100%);"
+                        title="Green"></div>
+                    <div class="color-option" data-color="#ef5350"
+                        style="background: linear-gradient(135deg, #ffcdd2 0%, #ef9a9a 50%, #e57373 100%);" title="Red">
+                    </div>
+                    <div class="color-option" data-color="#ab47bc"
+                        style="background: linear-gradient(135deg, #f3e5f5 0%, #e1bee7 50%, #ce93d8 100%);"
+                        title="Deep purple"></div>
+                    <div class="color-option" data-color="#ffa726"
+                        style="background: linear-gradient(135deg, #ffe0b2 0%, #ffcc80 50%, #ffb74d 100%);"
+                        title="Orange"></div>
+                    <div class="color-option" data-color="#26c6da"
+                        style="background: linear-gradient(135deg, #b2ebf2 0%, #80deea 50%, #4dd0e1 100%);"
+                        title="Cyan"></div>
+                    <div class="color-option" data-color="#ec407a"
+                        style="background: linear-gradient(135deg, #fce4ec 0%, #f8bbd0 50%, #f48fb1 100%);"
+                        title="Pink"></div>
+                    <div class="color-option" data-color="#78909c"
+                        style="background: linear-gradient(135deg, #cfd8dc 0%, #b0bec5 50%, #90a4ae 100%);"
+                        title="Gray"></div>
                 </div>
             </li>
             <li class="menu-divider"></li>
@@ -1094,7 +1185,7 @@
                     <i class="fas fa-times"></i>
                 </button>
             </div>
-            
+
             <div class="institution-modal-body">
                 <!-- Abbreviation input -->
                 <div class="institution-form-group">
@@ -1102,16 +1193,11 @@
                         <i class="fas fa-tag"></i>
                         Standard abbreviation
                     </label>
-                    <input 
-                        type="text" 
-                        id="modal-institution-abbr" 
-                        class="institution-input" 
-                        placeholder="e.g., ZJU, MIT, THU"
-                        autocomplete="off"
-                    />
+                    <input type="text" id="modal-institution-abbr" class="institution-input"
+                        placeholder="e.g., ZJU, MIT, THU" autocomplete="off" />
                     <span class="institution-help">Short name shown in filters</span>
                 </div>
-                
+
                 <!-- Variant list -->
                 <div class="institution-form-group">
                     <label class="institution-label">
@@ -1123,30 +1209,23 @@
                         <!-- Variant tags will be shown here -->
                     </div>
                 </div>
-                
+
                 <!-- Add variant input -->
                 <div class="institution-form-group">
                     <div class="institution-add-variant">
-                        <input 
-                            type="text" 
-                            id="modal-new-variant" 
-                            class="institution-input" 
+                        <input type="text" id="modal-new-variant" class="institution-input"
                             placeholder="Type full institution name (e.g., Zhejiang University) and press Enter"
-                            autocomplete="off"
-                        />
+                            autocomplete="off" />
                         <button class="institution-add-btn" onclick="addVariantInModal()">
                             <i class="fas fa-plus"></i>
                         </button>
                     </div>
                 </div>
             </div>
-            
+
             <div class="institution-modal-footer">
-                <button 
-                    id="institution-modal-delete" 
-                    class="institution-btn institution-btn-danger" 
-                    onclick="deleteInstitutionInModal()" 
-                    style="display: none;">
+                <button id="institution-modal-delete" class="institution-btn institution-btn-danger"
+                    onclick="deleteInstitutionInModal()" style="display: none;">
                     <i class="fas fa-trash-alt"></i>
                     Delete institution
                 </button>
@@ -1175,14 +1254,17 @@
             </div>
             <div class="onboarding-body">
                 <!-- Language Selection (at the top) -->
-                <div class="onboarding-step" style="border-bottom: 2px solid #e0e0e0; padding-bottom: 20px; margin-bottom: 20px;">
+                <div class="onboarding-step"
+                    style="border-bottom: 2px solid #e0e0e0; padding-bottom: 20px; margin-bottom: 20px;">
                     <div class="onboarding-step-icon">
                         <i class="fas fa-language"></i>
                     </div>
                     <div class="onboarding-step-content">
                         <h3>Select AI Output Language</h3>
-                        <p style="margin-bottom: 12px;">Choose the language for AI-generated content (translation, interpretation, and Daily arXiv summaries):</p>
-                        <select id="onboarding-ai-language" class="setting-input" style="width: 200px; font-size: 14px; padding: 8px;">
+                        <p style="margin-bottom: 12px;">Choose the language for AI-generated content (translation,
+                            interpretation, and Daily arXiv summaries):</p>
+                        <select id="onboarding-ai-language" class="setting-input"
+                            style="width: 200px; font-size: 14px; padding: 8px;">
                             <option value="zh">Chinese</option>
                             <option value="en">English</option>
                         </select>
@@ -1194,7 +1276,8 @@
                     </div>
                     <div class="onboarding-step-content">
                         <h3>1. Configure AI features</h3>
-                        <p>Click <strong>top-right avatar → Agentic</strong> to set LLM API and MinerU services. This is required for AI translation, AI analysis, and Daily arXiv.</p>
+                        <p>Click <strong>top-right avatar → Agentic</strong> to set LLM API and MinerU services. This is
+                            required for AI translation, AI analysis, and Daily arXiv.</p>
                     </div>
                 </div>
                 <div class="onboarding-step">
@@ -1203,7 +1286,8 @@
                     </div>
                     <div class="onboarding-step-content">
                         <h3>2. Basic operations</h3>
-                        <p>Upload PDF papers, create folders to organize them, and use search to find papers. Click a paper to view details, double-click to open the reader.</p>
+                        <p>Upload PDF papers, create folders to organize them, and use search to find papers. Click a
+                            paper to view details, double-click to open the reader.</p>
                     </div>
                 </div>
                 <div class="onboarding-step">
@@ -1212,16 +1296,21 @@
                     </div>
                     <div class="onboarding-step-content">
                         <h3>3. Agentic Tools</h3>
-                        <p>Supports <strong>AI analysis</strong> and <strong>AI translation</strong>. AI analysis converts a paper into a detailed Markdown interpretation; AI translation generates bilingual (EN-ZH) PDFs. In the paper list, select papers and use the context menu or batch actions.</p>
+                        <p>Supports <strong>AI analysis</strong> and <strong>AI translation</strong>. AI analysis
+                            converts a paper into a detailed Markdown interpretation; AI translation generates bilingual
+                            (EN-ZH) PDFs. In the paper list, select papers and use the context menu or batch actions.
+                        </p>
                     </div>
                 </div>
                 <div class="onboarding-step">
                     <div class="onboarding-step-icon">
-                        <img src="{{ url_for('static', filename='images/arxiv-logo.svg') }}" alt="arXiv" class="onboarding-arxiv-icon">
+                        <img src="{{ url_for('static', filename='images/arxiv-logo.svg') }}" alt="arXiv"
+                            class="onboarding-arxiv-icon">
                     </div>
                     <div class="onboarding-step-content">
                         <h3>4. Daily arXiv</h3>
-                        <p>Automatically fetches the latest arXiv papers, with filters by institution, country, and keywords. You can import interesting papers into your main library with one click.</p>
+                        <p>Automatically fetches the latest arXiv papers, with filters by institution, country, and
+                            keywords. You can import interesting papers into your main library with one click.</p>
                     </div>
                 </div>
                 <div class="onboarding-step">
@@ -1230,7 +1319,9 @@
                     </div>
                     <div class="onboarding-step-content">
                         <h3>5. Import from Zotero</h3>
-                        <p>You can import your Zotero library. Go to <strong>top-right avatar → Import</strong>, upload the RDF file exported from Zotero, and the system will automatically download PDFs and restore folder structure.</p>
+                        <p>You can import your Zotero library. Go to <strong>top-right avatar → Import</strong>, upload
+                            the RDF file exported from Zotero, and the system will automatically download PDFs and
+                            restore folder structure.</p>
                     </div>
                 </div>
             </div>
@@ -1246,87 +1337,119 @@
         </div>
     </div>
 
+    <!-- Login Overlay -->
+    <div id="login-overlay" class="login-overlay" style="display: none;">
+        <div class="login-card">
+            <div class="login-header">
+                <img src="{{ url_for('static', filename='images/website_logo.png') }}" alt="Resophy Logo"
+                    class="login-logo" onerror="this.style.display='none'">
+                <h2 id="auth-title">Log In</h2>
+                <p>Welcome to Resophy Paper Reading</p>
+            </div>
+            <form id="auth-form" class="auth-form">
+                <div class="form-group">
+                    <label for="auth-email">Email</label>
+                    <input type="email" id="auth-email" required placeholder="name@example.com" class="auth-input">
+                </div>
+                <div class="form-group">
+                    <label for="auth-password">Password</label>
+                    <input type="password" id="auth-password" required placeholder="Enter your password"
+                        class="auth-input">
+                </div>
+                <div id="auth-error" class="auth-error" style="display: none;"></div>
+                <button type="submit" id="auth-submit" class="btn btn-primary btn-block">Log In</button>
+            </form>
+            <div class="auth-footer">
+                <span id="auth-toggle-text">Don't have an account?</span>
+                <button id="toggle-auth-mode" class="btn-link">Sign Up</button>
+            </div>
+        </div>
+    </div>
+
     <!-- CDN Fallback Mechanism -->
     <script>
-    (function() {
-        'use strict';
-        
-        // CDN fallback configuration
-        const cdnFallbacks = {
-            marked: [
-                'https://cdn.jsdelivr.net/npm/marked/marked.min.js',
-                'https://cdn.bootcdn.net/ajax/libs/marked/9.1.6/marked.min.js',
-                'https://unpkg.com/marked/marked.min.js'
-            ],
-            hljs: [
-                'https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js',
-                'https://cdn.bootcdn.net/ajax/libs/highlight.js/11.9.0/highlight.min.js'
-            ]
-        };
-        
-        let fallbackAttempts = { marked: 0, hljs: 0 };
-        
-        // Load script with fallback
-        function loadScriptWithFallback(name, urls, index = 0) {
-            if (index >= urls.length) {
-                console.error(`❌ All CDN sources failed for ${name}`);
-                if (name === 'marked') {
-                    const msg = '⚠️ Markdown rendering library failed to load.\n' +
-                                'AI analysis may not display properly.\n\n' +
-                                'Solutions:\n' +
-                                '1. Check network connection\n' +
-                                '2. Disable ad blockers\n' +
-                                '3. Try a different browser\n' +
-                                '4. Contact administrator';
-                    console.error(msg);
+        (function () {
+            'use strict';
+
+            // CDN fallback configuration
+            const cdnFallbacks = {
+                marked: [
+                    'https://cdn.jsdelivr.net/npm/marked/marked.min.js',
+                    'https://cdn.bootcdn.net/ajax/libs/marked/9.1.6/marked.min.js',
+                    'https://unpkg.com/marked/marked.min.js'
+                ],
+                hljs: [
+                    'https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js',
+                    'https://cdn.bootcdn.net/ajax/libs/highlight.js/11.9.0/highlight.min.js'
+                ]
+            };
+
+            let fallbackAttempts = { marked: 0, hljs: 0 };
+
+            // Load script with fallback
+            function loadScriptWithFallback(name, urls, index = 0) {
+                if (index >= urls.length) {
+                    console.error(`❌ All CDN sources failed for ${name}`);
+                    if (name === 'marked') {
+                        const msg = '⚠️ Markdown rendering library failed to load.\n' +
+                            'AI analysis may not display properly.\n\n' +
+                            'Solutions:\n' +
+                            '1. Check network connection\n' +
+                            '2. Disable ad blockers\n' +
+                            '3. Try a different browser\n' +
+                            '4. Contact administrator';
+                        console.error(msg);
+                    }
+                    return;
                 }
-                return;
+
+                const script = document.createElement('script');
+                script.src = urls[index];
+                script.async = false;
+
+                script.onload = function () {
+                    console.log(`✅ ${name} loaded from: ${urls[index]}`);
+                };
+
+                script.onerror = function () {
+                    console.warn(`⚠️ Failed to load ${name} from: ${urls[index]}`);
+                    loadScriptWithFallback(name, urls, index + 1);
+                };
+
+                document.head.appendChild(script);
             }
-            
-            const script = document.createElement('script');
-            script.src = urls[index];
-            script.async = false;
-            
-            script.onload = function() {
-                console.log(`✅ ${name} loaded from: ${urls[index]}`);
-            };
-            
-            script.onerror = function() {
-                console.warn(`⚠️ Failed to load ${name} from: ${urls[index]}`);
-                loadScriptWithFallback(name, urls, index + 1);
-            };
-            
-            document.head.appendChild(script);
-        }
-        
-        // Check and load missing libraries after a short delay
-        setTimeout(function() {
-            // Check Marked.js
-            if (typeof marked === 'undefined') {
-                console.warn('Marked.js not loaded, trying fallback sources...');
-                loadScriptWithFallback('marked', cdnFallbacks.marked, 0);
-            } else {
-                console.log('✅ Marked.js already loaded');
-            }
-            
-            // Check Highlight.js
-            if (typeof hljs === 'undefined') {
-                console.warn('Highlight.js not loaded, trying fallback sources...');
-                loadScriptWithFallback('hljs', cdnFallbacks.hljs, 0);
-            } else {
-                console.log('✅ Highlight.js already loaded');
-            }
-            
-            // Check MathJax
-            if (typeof MathJax === 'undefined') {
-                console.warn('⚠️ MathJax not loaded - mathematical formulas may not render');
-            } else {
-                console.log('✅ MathJax already loaded');
-            }
-        }, 1000);
-    })();
+
+            // Check and load missing libraries after a short delay
+            setTimeout(function () {
+                // Check Marked.js
+                if (typeof marked === 'undefined') {
+                    console.warn('Marked.js not loaded, trying fallback sources...');
+                    loadScriptWithFallback('marked', cdnFallbacks.marked, 0);
+                } else {
+                    console.log('✅ Marked.js already loaded');
+                }
+
+                // Check Highlight.js
+                if (typeof hljs === 'undefined') {
+                    console.warn('Highlight.js not loaded, trying fallback sources...');
+                    loadScriptWithFallback('hljs', cdnFallbacks.hljs, 0);
+                } else {
+                    console.log('✅ Highlight.js already loaded');
+                }
+
+                // Check MathJax
+                if (typeof MathJax === 'undefined') {
+                    console.warn('⚠️ MathJax not loaded - mathematical formulas may not render');
+                } else {
+                    console.log('✅ MathJax already loaded');
+                }
+            }, 1000);
+        })();
     </script>
-    
-    <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+
+    <!-- Supabase JS Client -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="{{ url_for('static', filename='js/auth.js') }}?v=2.3"></script>
 </body>
+
 </html>
