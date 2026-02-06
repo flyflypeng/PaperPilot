@@ -104,6 +104,15 @@ def _require_auth_for_api():
     if not request.path.startswith("/api/"):
         return None
 
+    # Whitelist for paths that do not require authentication (static resources, downloads)
+    if (
+        request.path.startswith("/api/daily-arxiv/thumbnail/")
+        or request.path.startswith("/api/export/download/")
+        or request.path.startswith("/api/paper/")
+        or request.path.startswith("/api/categories/")
+    ):
+        return None
+
     supabase_url = os.getenv("SUPABASE_URL", "").strip()
     supabase_anon_key = os.getenv("SUPABASE_ANON_KEY", "").strip()
     if not (supabase_url and supabase_anon_key):
