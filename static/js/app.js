@@ -43,7 +43,7 @@ function restoreQueuesFromStorage() {
         const savedAQueue = localStorage.getItem('analysisQueue');
         const savedTStatus = localStorage.getItem('translationStatus');
         const savedAStatus = localStorage.getItem('analysisStatus');
-        
+
         if (savedTQueue) {
             translationQueue = JSON.parse(savedTQueue);
         }
@@ -71,26 +71,26 @@ function cleanupCompletedQueues() {
         const status = translationStatus[pid];
         return status && (status.status === 'queued' || status.status === 'translating');
     });
-    
+
     analysisQueue = analysisQueue.filter(pid => {
         const status = analysisStatus[pid];
         return status && (status.status === 'queued' || status.status === 'analyzing');
     });
-    
+
     Object.keys(translationStatus).forEach(pid => {
         const status = translationStatus[pid];
         if (status.status === 'completed' || status.status === 'error') {
             delete translationStatus[pid];
         }
     });
-    
+
     Object.keys(analysisStatus).forEach(pid => {
         const status = analysisStatus[pid];
         if (status.status === 'completed' || status.status === 'error') {
             delete analysisStatus[pid];
         }
     });
-    
+
     saveQueuesToStorage();
 }
 
@@ -120,20 +120,20 @@ const loading = document.getElementById('loading');
 function saveCurrentViewState() {
     const settingView = document.getElementById('setting-view');
     const isSettingView = settingView && settingView.style.display !== 'none';
-    
+
     const dailyArxivView = document.getElementById('daily-arxiv-view');
     const isDailyArxivView = dailyArxivView && dailyArxivView.style.display !== 'none';
-    
+
     let settingPanel = null;
     if (isSettingView) {
         const activeNav = document.querySelector('.setting-nav-item.active');
         settingPanel = activeNav?.dataset.setting || 'overview';
     }
-    
+
     let tabName = 'paper';
     if (isSettingView) tabName = 'setting';
     else if (isDailyArxivView) tabName = 'daily-arxiv';
-    
+
     const state = {
         viewMode: currentViewMode,
         categoryId: currentCategoryId,
@@ -175,7 +175,7 @@ async function restoreViewState() {
                 }
                 return;
             }
-            
+
             // Restore Daily arXiv view
             if (state.tabName === 'daily-arxiv') {
                 // Restore selected category and date
@@ -282,7 +282,7 @@ function expandToCategoryPath(targetCategoryId) {
         }
         return null;
     }
-    
+
     const path = findCategoryPath(categories, targetCategoryId, []);
     if (path) {
         // Expand all categories along the path
@@ -293,7 +293,7 @@ function expandToCategoryPath(targetCategoryId) {
                 const container = categoryElement.closest('.category-container');
                 const toggle = container?.querySelector('.category-toggle');
                 const children = container?.querySelector('.category-children');
-                
+
                 if (toggle && children) {
                     toggle.classList.add('expanded');
                     children.classList.remove('collapsed');
@@ -365,7 +365,7 @@ function setupEventListeners() {
             showMessage('Please select a category first', 'warning');
         }
     });
-    
+
     // Import from arXiv button
     document.getElementById('upload-arxiv-btn').addEventListener('click', () => {
         // Allow import in reading-list view as well
@@ -375,7 +375,7 @@ function setupEventListeners() {
             showMessage('Please select a category first', 'warning');
         }
     });
-    
+
     // Refresh button
     document.getElementById('refresh-papers').addEventListener('click', () => {
         if (currentCategoryId) {
@@ -389,9 +389,9 @@ function setupEventListeners() {
         toggleMultiSelectMode();
     });
 
-// File input
-fileInput.addEventListener('change', handleFileSelect);
-    
+    // File input
+    fileInput.addEventListener('change', handleFileSelect);
+
     // Sort selector
     document.getElementById('sort-by').addEventListener('change', () => {
         if (papers.length > 0) {
@@ -407,7 +407,7 @@ fileInput.addEventListener('change', handleFileSelect);
     if (batchAnalyze) batchAnalyze.addEventListener('click', onBatchAnalyze);
     if (batchTranslate) batchTranslate.addEventListener('click', onBatchTranslate);
     if (batchDelete) batchDelete.addEventListener('click', onBatchDelete);
-    if (batchCancel) batchCancel.addEventListener('click', (e)=>{ e.stopPropagation(); exitMultiSelectMode(); });
+    if (batchCancel) batchCancel.addEventListener('click', (e) => { e.stopPropagation(); exitMultiSelectMode(); });
 
     // Logo Click to return to the main interface
     const navbarBrand = document.getElementById('navbar-brand');
@@ -435,7 +435,7 @@ fileInput.addEventListener('change', handleFileSelect);
     // right click menu
     setupContextMenu();
     setupPaperContextMenu();
-    
+
     // Panel adjustment
     setupSidebarResizing();
     setupInfoPanelResizing();
@@ -481,7 +481,7 @@ fileInput.addEventListener('change', handleFileSelect);
             }
         }
     });
-    
+
     // Right-click menu of blank area of ​​classification tree（Supports batch operations of multiple-select directories）
     categoryTree.addEventListener('contextmenu', (e) => {
         // If you click on a blank area of ​​the classification tree and there are multiple selected directories, the batch menu will be displayed.
@@ -547,13 +547,13 @@ async function updateCategoriesData() {
 async function renderCategoryTreeWithState() {
     // Save current expanded state
     saveExpandedState();
-    
+
     // Re-render
     renderCategoryTree();
-    
+
     // Restore expanded state
     restoreExpandedState();
-    
+
     // Restore selected state
     if (currentCategoryId) {
         const categoryElement = document.querySelector(`[data-category-id="${currentCategoryId}"]`);
@@ -582,7 +582,7 @@ function restoreExpandedState() {
             const container = categoryElement.closest('.category-container');
             const toggle = container.querySelector('.category-toggle');
             const children = container.querySelector('.category-children');
-            
+
             if (toggle && children) {
                 toggle.classList.add('expanded');
                 children.classList.remove('collapsed');
@@ -596,7 +596,7 @@ function createCategoryElement(category, level = 0) {
     // Create main container
     const container = document.createElement('div');
     container.className = 'category-container';
-    
+
     // Create classification items
     const div = document.createElement('div');
     div.className = 'category-item';
@@ -609,14 +609,14 @@ function createCategoryElement(category, level = 0) {
     div.tabIndex = 0; // Make elements focusable and support keyboard events
 
     const hasChildren = category.children && category.children.length > 0;
-    
+
     // Get icon color: custom color > Othersgrey > Default purple
     const isOthers = category.name === 'Others';
     const folderColor = category.iconColor || (isOthers ? '#8b949e' : '#7d4a9d');
-    
+
     // Pin icon
     const pinIcon = category.pinned ? '<i class="fas fa-thumbtack pin-icon"></i>' : '';
-    
+
     div.innerHTML = `
         ${hasChildren ? '<button class="category-toggle"><i class="fas fa-chevron-right"></i></button>' : '<span class="category-toggle-placeholder"></span>'}
         <i class="fas fa-folder" style="margin-right: 6px; color: ${folderColor}; font-size: 12px;"></i>
@@ -627,24 +627,24 @@ function createCategoryElement(category, level = 0) {
     // click event - Support multiple selection
     div.addEventListener('click', (e) => {
         e.stopPropagation();
-        
+
         // Ctrl/Cmd + Click: switch multiple selections
         if (e.ctrlKey || e.metaKey) {
             handleCategoryMultiSelectClick(e, category.id, div);
             return;
         }
-        
+
         // Shift + Click: Range selection
         if (e.shiftKey && lastSelectedCategoryIndex !== null) {
             handleCategoryShiftSelect(category.id, div);
             return;
         }
-        
+
         // Normal click - Clear multiple selection status
         if (isCategoryMultiSelectMode) {
             exitCategoryMultiSelectMode();
         }
-        
+
         // No matter where you click on a category item, its subcategories will be expanded first.（if exists）
         const children = container.querySelector('.category-children');
         const toggle = div.querySelector('.category-toggle');
@@ -653,7 +653,7 @@ function createCategoryElement(category, level = 0) {
             if (toggle) toggle.classList.add('expanded');
             expandedCategories.add(category.id);
         }
-        
+
         // If you click on the selected category repeatedly, it will be deselected and the to-be-read list will be displayed.
         if (div.classList.contains('selected')) {
             div.classList.remove('selected');
@@ -663,7 +663,7 @@ function createCategoryElement(category, level = 0) {
             clearPaperInfo();
             return;
         }
-        
+
         // Record selection index
         lastSelectedCategoryIndex = getCategoryIndex(category.id);
         // Select a category and load the paper（Regardless of whether there are subdirectories, the papers in this directory must be displayed.）
@@ -714,7 +714,7 @@ function createCategoryElement(category, level = 0) {
 
     // Add drag and drop functionality（Make directories draggable）- Support batch drag and drop
     setupCategoryDrag(div, category);
-    
+
     // Add drag target function（Receive drag and drop of paper or table of contents）
     setupCategoryDropTarget(div, category);
 
@@ -759,7 +759,7 @@ function createCategoryElement(category, level = 0) {
 function toggleCategoryChildren(element, category) {
     const toggle = element.querySelector('.category-toggle');
     const children = element.querySelector('.category-children');
-    
+
     if (children) {
         children.classList.toggle('collapsed');
         const isExpanded = !children.classList.contains('collapsed');
@@ -788,15 +788,15 @@ function selectCategory(categoryId, categoryName, level = null) {
 
     currentCategoryId = categoryId;
     currentCategoryTitle.textContent = categoryName;
-    
+
     // Check whether the category has subdirectories, and if so, recursively load papers in all subdirectories
     const category = findCategoryById(categories, categoryId);
     const hasChildren = category && category.children && category.children.length > 0;
-    
+
     // If there are subdirectories, load them recursively；Otherwise, only the papers in the current directory will be loaded.
     const recursive = hasChildren;
     loadPapers(categoryId, recursive);
-    
+
     // Clear the right information panel
     clearPaperInfo();
 }
@@ -811,7 +811,7 @@ async function loadPapers(categoryId, recursive = false) {
             await renderAllPapers();
             return;
         }
-        
+
         currentViewMode = 'category';
         currentCategoryId = categoryId;
         saveCurrentViewState();
@@ -836,12 +836,12 @@ async function loadPapers(categoryId, recursive = false) {
                 <p>loading...</p>
             </div>
         `;
-        
+
         // according to recursive Parameter decision API path
-        const apiUrl = recursive 
+        const apiUrl = recursive
             ? `/api/papers/${categoryId}/recursive`
             : `/api/papers/${categoryId}`;
-        
+
         const response = await fetch(apiUrl);
         if (!response.ok) {
             console.error(`Failed to load paper: ${response.status} ${response.statusText}`);
@@ -1000,7 +1000,7 @@ async function updateReadingListCount() {
         // renewIDgather
         readingListPaperIds.clear();
         papers.forEach(p => readingListPaperIds.add(p.id));
-        
+
         const tiReadingCount = document.getElementById('ti-reading-count');
         if (tiReadingCount) {
             tiReadingCount.textContent = readingListCount;
@@ -1053,9 +1053,9 @@ async function removeFromReadingList(paperId, event) {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ delete_files: false })
         });
-        
+
         const data = await response.json();
-        
+
         if (data.requires_confirmation) {
             // Confirmation of deletion is required and a pop-up window will be displayed.
             const confirmed = confirm(data.message || 'This paper has not been moved into any folder yet. Delete the PDF file, AI analysis and AI translation as well?');
@@ -1086,10 +1086,10 @@ async function removeFromReadingList(paperId, event) {
             // User cancels without taking any action
             return;
         }
-        
+
         if (response.ok && data.success) {
-            const message = data.deleted_files 
-                ? 'Removed from reading list and deleted related files' 
+            const message = data.deleted_files
+                ? 'Removed from reading list and deleted related files'
                 : 'Removed from reading list';
             showMessage(message, 'success');
             // renewIDSets and counting
@@ -1186,7 +1186,7 @@ async function showAnalyzingPapers() {
 // generate thesis itemsHTML（table layout）
 function generatePaperItemHTML(paper, showCheckbox = false) {
     const isSelected = selectedPaperIds.has(paper.id);
-    
+
     // icon column
     const iconCol = `
         <div class="paper-col-icon">
@@ -1194,7 +1194,7 @@ function generatePaperItemHTML(paper, showCheckbox = false) {
             <i class="fas fa-file-pdf" style="color: #dc3545; font-size: 16px;"></i>
         </div>
     `;
-    
+
     // title bar（Includes reading time）
     const readTimeText = getTotalReadTimeText(paper);
     const titleCol = `
@@ -1202,7 +1202,7 @@ function generatePaperItemHTML(paper, showCheckbox = false) {
             ${paper.title || paper.filename}${readTimeText}
         </div>
     `;
-    
+
     // date column
     const uploadDate = new Date(paper.upload_date).toLocaleDateString('en-US');
     const arxivDate = paper.arxiv_published_date ? new Date(paper.arxiv_published_date).toLocaleDateString('en-US') : null;
@@ -1211,7 +1211,7 @@ function generatePaperItemHTML(paper, showCheckbox = false) {
             ${uploadDate}${arxivDate ? '<br>arXiv: ' + arxivDate : ''}
         </div>
     `;
-    
+
     // AItranslation column
     const tStatus = translationStatus[paper.id];
     let translateCol = '';
@@ -1224,7 +1224,7 @@ function generatePaperItemHTML(paper, showCheckbox = false) {
     } else {
         translateCol = `<div class="paper-col-action"><button class="paper-col-btn translate icon-only" onclick="requestTranslation('${paper.id}', event)" title="AI Translate"><i class="fas fa-language"></i></button></div>`;
     }
-    
+
     // AIInterpret columns
     const aStatus = analysisStatus[paper.id];
     let analyzeCol = '';
@@ -1238,7 +1238,7 @@ function generatePaperItemHTML(paper, showCheckbox = false) {
     } else {
         analyzeCol = `<div class="paper-col-action"><button class="paper-col-btn analyze icon-only" onclick="requestAnalysis('${paper.id}', event)" title="AI Interpretation"><i class="fas fa-brain"></i></button></div>`;
     }
-    
+
     // Column to be read
     const isInReadingList = readingListPaperIds.has(paper.id);
     let readingCol = '';
@@ -1247,14 +1247,14 @@ function generatePaperItemHTML(paper, showCheckbox = false) {
     } else {
         readingCol = `<div class="paper-col-action"><button class="paper-col-btn reading icon-only" onclick="addToReadingList('${paper.id}', event)" title="Add to Readling List"><i class="fas fa-book-open"></i></button></div>`;
     }
-    
+
     return iconCol + titleCol + dateCol + translateCol + analyzeCol + readingCol;
 }
 
 // Render paper list
 function renderPapersList() {
     const sortControls = document.getElementById('sort-controls');
-    
+
     if (papers.length === 0) {
         papersList.innerHTML = `
             <div class="empty-state">
@@ -1269,14 +1269,14 @@ function renderPapersList() {
 
     // Show sort controls
     sortControls.style.display = 'flex';
-    
+
     // Get the current sorting method
     const sortBy = document.getElementById('sort-by').value;
-    
+
     // sort papers
     const sortedPapers = sortPapers([...papers], sortBy);
     // Save the current sorting for easy shift choose
-    window.__currentSortedPapers = sortedPapers.map(p=>p.id);
+    window.__currentSortedPapers = sortedPapers.map(p => p.id);
 
     // Add header
     papersList.innerHTML = `
@@ -1289,10 +1289,10 @@ function renderPapersList() {
             <div class="paper-header-col">To be read</div>
         </div>
     `;
-    
+
     // Add column width adjustment function
     setupColumnResizing();
-    
+
     sortedPapers.forEach(paper => {
         const div = document.createElement('div');
         const isSelected = selectedPaperIds.has(paper.id);
@@ -1338,7 +1338,7 @@ function renderPapersList() {
 function selectPaper(paperId) {
     // Set up first currentPaperId,so renderPapersList will be automatically selected
     currentPaperId = paperId;
-    
+
     // Remove previous selection
     document.querySelectorAll('.paper-item.selected').forEach(item => {
         item.classList.remove('selected');
@@ -1389,11 +1389,11 @@ function renderPaperInfo(paper) {
             return dateString;
         }
     };
-    
+
     // Helper function: Create expandable text blocks
     const createExpandableTextBlock = (label, content, field, multiline = false, defaultExpanded = false, editable = true) => {
         if (!content) return '';
-        
+
         // Simple judgment whether expansion is needed: check the text length or the number of line breaks
         // For a single line of text, it may need to be expanded if it exceeds a certain length.
         // For multi-line text, if more than3row needs to be expanded
@@ -1405,12 +1405,12 @@ function renderPaperInfo(paper) {
             // A single line of text may need to be expanded if it is too long
             needsExpand = content.length > 100;
         }
-        
+
         const isCollapsed = needsExpand && !defaultExpanded;
         const collapsedClass = isCollapsed ? 'text-collapsed' : '';
         const editableClass = editable ? 'editable' : '';
         const editableAttr = editable ? 'contenteditable="true"' : '';
-        
+
         return `
             <div class="info-section compact" data-field="${field}">
                 <div class="info-header">
@@ -1434,7 +1434,7 @@ function renderPaperInfo(paper) {
             </div>
         `;
     };
-    
+
     // HTMLescape function
     const escapeHtml = (text) => {
         if (!text) return '';
@@ -1442,7 +1442,7 @@ function renderPaperInfo(paper) {
         div.textContent = text;
         return div.innerHTML;
     };
-    
+
     paperInfo.innerHTML = `
         <div class="paper-info-container compact-mode">
             <!-- Basic information -->
@@ -1577,26 +1577,26 @@ function renderPaperInfo(paper) {
                 } else {
                     // If there is no link, check if there is placeholder text
                     const text = element.textContent.trim();
-            if (text && !text.includes('Click to add')) {
+                    if (text && !text.includes('Click to add')) {
                         element.textContent = text;
                     } else {
                         element.textContent = '';
                     }
                 }
             });
-            
+
             // When focus is lost: save and re-render as link
             element.addEventListener('blur', () => {
                 let content = element.textContent.trim();
-                
+
                 // If empty or contains placeholder Text, holds empty string
                 if (!content || content.includes('Click to add')) {
                     content = '';
                 }
-                
+
                 // keep
                 savePaperField(paper.id, element.dataset.field, content);
-                
+
                 // Re-render paper information to show links
                 if (currentPaperId) {
                     loadPaperInfo(currentPaperId);
@@ -1608,14 +1608,14 @@ function renderPaperInfo(paper) {
                 // Get content and save
                 const content = element.textContent.trim();
                 savePaperField(paper.id, element.dataset.field, content);
-                
+
                 // Remarks column placeholder Processing: If empty, clear the content to display placeholder
                 if (element.dataset.field === 'notes' && !content) {
                     element.textContent = '';
                 }
             });
         }
-        
+
         element.addEventListener('keydown', (e) => {
             const isMultiline = ['abstract', 'notes'].includes(element.dataset.field);
             if (e.key === 'Enter' && !e.shiftKey && !isMultiline) {
@@ -1623,21 +1623,21 @@ function renderPaperInfo(paper) {
                 element.blur();
             }
         });
-        
+
         // Remarks column placeholder deal with
         if (element.dataset.field === 'notes') {
             // Initialization: If empty, clear the content to display placeholder
             if (!element.textContent.trim()) {
                 element.textContent = '';
             }
-            
+
             // When focused: if empty, make sure you can enter
             element.addEventListener('focus', () => {
                 // placeholder will pass CSS auto-hide
             });
         }
     });
-    
+
     // Initialize the expansion of the text block/folded state
     paperInfo.querySelectorAll('.text-block').forEach(block => {
         const fullText = block.dataset.fullText || block.textContent;
@@ -1655,11 +1655,11 @@ function toggleInfoSection(header) {
 function toggleTextExpand(btn) {
     const content = btn.previousElementSibling;
     if (!content || !content.classList.contains('text-block')) return;
-    
+
     // Expand
     content.classList.remove('text-collapsed');
     btn.style.display = 'none';
-    
+
     // Show collapse button
     const collapseBtn = content.parentElement.querySelector('.text-collapse-btn');
     if (collapseBtn) {
@@ -1671,10 +1671,10 @@ function toggleTextExpand(btn) {
 function toggleTextCollapse(btn) {
     const content = btn.previousElementSibling.previousElementSibling;
     if (!content || !content.classList.contains('text-block')) return;
-    
+
     content.classList.add('text-collapsed');
     btn.style.display = 'none';
-    
+
     // Show expand button
     const expandBtn = content.parentElement.querySelector('.text-expand-btn');
     if (expandBtn) {
@@ -1750,10 +1750,10 @@ function setupDragAndDrop() {
     // Add drag and drop support to category tree
     categoryTree.addEventListener('dragover', (e) => {
         preventDefaults(e);
-        
+
         // Check whether the dragged category is（Single or batch）
         const isDraggingCategory = draggedCategory || draggedCategories.length > 0;
-        
+
         if (isDraggingCategory) {
             // If the dragging is a category, check whether it is in a certaincategory-itemsuperior
             const categoryItem = e.target.closest('.category-item');
@@ -1764,7 +1764,7 @@ function setupDragAndDrop() {
                 return;
             }
         }
-        
+
         // Handles file drag and drop by default
         e.dataTransfer.dropEffect = 'copy';
         const categoryItem = e.target.closest('.category-item');
@@ -1782,7 +1782,7 @@ function setupDragAndDrop() {
         const rect = categoryTree.getBoundingClientRect();
         const x = e.clientX;
         const y = e.clientY;
-        
+
         if (x < rect.left || x > rect.right || y < rect.top || y > rect.bottom) {
             categoryTree.classList.remove('drag-over-root');
         }
@@ -1790,17 +1790,17 @@ function setupDragAndDrop() {
 
     categoryTree.addEventListener('drop', (e) => {
         preventDefaults(e);
-        
+
         // Check whether the dragged category is（Single or batch）
         const isDraggingCategory = draggedCategory || draggedCategories.length > 0;
-        
+
         if (isDraggingCategory) {
             const categoryItem = e.target.closest('.category-item');
-            
+
             // if not in anycategory-itemon, the instructions are dragged to a blank area and moved to the root directory.
             if (!categoryItem) {
                 categoryTree.classList.remove('drag-over-root');
-                
+
                 // Batch move
                 if (draggedCategories.length > 0) {
                     console.log(`Batch placement ${draggedCategories.length} directories to the root directory`);
@@ -1816,7 +1816,7 @@ function setupDragAndDrop() {
             // if incategory-itemon, bysetupCategoryDropTargetdeal with
             return;
         }
-        
+
         // Handle file drag and drop
         const categoryItem = e.target.closest('.category-item');
         if (categoryItem) {
@@ -1925,53 +1925,53 @@ async function uploadFile(file, categoryId) {
 
     // No more front-end analysis, everything is handed over to the back-end for processing（Use font size + arXiv search）
     // This is more accurate and does not block user operations
-    
+
     try {
         // 异步上传，完全静默处理，不显示任何提示
         fetch('/api/upload', {
             method: 'POST',
             body: formData
         }).then(response => response.json())
-        .then(result => {
-            if (result.success) {
-                // Refresh silently without displaying success prompt
-                // If uploaded to the currently selected category, refresh the list immediately（Show placeholder）
-                if (currentCategoryId === categoryId) {
-                    loadPapers(currentCategoryId);
+            .then(result => {
+                if (result.success) {
+                    // Refresh silently without displaying success prompt
+                    // If uploaded to the currently selected category, refresh the list immediately（Show placeholder）
+                    if (currentCategoryId === categoryId) {
+                        loadPapers(currentCategoryId);
+                    }
+                    // If uploaded to the to-read list, refresh the to-read list
+                    if (categoryId === 'reading_list_temp' && currentViewMode === 'reading-list') {
+                        showReadingList();
+                    }
+                    // Synchronously update category counts and to-be-read list counts
+                    updateCategoriesData();
+                    renderCategoryTreeWithState();
+                    updateReadingListCount();
+
+                    // Start background polling to check whether the metadata update is completed
+                    if (result.paper && result.paper.id) {
+                        // Use placeholders paper data as initial snapshot
+                        const initialSnapshot = {
+                            title: result.paper.title || '',
+                            authors: result.paper.authors || '',
+                            abstract: result.paper.abstract || '',
+                            bibtex: result.paper.bibtex || '',
+                            arxiv_id: result.paper.arxiv_id || '',
+                        };
+                        startPollingPaperUpdate(result.paper.id, categoryId, initialSnapshot);
+                    }
+                } else {
+                    // Only show error on failure
+                    showMessage(`Upload failed: ${result.error}`, 'error');
                 }
-                // If uploaded to the to-read list, refresh the to-read list
-                if (categoryId === 'reading_list_temp' && currentViewMode === 'reading-list') {
-                    showReadingList();
-                }
-                // Synchronously update category counts and to-be-read list counts
-                updateCategoriesData();
-                renderCategoryTreeWithState();
-                updateReadingListCount();
-                
-                // Start background polling to check whether the metadata update is completed
-                if (result.paper && result.paper.id) {
-                    // Use placeholders paper data as initial snapshot
-                    const initialSnapshot = {
-                        title: result.paper.title || '',
-                        authors: result.paper.authors || '',
-                        abstract: result.paper.abstract || '',
-                        bibtex: result.paper.bibtex || '',
-                        arxiv_id: result.paper.arxiv_id || '',
-                    };
-                    startPollingPaperUpdate(result.paper.id, categoryId, initialSnapshot);
-                }
-            } else {
-                // Only show error on failure
-                showMessage(`Upload failed: ${result.error}`, 'error');
-            }
-        }).catch(error => {
-            console.error('File upload failed:', error);
-            showMessage(`${file.name} Upload failed`, 'error');
-        });
-        
+            }).catch(error => {
+                console.error('File upload failed:', error);
+                showMessage(`${file.name} Upload failed`, 'error');
+            });
+
         // Return immediately without blocking user operations
         return;
-        
+
     } catch (error) {
         console.error('Upload request failed:', error);
         showMessage('Upload failed', 'error');
@@ -1983,7 +1983,7 @@ async function uploadFile(file, categoryId) {
 function startPollingPaperUpdate(paperId, categoryId, initialSnapshotOrTitle, maxAttempts = 20) {
     let attempts = 0;
     let previousSnapshot = null; // Save initial snapshot for comparison
-    
+
     // Processing parameters: If it is a string, convert it to a snapshot object；If it is an object, use it directly
     if (typeof initialSnapshotOrTitle === 'string') {
         // Backward compatibility: if a string is passed in（title）, create a snapshot object
@@ -2006,21 +2006,21 @@ function startPollingPaperUpdate(paperId, categoryId, initialSnapshotOrTitle, ma
         };
         console.log(`[polling] Start polling for paper updates: ${paperId}, initial snapshot: title="${previousSnapshot.title}"`);
     }
-    
+
     const checkUpdate = async () => {
         try {
             attempts++;
-            
+
             // Get the latest information on the paper
             const response = await fetch(`/api/paper/${paperId}`);
             if (!response.ok) {
                 console.log(`[polling] paper ${paperId} Does not exist or has been deleted`);
                 return; // Stop polling
             }
-            
+
             const paper = await response.json();
             const currentTitle = paper.title || '';
-            
+
             // Create a current snapshot for comparison
             const currentSnapshot = {
                 title: paper.title || '',
@@ -2029,17 +2029,17 @@ function startPollingPaperUpdate(paperId, categoryId, initialSnapshotOrTitle, ma
                 bibtex: paper.bibtex || '',
                 arxiv_id: paper.arxiv_id || '',
             };
-            
+
             // Check if key fields have changed（not just title）
-            const hasChanged = 
+            const hasChanged =
                 currentSnapshot.title !== previousSnapshot.title ||
                 currentSnapshot.authors !== previousSnapshot.authors ||
                 currentSnapshot.abstract !== previousSnapshot.abstract ||
                 currentSnapshot.bibtex !== previousSnapshot.bibtex ||
                 currentSnapshot.arxiv_id !== previousSnapshot.arxiv_id;
-            
+
             console.log(`[polling] No. ${attempts} inspections: title="${currentTitle}"`);
-            
+
             if (hasChanged) {
                 console.log(`[polling] ✅ Paper update detected!`);
                 if (currentSnapshot.title !== previousSnapshot.title) {
@@ -2054,7 +2054,7 @@ function startPollingPaperUpdate(paperId, categoryId, initialSnapshotOrTitle, ma
                 if (currentSnapshot.bibtex !== previousSnapshot.bibtex) {
                     console.log(`[polling]    BibTeX: updated`);
                 }
-                
+
                 // If you are still in the same category（Or all papers view）, refresh the list
                 if (currentCategoryId === categoryId) {
                     console.log(`[polling] Refresh paper list...`);
@@ -2064,7 +2064,7 @@ function startPollingPaperUpdate(paperId, categoryId, initialSnapshotOrTitle, ma
                         // if categoryId for null, the description is in"All papers"view
                         await renderAllPapers();
                     }
-                    
+
                     // If this paper is currently selected, refresh the details
                     if (currentPaperId === paperId) {
                         console.log(`[polling] Refresh paper details...`);
@@ -2077,22 +2077,22 @@ function startPollingPaperUpdate(paperId, categoryId, initialSnapshotOrTitle, ma
                         renderPaperInfo(paper);
                     }
                 }
-                
+
                 // Update classification tree（The file name may have changed）
                 await updateCategoriesData();
                 renderCategoryTreeWithState();
-                
+
                 console.log(`[polling] Update completed, stop polling`);
                 return; // Update completed, stop polling
             }
-            
+
             // If the maximum number of attempts has not been reached, continue polling
             if (attempts < maxAttempts) {
                 setTimeout(checkUpdate, 2000); // 2Check again after seconds
             } else {
                 console.log(`[polling] ⚠️ Maximum number of attempts reached (${maxAttempts}), stop polling`);
             }
-            
+
         } catch (error) {
             console.error('[polling] ❌ Check for updates failed:', error);
             // Keep trying even if something goes wrong
@@ -2101,7 +2101,7 @@ function startPollingPaperUpdate(paperId, categoryId, initialSnapshotOrTitle, ma
             }
         }
     };
-    
+
     // Delay1Start first check in seconds（Give background processing some time, but not too long）
     // For upload scenarios, the background may complete quickly, so the delay should not be too long
     setTimeout(checkUpdate, 1000);
@@ -2218,7 +2218,7 @@ function extractAbstract(text) {
     if (candidate.length >= 50) return candidate;
     // fallback: longest paragraph
     const paragraphs = text.split(/\n\s*\n/).map(p => p.replace(/\s+/g, ' ').trim());
-    const cand2 = paragraphs.filter(p => p.length >= 120).sort((a,b)=>b.length-a.length)[0] || '';
+    const cand2 = paragraphs.filter(p => p.length >= 120).sort((a, b) => b.length - a.length)[0] || '';
     return cand2;
 }
 
@@ -2238,10 +2238,10 @@ function extractArxivIdFromName(name) {
 function setupModal() {
     const closeBtn = modal.querySelector('.close');
     const cancelBtn = document.getElementById('modal-cancel');
-    
+
     closeBtn.addEventListener('click', hideModal);
     cancelBtn.addEventListener('click', hideModal);
-    
+
     modal.addEventListener('click', (e) => {
         if (e.target === modal) {
             hideModal();
@@ -2359,7 +2359,7 @@ async function addCategory(parentId, name) {
         });
 
         const result = await response.json();
-        
+
         if (result.success) {
             showMessage('Category added successfully', 'success');
             // Update local data instead of reloading the entire tree
@@ -2389,7 +2389,7 @@ async function renameCategory(categoryId, newName) {
         });
 
         const result = await response.json();
-        
+
         if (result.success) {
             showMessage('Category renamed successfully', 'success');
             // Update local data instead of reloading the entire tree
@@ -2410,17 +2410,17 @@ async function renameCategory(categoryId, newName) {
 async function exportCategoryBibtex(categoryId) {
     try {
         showMessage('Exporting BibTeX...', 'info', 2000);
-        
+
         const response = await fetch(`/api/categories/${categoryId}/export-bibtex`, {
             method: 'GET'
         });
-        
+
         if (!response.ok) {
             const error = await response.json();
             showMessage(`Export failed: ${error.error}`, 'error');
             return;
         }
-        
+
         // Get file name（from Content-Disposition header or use the default name）
         const contentDisposition = response.headers.get('Content-Disposition');
         let filename = 'export.bib';
@@ -2430,10 +2430,10 @@ async function exportCategoryBibtex(categoryId) {
                 filename = filenameMatch[1];
             }
         }
-        
+
         // Get file content
         const blob = await response.blob();
-        
+
         // Create download link
         const url = window.URL.createObjectURL(blob);
         const a = document.createElement('a');
@@ -2441,11 +2441,11 @@ async function exportCategoryBibtex(categoryId) {
         a.download = filename;
         document.body.appendChild(a);
         a.click();
-        
+
         // clean up
         window.URL.revokeObjectURL(url);
         document.body.removeChild(a);
-        
+
         showMessage('BibTeX Export successful', 'success');
     } catch (error) {
         console.error('Export BibTeX fail:', error);
@@ -2456,18 +2456,18 @@ async function exportCategoryBibtex(categoryId) {
 async function copyCategoryArxivUrls(categoryId) {
     try {
         showMessage('Getting arXiv URL...', 'info', 2000);
-        
+
         const response = await fetch(`/api/categories/${categoryId}/copy-arxiv-urls`, {
             method: 'GET'
         });
-        
+
         const result = await response.json();
-        
+
         if (!response.ok || !result.success) {
             showMessage(`Failed to obtain: ${result.error || 'unknown error'}`, 'error');
             return;
         }
-        
+
         // copy to clipboard
         const text = result.text;
         if (navigator.clipboard && navigator.clipboard.writeText) {
@@ -2503,7 +2503,7 @@ async function deleteCategory(categoryId) {
         });
 
         const result = await response.json();
-        
+
         if (result.success) {
             // If the currently selected category is deleted, the to-be-read list will be displayed.
             if (currentCategoryId === categoryId) {
@@ -2511,7 +2511,7 @@ async function deleteCategory(categoryId) {
                 showReadingList();
                 clearPaperInfo();
             }
-            
+
             // Update local data instead of reloading the entire tree
             await updateCategoriesData();
             // Keep expanded and selected
@@ -2573,7 +2573,7 @@ function setupContextMenu() {
         const categoryId = contextMenu.dataset.categoryId;
         const category = findCategoryById(categories, categoryId);
         const categoryName = category ? category.name : 'Unknown classification';
-        
+
         if (confirm(`Confirm to delete category"${categoryName}"?\n\nNOTE: This will delete this category and all its subcategories, as well as allPDFdocument. This operation cannot be undone!`)) {
             deleteCategory(categoryId);
         }
@@ -2588,19 +2588,19 @@ function positionContextMenu(menuElement, pageX, pageY) {
     menuElement.style.visibility = 'hidden'; // Temporarily hidden to calculate dimensions
     menuElement.style.left = '0px';
     menuElement.style.top = '0px';
-    
+
     const menuRect = menuElement.getBoundingClientRect();
     const menuWidth = menuRect.width;
     const menuHeight = menuRect.height;
-    
+
     // Get viewport size
     const viewportWidth = window.innerWidth;
     const viewportHeight = window.innerHeight;
-    
+
     // Calculate initial position（Relative to viewport）
     let left = pageX;
     let top = pageY;
-    
+
     // Check the right border: if the menu would exceed the right border, offset it to the left
     if (left + menuWidth > viewportWidth) {
         left = viewportWidth - menuWidth - 10; // Keep10pxmargin
@@ -2609,7 +2609,7 @@ function positionContextMenu(menuElement, pageX, pageY) {
             left = 10;
         }
     }
-    
+
     // Check the lower bound: if the menu will exceed the lower bound, offset it upwards
     if (top + menuHeight > viewportHeight) {
         top = viewportHeight - menuHeight - 10; // Keep10pxmargin
@@ -2618,17 +2618,17 @@ function positionContextMenu(menuElement, pageX, pageY) {
             top = 10;
         }
     }
-    
+
     // Check the left margin: if the menu would exceed the left margin, offset it to the right
     if (left < 10) {
         left = 10;
     }
-    
+
     // Check the upper bound: if the menu will exceed the upper bound, offset it downwards
     if (top < 10) {
         top = 10;
     }
-    
+
     // Position after applying calculation
     menuElement.style.left = left + 'px';
     menuElement.style.top = top + 'px';
@@ -2638,7 +2638,7 @@ function positionContextMenu(menuElement, pageX, pageY) {
 // Show right-click menu
 function showContextMenu(e, categoryId) {
     contextMenu.dataset.categoryId = categoryId;
-    
+
     // Update pinned button text
     const category = findCategoryById(categories, categoryId);
     const pinText = document.getElementById('pin-text');
@@ -2651,13 +2651,13 @@ function showContextMenu(e, categoryId) {
             pinIcon.style.color = category.pinned ? '#ffc107' : '#666';
         }
     }
-    
+
     // Update selected state in color selection
     const currentColor = category?.iconColor || '#7d4a9d';
     document.querySelectorAll('.color-submenu .color-option').forEach(option => {
         option.classList.toggle('selected', option.dataset.color === currentColor);
     });
-    
+
     // Use smart positioning
     positionContextMenu(contextMenu, e.pageX, e.pageY);
 }
@@ -2666,10 +2666,10 @@ function showContextMenu(e, categoryId) {
 async function togglePinCategory(categoryId) {
     const category = findCategoryById(categories, categoryId);
     if (!category) return;
-    
+
     const newPinned = !category.pinned;
     const originalPinned = category.pinned;
-    
+
     // Update nowUI（Optimistic update）
     const categoryElement = document.querySelector(`[data-category-id="${categoryId}"]`);
     if (categoryElement) {
@@ -2679,7 +2679,7 @@ async function togglePinCategory(categoryId) {
         } else {
             categoryElement.classList.remove('pinned');
         }
-        
+
         // Update pin icon
         let pinIcon = categoryElement.querySelector('.pin-icon');
         if (newPinned) {
@@ -2699,17 +2699,17 @@ async function togglePinCategory(categoryId) {
                 pinIcon.remove();
             }
         }
-        
+
         // Reorder（Move pinned to front）
         const container = categoryElement.closest('.category-container');
         if (container) {
             const parent = container.parentElement;
             if (parent && (parent.classList.contains('category-children') || parent.id === 'category-tree')) {
                 // Get all sibling containers（Exclude current container）
-                const siblings = Array.from(parent.children).filter(child => 
+                const siblings = Array.from(parent.children).filter(child =>
                     child.classList.contains('category-container') && child !== container
                 );
-                
+
                 if (newPinned) {
                     // Pinned: Find the first non-pinned container and insert it in front of it
                     let insertBefore = null;
@@ -2768,10 +2768,10 @@ async function togglePinCategory(categoryId) {
             }
         }
     }
-    
+
     // Update local data
     category.pinned = newPinned;
-    
+
     // Update button status in right-click menu（If the menu is showing）
     const contextMenu = document.getElementById('context-menu');
     if (contextMenu && contextMenu.dataset.categoryId === categoryId) {
@@ -2785,45 +2785,45 @@ async function togglePinCategory(categoryId) {
             pinIcon.style.color = newPinned ? '#ffc107' : '#666';
         }
     }
-    
+
     // Show success message
     showMessage(newPinned ? 'Pinned' : 'Unpinned', 'success');
-    
+
     // Asynchronously save to server（Not blockingUI）
     fetch(`/api/categories/${categoryId}/pin`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ pinned: newPinned })
     })
-    .then(response => response.json())
-    .then(result => {
-        if (!result.success) {
+        .then(response => response.json())
+        .then(result => {
+            if (!result.success) {
+                // If failed, restore the original state
+                category.pinned = originalPinned;
+                // Re-render to restore state
+                renderCategoryTreeWithState();
+                showMessage('Operation failed', 'error');
+            }
+        })
+        .catch(e => {
+            console.error('Pin operation failed:', e);
             // If failed, restore the original state
             category.pinned = originalPinned;
             // Re-render to restore state
             renderCategoryTreeWithState();
             showMessage('Operation failed', 'error');
-        }
-    })
-    .catch(e => {
-        console.error('Pin operation failed:', e);
-        // If failed, restore the original state
-        category.pinned = originalPinned;
-        // Re-render to restore state
-        renderCategoryTreeWithState();
-        showMessage('Operation failed', 'error');
-    });
+        });
 }
 
 // Change directory icon color
 async function changeCategoryColor(categoryId, color) {
     const category = findCategoryById(categories, categoryId);
     if (!category) return;
-    
+
     // Save original color（Used for recovery in case of failure）
     const isOthers = category.name === 'Others';
     const originalColor = category.iconColor || (isOthers ? '#8b949e' : '#7d4a9d');
-    
+
     // Update nowUI（Optimistic update）
     const categoryElement = document.querySelector(`[data-category-id="${categoryId}"]`);
     if (categoryElement) {
@@ -2832,19 +2832,32 @@ async function changeCategoryColor(categoryId, color) {
             folderIcon.style.color = color;
         }
     }
-    
+
     // Update local data
     category.iconColor = color;
-    
+
     // Asynchronous update server（Not blockingUI）
     fetch(`/api/categories/${categoryId}/color`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ color: color })
     })
-    .then(response => response.json())
-    .then(result => {
-        if (!result.success) {
+        .then(response => response.json())
+        .then(result => {
+            if (!result.success) {
+                // If failed, restore original color
+                if (categoryElement) {
+                    const folderIcon = categoryElement.querySelector('.fa-folder');
+                    if (folderIcon) {
+                        folderIcon.style.color = originalColor;
+                    }
+                }
+                category.iconColor = originalColor;
+                showMessage('Update failed', 'error');
+            }
+        })
+        .catch(e => {
+            console.error('Update color failed:', e);
             // If failed, restore original color
             if (categoryElement) {
                 const folderIcon = categoryElement.querySelector('.fa-folder');
@@ -2854,20 +2867,7 @@ async function changeCategoryColor(categoryId, color) {
             }
             category.iconColor = originalColor;
             showMessage('Update failed', 'error');
-        }
-    })
-    .catch(e => {
-        console.error('Update color failed:', e);
-        // If failed, restore original color
-        if (categoryElement) {
-            const folderIcon = categoryElement.querySelector('.fa-folder');
-            if (folderIcon) {
-                folderIcon.style.color = originalColor;
-            }
-        }
-        category.iconColor = originalColor;
-        showMessage('Update failed', 'error');
-    });
+        });
 }
 
 // Set the paper right-click menu
@@ -2877,19 +2877,19 @@ function setupPaperContextMenu() {
         refreshPaperMetadata(paperId);
         paperContextMenu.style.display = 'none';
     });
-    
+
     document.getElementById('paper-translate').addEventListener('click', () => {
         const paperId = paperContextMenu.dataset.paperId;
         requestTranslation(paperId);
         paperContextMenu.style.display = 'none';
     });
-    
+
     document.getElementById('paper-analyze').addEventListener('click', () => {
         const paperId = paperContextMenu.dataset.paperId;
         requestAnalysis(paperId);
         paperContextMenu.style.display = 'none';
     });
-    
+
     document.getElementById('paper-delete').addEventListener('click', () => {
         const paperId = paperContextMenu.dataset.paperId;
         deletePaper(paperId);
@@ -2909,14 +2909,14 @@ function findCategoryById(node, id) {
     if (node.id === id) {
         return node;
     }
-    
+
     if (node.children) {
         for (let child of node.children) {
             const result = findCategoryById(child, id);
             if (result) return result;
         }
     }
-    
+
     return null;
 }
 
@@ -2931,7 +2931,7 @@ function showMessage(message, type = 'info', duration = 3000) {
     const messageDiv = document.createElement('div');
     messageDiv.className = `message message-${type}`;
     messageDiv.textContent = message;
-    
+
     // Add style
     messageDiv.style.cssText = `
         position: fixed;
@@ -2946,7 +2946,7 @@ function showMessage(message, type = 'info', duration = 3000) {
         word-wrap: break-word;
         animation: slideIn 0.3s ease-out;
     `;
-    
+
     // Set color based on type
     const colors = {
         success: '#28a745',
@@ -2954,12 +2954,12 @@ function showMessage(message, type = 'info', duration = 3000) {
         warning: '#ffc107',
         info: '#17a2b8'
     };
-    
+
     messageDiv.style.backgroundColor = colors[type] || colors.info;
-    
+
     // add to page
     document.body.appendChild(messageDiv);
-    
+
     // Automatically remove after specified time
     setTimeout(() => {
         messageDiv.style.animation = 'slideOut 0.3s ease-out';
@@ -2974,20 +2974,20 @@ function showMessage(message, type = 'info', duration = 3000) {
 // Set up paper drag and drop function
 function setupPaperDrag(paperElement, paper) {
     paperElement.draggable = true;
-    
+
     paperElement.addEventListener('dragstart', (e) => {
         console.log('Start dragging papers:', paper.title || paper.filename);
         draggedPaper = paper;
-        
+
         // delayed additiondraggingclass to avoid affecting the drag image
         setTimeout(() => {
             paperElement.classList.add('dragging');
         }, 0);
-        
+
         // Set drag data
         e.dataTransfer.setData('text/plain', paper.id);
         e.dataTransfer.effectAllowed = 'move';
-        
+
         // Create custom drag images（Translucent essay strip）
         const dragImage = paperElement.cloneNode(true);
         dragImage.style.position = 'absolute';
@@ -3002,15 +3002,15 @@ function setupPaperDrag(paperElement, paper) {
         dragImage.style.padding = '6px 10px';
         dragImage.style.pointerEvents = 'none';
         document.body.appendChild(dragImage);
-        
+
         // Calculate mouse position relative to element（Start from the upper left corner）
         const rect = paperElement.getBoundingClientRect();
         const offsetX = e.clientX - rect.left;
         const offsetY = e.clientY - rect.top;
-        
+
         // Use the cloned element as the drag image, and the offset is the mouse click position
         e.dataTransfer.setDragImage(dragImage, offsetX, offsetY);
-        
+
         // Remove the cloned element after dragging
         setTimeout(() => {
             if (document.body.contains(dragImage)) {
@@ -3018,17 +3018,17 @@ function setupPaperDrag(paperElement, paper) {
             }
         }, 0);
     });
-    
+
     paperElement.addEventListener('dragend', (e) => {
         console.log('end drag thesis');
         paperElement.classList.remove('dragging');
         draggedPaper = null;
-        
+
         // Clear all drag and drop status
         document.querySelectorAll('.category-item.drag-over, .category-item.drag-target').forEach(el => {
             el.classList.remove('drag-over', 'drag-target');
         });
-        
+
         // Cleanup timer
         if (dragExpandTimer) {
             clearTimeout(dragExpandTimer);
@@ -3041,16 +3041,16 @@ function setupPaperDrag(paperElement, paper) {
 function setupCategoryDrag(categoryElement, category) {
     // Do not allow dragging of root directory
     if (category.id === 'root') return;
-    
+
     categoryElement.draggable = true;
-    
+
     categoryElement.addEventListener('dragstart', (e) => {
         // If the paper is being dragged, it will not be processed.
         if (draggedPaper) {
             e.preventDefault();
             return;
         }
-        
+
         // Check if in multi-select mode
         if (isCategoryMultiSelectMode && selectedCategoryIds.size > 0) {
             // Batch drag and drop: drag and drop all selected directories
@@ -3061,15 +3061,15 @@ function setupCategoryDrag(categoryElement, category) {
                     draggedCategories.push(cat);
                 }
             });
-            
+
             if (draggedCategories.length === 0) {
                 e.preventDefault();
                 return;
             }
-            
+
             console.log(`Start batch dragging ${draggedCategories.length} directories`);
             draggedCategory = null; // Clear a single drag
-            
+
             // Add for all selected directories dragging style
             selectedCategoryIds.forEach(catId => {
                 const el = document.querySelector(`[data-category-id="${catId}"]`);
@@ -3082,23 +3082,23 @@ function setupCategoryDrag(categoryElement, category) {
             console.log('Start dragging directories:', category.name);
             draggedCategory = category;
             draggedCategories = []; // Clear batch drag and drop
-            
+
             // delayed addition dragging kind
             setTimeout(() => {
                 categoryElement.classList.add('dragging');
             }, 0);
         }
-        
+
         // Prevent events from bubbling up and triggering dragging of parent elements
         e.stopPropagation();
-        
+
         // Set drag data
-        const categoryIds = draggedCategories.length > 0 
+        const categoryIds = draggedCategories.length > 0
             ? draggedCategories.map(c => c.id).join(',')
             : category.id;
         e.dataTransfer.setData('text/plain', `category:${categoryIds}`);
         e.dataTransfer.effectAllowed = 'move';
-        
+
         // Create custom drag images
         const dragImage = document.createElement('div');
         dragImage.style.position = 'absolute';
@@ -3106,7 +3106,7 @@ function setupCategoryDrag(categoryElement, category) {
         dragImage.style.left = '-9999px';
         dragImage.style.padding = '8px 12px';
         dragImage.style.background = '#f8f9fa';
-            dragImage.style.border = '2px solid #7d4a9d';
+        dragImage.style.border = '2px solid #7d4a9d';
         dragImage.style.borderRadius = '6px';
         dragImage.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.2)';
         dragImage.style.fontSize = '13px';
@@ -3115,44 +3115,44 @@ function setupCategoryDrag(categoryElement, category) {
         dragImage.style.display = 'flex';
         dragImage.style.alignItems = 'center';
         dragImage.style.gap = '6px';
-        
+
         if (draggedCategories.length > 0) {
             dragImage.innerHTML = `<i class="fas fa-folder" style="color: #7d4a9d;"></i> ${draggedCategories.length} directories`;
-            } else {
+        } else {
             dragImage.innerHTML = `<i class="fas fa-folder" style="color: #7d4a9d;"></i> ${category.name}`;
         }
-        
+
         document.body.appendChild(dragImage);
-        
+
         const rect = categoryElement.getBoundingClientRect();
         const offsetX = e.clientX - rect.left;
         const offsetY = e.clientY - rect.top;
-        
+
         e.dataTransfer.setDragImage(dragImage, offsetX, offsetY);
-        
+
         setTimeout(() => {
             if (document.body.contains(dragImage)) {
                 document.body.removeChild(dragImage);
             }
         }, 0);
     });
-    
+
     categoryElement.addEventListener('dragend', (e) => {
         console.log('End dragging directory');
         categoryElement.classList.remove('dragging');
-        
+
         // Clear all drag and drop status
         document.querySelectorAll('.category-item.dragging, .category-item.drag-over, .category-item.drag-target').forEach(el => {
             el.classList.remove('dragging', 'drag-over', 'drag-target');
         });
-        
+
         // Clear the drag style of the root directory
         categoryTree.classList.remove('drag-over-root');
-        
+
         // Clear drag and drop data
         draggedCategory = null;
         draggedCategories = [];
-        
+
         // Cleanup timer
         if (dragExpandTimer) {
             clearTimeout(dragExpandTimer);
@@ -3169,15 +3169,15 @@ function setupCategoryDropTarget(categoryElement, category) {
         // mustpreventDefaultOnly alloweddrop
         e.preventDefault();
         e.stopPropagation();
-        
+
         // Check if there is a dragged paper or table of contents（Single or batch）
         if (!draggedPaper && !draggedCategory && draggedCategories.length === 0) {
             return;
         }
-        
+
         // If you drag and drop a directory（Single or batch）, cannot be dragged to itself or its own subdirectory
         const categoriesToCheck = draggedCategories.length > 0 ? draggedCategories : (draggedCategory ? [draggedCategory] : []);
-        
+
         for (const draggedCat of categoriesToCheck) {
             if (draggedCat.id === category.id) {
                 e.dataTransfer.dropEffect = 'none';
@@ -3193,26 +3193,26 @@ function setupCategoryDropTarget(categoryElement, category) {
                 }
             }
         }
-        
+
         e.dataTransfer.dropEffect = 'move';
-        
+
         // Clear the drag style of the root directory（if exists）
         categoryTree.classList.remove('drag-over-root');
-        
+
         // Add drag-and-hover style
         categoryElement.classList.add('drag-over');
-        
+
         // If there are subcategories and they are not expanded, set automatic expansion.
         if (container) {
             const children = container.querySelector('.category-children');
             const toggle = categoryElement.querySelector('.category-toggle');
-            
+
             if (children && children.classList.contains('collapsed') && toggle) {
                 // Clear previous timer
                 if (dragExpandTimer) {
                     clearTimeout(dragExpandTimer);
                 }
-                
+
                 // Set new expansion timer
                 dragExpandTimer = setTimeout(() => {
                     console.log('Automatically expand categories:', category.name);
@@ -3229,20 +3229,20 @@ function setupCategoryDropTarget(categoryElement, category) {
         e.stopPropagation();
         onDragOver(e);
     });
-    
+
     categoryElement.addEventListener('dragover', onDragOver);
-    
+
     categoryElement.addEventListener('dragleave', (e) => {
         if (!draggedPaper && !draggedCategory && draggedCategories.length === 0) return;
-        
+
         // Check if the element is actually left（instead of going into child elements）
         const rect = categoryElement.getBoundingClientRect();
         const x = e.clientX;
         const y = e.clientY;
-        
+
         if (x < rect.left || x > rect.right || y < rect.top || y > rect.bottom) {
             categoryElement.classList.remove('drag-over');
-            
+
             // Clear expansion timer
             if (dragExpandTimer) {
                 clearTimeout(dragExpandTimer);
@@ -3250,23 +3250,23 @@ function setupCategoryDropTarget(categoryElement, category) {
             }
         }
     });
-    
+
     categoryElement.addEventListener('drop', (e) => {
         e.preventDefault();
         e.stopPropagation();
-        
+
         categoryElement.classList.remove('drag-over');
         categoryElement.classList.add('drag-target');
-        
+
         // Clear the drag style of the root directory
         categoryTree.classList.remove('drag-over-root');
-        
+
         // clear timer
         if (dragExpandTimer) {
             clearTimeout(dragExpandTimer);
             dragExpandTimer = null;
         }
-        
+
         // Handle paper drag and drop
         if (draggedPaper) {
             console.log('Place article into category:', category.name, 'paper:', draggedPaper.title || draggedPaper.filename);
@@ -3284,7 +3284,7 @@ function setupCategoryDropTarget(categoryElement, category) {
         else {
             console.log('dropThere is no dragged paper or table of contents');
         }
-        
+
         // Displays target status briefly and then clears
         setTimeout(() => {
             categoryElement.classList.remove('drag-target');
@@ -3306,15 +3306,15 @@ async function movePaper(paperId, targetCategoryId) {
         });
 
         const result = await response.json();
-        
+
         if (result.success) {
             // Moved successfully, no prompt is displayed
             console.log('Paper moved successfully');
-            
+
             // Update local data
             await updateCategoriesData();
             await renderCategoryTreeWithState();
-            
+
             // If the source category is currently displayed, reload the paper list
             if (currentCategoryId === result.source_category || currentCategoryId === result.target_category) {
                 loadPapers(currentCategoryId);
@@ -3342,15 +3342,15 @@ async function moveCategory(categoryId, targetParentId) {
         });
 
         const result = await response.json();
-        
+
         if (result.success) {
             console.log('Directory moved successfully:', result.old_path, '->', result.new_path);
             showMessage('Directory moved successfully', 'success');
-            
+
             // Update local data and re-render the classification tree
             await updateCategoriesData();
             await renderCategoryTreeWithState();
-            
+
             // If the currently selected category is moved, update the selected status
             if (currentCategoryId === categoryId) {
                 // Re-select this category
@@ -3371,11 +3371,11 @@ async function moveCategory(categoryId, targetParentId) {
 // Batch move multiple directories to new parent directories
 async function moveCategories(categoryIds, targetParentId) {
     if (!categoryIds || categoryIds.length === 0) return;
-    
+
     let successCount = 0;
     let failCount = 0;
     const errors = [];
-    
+
     // Move directories one by one
     for (const categoryId of categoryIds) {
         try {
@@ -3390,7 +3390,7 @@ async function moveCategories(categoryIds, targetParentId) {
             });
 
             const result = await response.json();
-            
+
             if (result.success) {
                 successCount++;
                 console.log(`Directory moved successfully: ${categoryId}`);
@@ -3404,7 +3404,7 @@ async function moveCategories(categoryIds, targetParentId) {
             console.error(`Failed to move directory ${categoryId}:`, error);
         }
     }
-    
+
     // Show results
     if (successCount > 0) {
         if (failCount === 0) {
@@ -3415,13 +3415,13 @@ async function moveCategories(categoryIds, targetParentId) {
     } else {
         showMessage(`Move failed: ${errors[0] || 'unknown error'}`, 'error');
     }
-    
+
     // Update local data and re-render the classification tree
     if (successCount > 0) {
         await updateCategoriesData();
         await renderCategoryTreeWithState();
     }
-    
+
     // Regardless of success or failure, exit multi-select mode（Because the operation has been completed）
     if (isCategoryMultiSelectMode) {
         exitCategoryMultiSelectMode();
@@ -3454,7 +3454,7 @@ function showArxivUploadModal() {
     const modalBody = document.querySelector('#modal-body');
     const confirmBtn = document.querySelector('#modal-confirm');
     const cancelBtn = document.querySelector('#modal-cancel');
-    
+
     modalTitle.textContent = 'Import paper from arXiv';
     modalBody.innerHTML = `
         <div style="margin-bottom: 15px;">
@@ -3472,25 +3472,25 @@ function showArxivUploadModal() {
             </div>
         </div>
     `;
-    
+
     confirmBtn.style.display = 'inline-block';
     confirmBtn.textContent = 'import';
     cancelBtn.textContent = 'Cancel';
-    
+
     // Clear all previous event listeners（by removing and re-adding）
     const confirmBtnClone = confirmBtn.cloneNode(true);
     const cancelBtnClone = cancelBtn.cloneNode(true);
     confirmBtn.parentNode.replaceChild(confirmBtnClone, confirmBtn);
     cancelBtn.parentNode.replaceChild(cancelBtnClone, cancelBtn);
-    
+
     // Retrieve button reference
     const newConfirmBtn = document.getElementById('modal-confirm');
     const newCancelBtn = document.getElementById('modal-cancel');
-    
+
     newConfirmBtn.onclick = async (e) => {
         e.preventDefault();
         e.stopPropagation();
-        
+
         const arxivUrl = document.getElementById('arxiv-url').value.trim();
         if (!arxivUrl) {
             showMessage('Please enter arXiv URL or ID', 'warning');
@@ -3499,7 +3499,7 @@ function showArxivUploadModal() {
         // Non-blocking import: close the pop-up window immediately and import in the background
         hideModal();
         showMessage('Start background import…', 'success');
-        
+
         // Background download and refresh category count when complete/Current list
         (async () => {
             try {
@@ -3508,13 +3508,13 @@ function showArxivUploadModal() {
                 const requestBody = {
                     arxiv_url: arxivUrl,
                 };
-                
+
                 if (isInReadingList) {
                     requestBody.use_temp_dir = true;
                 } else {
                     requestBody.category_id = currentCategoryId;
                 }
-                
+
                 const response = await fetch('/api/upload/arxiv', {
                     method: 'POST',
                     headers: {
@@ -3544,14 +3544,14 @@ function showArxivUploadModal() {
             }
         })();
     };
-    
+
     // Set cancel button - direct coverage onclick
     newCancelBtn.onclick = (e) => {
         e.preventDefault();
         e.stopPropagation();
         hideModal();
     };
-    
+
     // Support enter key submission
     const arxivUrlInput = document.getElementById('arxiv-url');
     if (arxivUrlInput) {
@@ -3561,13 +3561,13 @@ function showArxivUploadModal() {
                 newConfirmBtn.click();
             }
         });
-        
+
         // Auto focus input box
         setTimeout(() => {
             arxivUrlInput.focus();
         }, 100);
     }
-    
+
     showModal();
 }
 
@@ -3581,7 +3581,7 @@ function setupGlobalSearch() {
     input.addEventListener('input', () => {
         const q = input.value.trim();
         clearTimeout(timer);
-        if (!q) { panel.style.display = 'none'; panel.innerHTML=''; return; }
+        if (!q) { panel.style.display = 'none'; panel.innerHTML = ''; return; }
         timer = setTimeout(async () => {
             try {
                 const params = new URLSearchParams();
@@ -3604,11 +3604,11 @@ function setupGlobalSearch() {
 }
 
 function renderSearchResults(panel, q, results) {
-    if (!results.length) { panel.style.display = 'none'; panel.innerHTML=''; return; }
-    const esc = (s) => (s||'').replace(/[&<>]/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
-    const hi = (text) => esc(text).replace(new RegExp(`(${escapeRegExp(q)})`,'ig'), '<mark>$1</mark>');
+    if (!results.length) { panel.style.display = 'none'; panel.innerHTML = ''; return; }
+    const esc = (s) => (s || '').replace(/[&<>]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));
+    const hi = (text) => esc(text).replace(new RegExp(`(${escapeRegExp(q)})`, 'ig'), '<mark>$1</mark>');
     panel.innerHTML = results.map(r => {
-        const fields = (r.matched_fields||[]).map(f=>`<span class="search-field-tag">${f}</span>`).join('');
+        const fields = (r.matched_fields || []).map(f => `<span class="search-field-tag">${f}</span>`).join('');
         const authors = r.authors ? `<div class="search-meta">${hi(r.authors)}</div>` : '';
         // Prioritize context snippets for matching fields（notes first, then abstract）
         // If there are no matching fragments, display the summary before200character
@@ -3621,7 +3621,7 @@ function renderSearchResults(panel, q, results) {
             abs = `<div class="search-meta">${hi(r.abstract_snippet)}</div>`;
         } else if (r.abstract) {
             // If there is no context fragment, display the summary before200character
-            abs = `<div class="search-meta">${hi(r.abstract.slice(0,200))}...</div>`;
+            abs = `<div class="search-meta">${hi(r.abstract.slice(0, 200))}...</div>`;
         }
         // Add to category_id Attribute, used to switch categories when clicked
         const categoryId = r.category_id || '';
@@ -3636,10 +3636,10 @@ function renderSearchResults(panel, q, results) {
         item.addEventListener('click', async () => {
             const pid = item.getAttribute('data-paper-id');
             const categoryId = item.getAttribute('data-category-id');
-            
+
             // Hide search results panel
             panel.style.display = 'none';
-            
+
             // Optimization: first check whether the paper is already in the current list
             const existingPaperItem = document.querySelector(`.paper-item[data-paper-id="${pid}"]`);
             if (existingPaperItem && currentCategoryId === categoryId) {
@@ -3650,7 +3650,7 @@ function renderSearchResults(panel, q, results) {
                 }, 50);
                 return;
             }
-            
+
             // If the paper has classification information, switch to that classification first
             if (categoryId && categoryId !== 'null' && categoryId !== 'undefined') {
                 try {
@@ -3660,18 +3660,18 @@ function renderSearchResults(panel, q, results) {
                     if (paperResponse.ok) {
                         targetPaper = await paperResponse.json();
                     }
-                    
+
                     // Get classified information
                     const categories = await fetch('/api/categories').then(r => r.json());
                     const category = findCategoryById(categories, categoryId);
-                    
+
                     if (category) {
                         // Expand the category tree to make sure the target category is visible
                         expandToCategoryPath(categoryId);
 
                         // Set up first currentPaperId,so renderPapersList will be automatically selected
                         currentPaperId = pid;
-                        
+
                         // If the target paper information has been obtained, display it first（Optimize experience）
                         if (targetPaper) {
                             // Temporarily display target papers to provide immediate feedback
@@ -3704,10 +3704,10 @@ function renderSearchResults(panel, q, results) {
                             selectPaper(pid);
                             loadPaperInfo(pid);
                         }
-                        
+
                         // Switch to this category（Load full list asynchronously）
                         selectCategory(categoryId, category.name);
-                        
+
                         // Wait until the paper list is loaded and then make sure it is selected.
                         // Use a smarter waiting mechanism
                         let attempts = 0;
@@ -3770,21 +3770,21 @@ async function refreshPaperMetadata(paperId) {
             showMessage('Paper not found', 'error');
             return;
         }
-        
+
         showMessage('Recrawling metadata...', 'info', 2000);
-        
+
         const response = await fetch(`/api/paper/${paperId}/refresh-metadata`, {
             method: 'POST'
         });
-        
+
         if (response.ok) {
             const result = await response.json();
             showMessage('Metadata fetched successfully and is being updated...', 'success', 2000);
-            
+
             // Start polling to detect updates
             const initialTitle = paper.title;
             startPollingPaperUpdate(paperId, currentCategoryId, initialTitle);
-            
+
         } else {
             const error = await response.json();
             showMessage(`Fetch failed: ${error.error}`, 'error');
@@ -3834,16 +3834,16 @@ async function deletePaper(paperId, event = null) {
 // Switch like status
 async function toggleStar(paperId, event) {
     event.stopPropagation();
-    
+
     try {
         const paper = papers.find(p => p.id === paperId);
         if (!paper) {
             showMessage('Paper not found', 'error');
             return;
         }
-        
+
         const newStarred = !paper.starred;
-        
+
         const response = await fetch(`/api/paper/${paperId}`, {
             method: 'PUT',
             headers: {
@@ -3853,19 +3853,19 @@ async function toggleStar(paperId, event) {
                 starred: newStarred
             })
         });
-        
+
         if (response.ok) {
             // Update local data
             paper.starred = newStarred;
-            
+
             // Re-render the paper list to update the display
             renderPapersList();
-            
+
             // If this paper is currently selected, reselect it to keep it selected.
             if (currentPaperId === paperId) {
                 selectPaper(paperId);
             }
-            
+
             showMessage(newStarred ? 'Liked' : 'Like canceled', 'success');
         } else {
             showMessage('Operation failed', 'error');
@@ -3879,7 +3879,7 @@ async function toggleStar(paperId, event) {
 // Edit paper information
 async function editPaper(paperId, event) {
     event.stopPropagation();
-    
+
     try {
         // Get paper information
         const response = await fetch(`/api/paper/${paperId}`);
@@ -3887,14 +3887,14 @@ async function editPaper(paperId, event) {
             showMessage('Failed to obtain paper information', 'error');
             return;
         }
-        
+
         const paper = await response.json();
-        
+
         // Show edit modal box
         const modalTitle = document.querySelector('#modal-title');
         const modalBody = document.querySelector('#modal-body');
         const confirmBtn = document.querySelector('#modal-confirm');
-        
+
         modalTitle.textContent = 'Edit paper information';
         modalBody.innerHTML = `
             <div class="form-group">
@@ -3922,7 +3922,7 @@ async function editPaper(paperId, event) {
                 <textarea id="paper-abstract" rows="4" placeholder="Paper abstract">${paper.abstract || ''}</textarea>
             </div>
         `;
-        
+
         confirmBtn.onclick = async () => {
             const updatedPaper = {
                 title: document.getElementById('paper-title').value.trim(),
@@ -3932,14 +3932,14 @@ async function editPaper(paperId, event) {
                 journal: document.getElementById('paper-journal').value.trim(),
                 abstract: document.getElementById('paper-abstract').value.trim()
             };
-            
+
             // Remove null values
             Object.keys(updatedPaper).forEach(key => {
                 if (!updatedPaper[key]) {
                     delete updatedPaper[key];
                 }
             });
-            
+
             try {
                 const updateResponse = await fetch(`/api/paper/${paperId}`, {
                     method: 'PUT',
@@ -3948,16 +3948,16 @@ async function editPaper(paperId, event) {
                     },
                     body: JSON.stringify(updatedPaper)
                 });
-                
+
                 if (updateResponse.ok) {
                     const result = await updateResponse.json();
                     showMessage('Paper information updated successfully', 'success');
                     hideModal();
-                    
+
                     // If the title is modified, the background will automatically re-fetch and start polling.
                     if (result.auto_refresh_triggered && updatedPaper.title) {
                         console.log('[Automatic recapture] The title has been modified and the background is re-crawling arXiv information...');
-                        
+
                         // First refresh the list to display the content manually updated by the user.
                         if (currentCategoryId) {
                             await loadPapers(currentCategoryId);
@@ -3970,7 +3970,7 @@ async function editPaper(paperId, event) {
                                 }
                             }
                         }
-                        
+
                         // Delay the start of polling, give the background some processing time, and pass in the updated title
                         setTimeout(() => {
                             startPollingPaperUpdate(paperId, currentCategoryId, updatedPaper.title, 15);
@@ -3990,10 +3990,10 @@ async function editPaper(paperId, event) {
                 showMessage('Update failed, please try again later', 'error');
             }
         };
-        
+
         showModal();
         document.getElementById('paper-title').focus();
-        
+
     } catch (error) {
         console.error('Failed to edit paper:', error);
         showMessage('Editing failed, please try again later', 'error');
@@ -4193,7 +4193,7 @@ function handleCategoryMultiSelectClick(e, categoryId, element) {
     if (!isCategoryMultiSelectMode) {
         isCategoryMultiSelectMode = true;
     }
-    
+
     if (selectedCategoryIds.has(categoryId)) {
         selectedCategoryIds.delete(categoryId);
         element.classList.remove('multi-selected');
@@ -4201,14 +4201,14 @@ function handleCategoryMultiSelectClick(e, categoryId, element) {
         selectedCategoryIds.add(categoryId);
         element.classList.add('multi-selected');
     }
-    
+
     lastSelectedCategoryIndex = getCategoryIndex(categoryId);
-    
+
     // If no directory is selected, exit multi-select mode
     if (selectedCategoryIds.size === 0) {
         exitCategoryMultiSelectMode();
     }
-    
+
     updateCategoryBatchUI();
 }
 
@@ -4216,15 +4216,15 @@ function handleCategoryMultiSelectClick(e, categoryId, element) {
 function handleCategoryShiftSelect(categoryId, element) {
     const currentIndex = getCategoryIndex(categoryId);
     if (currentIndex === -1 || lastSelectedCategoryIndex === null) return;
-    
+
     const elements = getAllVisibleCategoryElements();
     const start = Math.min(lastSelectedCategoryIndex, currentIndex);
     const end = Math.max(lastSelectedCategoryIndex, currentIndex);
-    
+
     if (!isCategoryMultiSelectMode) {
         isCategoryMultiSelectMode = true;
     }
-    
+
     // Select all directories within the range
     for (let i = start; i <= end; i++) {
         const el = elements[i];
@@ -4234,7 +4234,7 @@ function handleCategoryShiftSelect(categoryId, element) {
             el.classList.add('multi-selected');
         }
     }
-    
+
     updateCategoryBatchUI();
 }
 
@@ -4244,12 +4244,12 @@ function exitCategoryMultiSelectMode() {
     isCategoryMultiSelectMode = false;
     selectedCategoryIds.clear();
     lastSelectedCategoryIndex = null;
-    
+
     // Remove all multiple selection styles
     document.querySelectorAll('.category-item.multi-selected').forEach(el => {
         el.classList.remove('multi-selected');
     });
-    
+
     updateCategoryBatchUI();
 }
 
@@ -4273,26 +4273,26 @@ function showCategoryBatchContextMenu(e) {
         padding: 4px 0;
         min-width: 150px;
     `;
-    
+
     menu.innerHTML = `
         <div class="context-menu-item" data-action="delete" style="padding: 8px 16px; cursor: pointer; display: flex; align-items: center; gap: 8px;">
             <i class="fas fa-trash" style="color: #dc3545;"></i>
             <span>Delete selected directory (${selectedCategoryIds.size})</span>
         </div>
     `;
-    
+
     // Click delete
     menu.querySelector('[data-action="delete"]').addEventListener('click', () => {
         confirmDeleteSelectedCategories();
         document.body.removeChild(menu);
     });
-    
+
     // mouseover effect
     menu.querySelectorAll('.context-menu-item').forEach(item => {
         item.addEventListener('mouseenter', () => item.style.background = '#f5f5f5');
         item.addEventListener('mouseleave', () => item.style.background = 'transparent');
     });
-    
+
     // Click elsewhere to close the menu
     const closeMenu = (ev) => {
         if (!menu.contains(ev.target)) {
@@ -4303,7 +4303,7 @@ function showCategoryBatchContextMenu(e) {
         }
     };
     setTimeout(() => document.addEventListener('click', closeMenu), 0);
-    
+
     // first add to DOM, then use smart positioning
     document.body.appendChild(menu);
     // Use smart positioning（Note: Batch menu usage clientX/clientY, needs to be converted to pageX/pageY）
@@ -4316,14 +4316,14 @@ function showCategoryBatchContextMenu(e) {
 async function confirmDeleteSelectedCategories() {
     const count = selectedCategoryIds.size;
     if (count === 0) return;
-    
+
     const confirmed = confirm(`Are you sure you want to delete the selected ${count} A directory?\nThis operation will delete all papers in the directory at the same time and cannot be restored!`);
     if (!confirmed) return;
-    
+
     const ids = Array.from(selectedCategoryIds);
     let successCount = 0;
     let failCount = 0;
-    
+
     for (const categoryId of ids) {
         try {
             const response = await fetch(`/api/categories/${categoryId}`, {
@@ -4339,11 +4339,11 @@ async function confirmDeleteSelectedCategories() {
             failCount++;
         }
     }
-    
+
     exitCategoryMultiSelectMode();
     await updateCategoriesData();
     await renderCategoryTreeWithState();
-    
+
     if (failCount === 0) {
         showMessage(`successfully deleted ${successCount} directories`, 'success');
     } else {
@@ -4355,7 +4355,7 @@ async function confirmDeleteSelectedCategories() {
 function confirmDeleteCategory(categoryId) {
     const categoryNode = findCategoryNodeLocal(categories, categoryId);
     const name = categoryNode ? categoryNode.name : 'the directory';
-    
+
     const confirmed = confirm(`Confirm you want to delete the directory"${name}"?\nThis operation will delete all papers in the directory at the same time and cannot be restored!`);
     if (confirmed) {
         deleteCategory(categoryId);
@@ -4378,7 +4378,7 @@ function findCategoryNodeLocal(node, targetId) {
 function startInlineRename(element, category) {
     const nameSpan = element.querySelector('.category-name');
     if (!nameSpan) return;
-    
+
     const oldName = category.name;
     const input = document.createElement('input');
     input.type = 'text';
@@ -4393,22 +4393,22 @@ function startInlineRename(element, category) {
         width: ${Math.max(nameSpan.offsetWidth + 20, 100)}px;
         background: white;
     `;
-    
+
     nameSpan.style.display = 'none';
     nameSpan.parentNode.insertBefore(input, nameSpan.nextSibling);
     input.focus();
     input.select();
-    
+
     const finishRename = async () => {
         const newName = input.value.trim();
         input.remove();
         nameSpan.style.display = '';
-        
+
         if (newName && newName !== oldName) {
             await renameCategory(category.id, newName);
         }
     };
-    
+
     input.addEventListener('blur', finishRename);
     input.addEventListener('keydown', (e) => {
         if (e.key === 'Enter') {
@@ -4428,7 +4428,7 @@ function startInlineAddCategory(parentId) {
     let parentContainer;
     let insertPosition;
     let level = 0;
-    
+
     if (parentId === 'root') {
         // Add in root directory
         parentContainer = categoryTree;
@@ -4441,14 +4441,14 @@ function startInlineAddCategory(parentId) {
             showMessage('Parent category not found', 'error');
             return;
         }
-        
+
         level = parseInt(parentElement.dataset.level || '0') + 1;
         const parentCategoryContainer = parentElement.closest('.category-container');
-        
+
         // Make sure the parent category is expanded
         const childrenContainer = parentCategoryContainer.querySelector('.category-children');
         const toggle = parentElement.querySelector('.category-toggle');
-        
+
         if (childrenContainer) {
             childrenContainer.classList.remove('collapsed');
             if (toggle) {
@@ -4462,7 +4462,7 @@ function startInlineAddCategory(parentId) {
             const newChildrenContainer = document.createElement('div');
             newChildrenContainer.className = 'category-children';
             parentCategoryContainer.appendChild(newChildrenContainer);
-            
+
             // Update the expand button of the parent element
             const togglePlaceholder = parentElement.querySelector('.category-toggle-placeholder');
             if (togglePlaceholder) {
@@ -4479,22 +4479,22 @@ function startInlineAddCategory(parentId) {
                     });
                 }
             }
-            
+
             expandedCategories.add(parentId);
             parentContainer = newChildrenContainer;
             insertPosition = null;
         }
     }
-    
+
     // Create a temporary new category container
     const tempContainer = document.createElement('div');
     tempContainer.className = 'category-container temp-new-category';
-    
+
     const tempDiv = document.createElement('div');
     tempDiv.className = 'category-item editing';
     tempDiv.dataset.parentId = parentId;
     tempDiv.style.paddingLeft = `${level * 20 + 12}px`;
-    
+
     // Temporary expand button
     tempDiv.innerHTML = `
         <span class="category-toggle-placeholder"></span>
@@ -4502,16 +4502,16 @@ function startInlineAddCategory(parentId) {
         <span class="category-name" style="display: none;"></span>
         <span class="pdf-count">0</span>
     `;
-    
+
     tempContainer.appendChild(tempDiv);
-    
+
     // Insert into appropriate position
     if (insertPosition) {
         parentContainer.insertBefore(tempContainer, insertPosition);
     } else {
         parentContainer.appendChild(tempContainer);
     }
-    
+
     // Create input box
     const input = document.createElement('input');
     input.type = 'text';
@@ -4527,15 +4527,15 @@ function startInlineAddCategory(parentId) {
         background: white;
         box-shadow: 0 0 0 2px rgba(40, 167, 69, 0.1);
     `;
-    
+
     const nameSpan = tempDiv.querySelector('.category-name');
     nameSpan.parentNode.insertBefore(input, nameSpan.nextSibling);
     input.focus();
-    
+
     // Complete add or cancel
     const finishAdd = async () => {
         const newName = input.value.trim();
-        
+
         if (newName) {
             // Create new category
             try {
@@ -4551,7 +4551,7 @@ function startInlineAddCategory(parentId) {
                 });
 
                 const result = await response.json();
-                
+
                 if (result.success) {
                     showMessage('Category added successfully', 'success');
                     // Remove temporary elements
@@ -4573,10 +4573,10 @@ function startInlineAddCategory(parentId) {
             tempContainer.remove();
         }
     };
-    
+
     // Completed when focus is lost
     input.addEventListener('blur', finishAdd);
-    
+
     // Keyboard events
     input.addEventListener('keydown', (e) => {
         if (e.key === 'Enter' && !e.isComposing && e.keyCode !== 229) {
@@ -4600,7 +4600,7 @@ function updateBatchUI() {
 }
 
 function handleMultiSelectClick(e, paperId) {
-    const ids = window.__currentSortedPapers || papers.map(p=>p.id);
+    const ids = window.__currentSortedPapers || papers.map(p => p.id);
     const index = ids.indexOf(paperId);
     const checkbox = e.target && (e.target.matches('input[type="checkbox"]') || (e.target.closest && e.target.closest('.paper-checkbox')));
     const withShift = e.shiftKey;
@@ -4632,17 +4632,17 @@ async function onBatchAnalyze() {
 
 async function onBatchTranslate() {
     if (selectedPaperIds.size === 0) { showMessage('Please select a paper first', 'warning'); return; }
-    
+
     // Check user's AI output language setting first
     const userSettings = await getUserSettings();
     const aiLanguage = (userSettings && userSettings.aiLanguage) ? userSettings.aiLanguage : 'zh';
-    
+
     // If AI output language is English, translation is not needed (papers are already in English)
     if (aiLanguage && aiLanguage.toLowerCase() === 'en') {
         showMessage('Current AI output language is English, and the papers are already in English. Translation is not needed.', 'warning');
         return;
     }
-    
+
     const ids = Array.from(selectedPaperIds);
     for (const id of ids) {
         await requestTranslation(id);
@@ -4724,7 +4724,7 @@ function setupNavigation() {
             switchTab(targetTab);
         });
     });
-    
+
     // Navigation bar avatar click event
     const navAvatar = document.getElementById('nav-avatar');
     if (navAvatar) {
@@ -4775,30 +4775,30 @@ function setupNavigation() {
 function returnToHome() {
     // switch to Paper view
     switchTab('paper');
-    
+
     // Clear category selection status
     currentCategoryId = null;
     currentViewMode = 'category';
-    
+
     // Clear selection in category tree
     document.querySelectorAll('.category-item.selected').forEach(item => {
         item.classList.remove('selected');
     });
-    
+
     // Clear paper selection status
     currentPaperId = null;
     document.querySelectorAll('.paper-item.selected').forEach(item => {
         item.classList.remove('selected');
     });
-    
+
     // Clear multiple selection mode
     if (isMultiSelectMode) {
         exitMultiSelectMode();
     }
-    
+
     // Show to-read list
     showReadingList();
-    
+
     // Save view state
     saveCurrentViewState();
 }
@@ -4810,7 +4810,7 @@ function switchTab(tabName) {
     const dailyArxivView = document.getElementById('daily-arxiv-view');
     const navTabs = document.querySelectorAll('.nav-tab');
     const navAvatar = document.getElementById('nav-avatar');
-    
+
     navTabs.forEach(tab => {
         if (tab.dataset.tab === tabName) {
             tab.classList.add('active');
@@ -4818,7 +4818,7 @@ function switchTab(tabName) {
             tab.classList.remove('active');
         }
     });
-    
+
     // Update avatar navigation status
     if (navAvatar) {
         if (tabName === 'setting') {
@@ -4827,7 +4827,7 @@ function switchTab(tabName) {
             navAvatar.classList.remove('active');
         }
     }
-    
+
     if (tabName === 'paper') {
         paperView.style.display = 'flex';
         settingView.style.display = 'none';
@@ -4858,7 +4858,7 @@ async function saveAgenticSettings(silent = false) {
     const apiKeyEl = document.getElementById('llm-api-key');
     const mineruEl = document.getElementById('mineru-server-url');
     const mineruApiTokenEl = document.getElementById('mineru-api-token');
-    
+
     // Check if element exists
     if (!modelEl || !baseUrlEl || !apiKeyEl || !mineruEl) {
         console.error('Failed to save settings: Settings input element not found');
@@ -4880,7 +4880,7 @@ async function saveAgenticSettings(silent = false) {
         mineruUseApi: mineruUseApi,
         mineruApiToken: mineruApiTokenEl ? mineruApiTokenEl.value.trim() : ''
     };
-    
+
     console.log('[Save settings] ready to save:', {
         llmModel: settings.llmModel ? '***' : '(null)',
         llmBaseUrl: settings.llmBaseUrl ? '***' : '(null)',
@@ -4889,16 +4889,16 @@ async function saveAgenticSettings(silent = false) {
         mineruUseApi: settings.mineruUseApi,
         mineruApiToken: settings.mineruApiToken ? '***' : '(null)'
     });
-    
+
     try {
         const response = await fetch('/api/settings/agentic', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(settings)
         });
-        
+
         const result = await response.json();
-        
+
         if (response.ok && result.success) {
             console.log('[Save settings] ✅ Saved successfully');
             // renew Daily arXiv of LLM configuration status
@@ -4909,7 +4909,7 @@ async function saveAgenticSettings(silent = false) {
                     renderDailyArxivGrid();
                 }
             }
-            
+
             if (!silent) {
                 showMessage('AIFunction settings saved', 'success');
             }
@@ -4958,7 +4958,7 @@ async function loadAgenticSettings() {
             const mineruEl = document.getElementById('mineru-server-url');
             const mineruApiTokenEl = document.getElementById('mineru-api-token');
             const promptEl = document.getElementById('analysis-system-prompt');
-            
+
             if (modelEl) {
                 modelEl.value = settings.llmModel || '';
                 modelEl.addEventListener('input', autoSaveAgenticSettings);
@@ -4979,19 +4979,19 @@ async function loadAgenticSettings() {
                 mineruApiTokenEl.value = settings.mineruApiToken || '';
                 mineruApiTokenEl.addEventListener('input', autoSaveAgenticSettings);
             }
-            
+
             // Set MinerU mode radio buttons
             const mineruUseApi = settings.mineruUseApi || false;
             const localRadio = document.querySelector('input[name="mineru-mode"][value="local"]');
             const apiRadio = document.querySelector('input[name="mineru-mode"][value="api"]');
-            
+
             if (localRadio && apiRadio) {
                 if (mineruUseApi) {
                     apiRadio.checked = true;
                 } else {
                     localRadio.checked = true;
                 }
-                
+
                 // Add event listeners for mode change
                 localRadio.addEventListener('change', () => {
                     toggleMineruConfigUI();
@@ -5001,15 +5001,15 @@ async function loadAgenticSettings() {
                     toggleMineruConfigUI();
                     autoSaveAgenticSettings();
                 });
-                
+
                 // Initial UI toggle
                 toggleMineruConfigUI();
             }
-            
+
             // Bind test button event
             const testLlmBtn = document.getElementById('test-llm-api');
             const testMineruBtns = document.querySelectorAll('#test-mineru-btn');
-            
+
             if (testLlmBtn) {
                 testLlmBtn.addEventListener('click', testLLMAPI);
             }
@@ -5017,7 +5017,7 @@ async function loadAgenticSettings() {
             testMineruBtns.forEach(btn => {
                 btn.addEventListener('click', testMineruAPI);
             });
-            
+
             // Load AI language setting from user settings
             await loadAILanguageSetting();
         }
@@ -5031,10 +5031,10 @@ function toggleMineruConfigUI() {
     try {
         const mode = document.querySelector('input[name="mineru-mode"]:checked');
         const modeValue = mode ? mode.value : 'local';
-        
+
         const localConfig = document.getElementById('mineru-local-config');
         const apiConfig = document.getElementById('mineru-api-config');
-        
+
         if (localConfig && apiConfig) {
             if (modeValue === 'api') {
                 localConfig.style.display = 'none';
@@ -5054,12 +5054,12 @@ async function loadAILanguageSetting() {
     try {
         const userSettings = await getUserSettings();
         const aiLanguage = userSettings.aiLanguage || 'zh';
-        
+
         // Set value in Agentic settings panel
         const aiLanguageEl = document.getElementById('ai-language');
         if (aiLanguageEl) {
             aiLanguageEl.value = aiLanguage;
-                // Bind change event to save setting
+            // Bind change event to save setting
             aiLanguageEl.addEventListener('change', async () => {
                 const selectedLanguage = aiLanguageEl.value;
                 await saveUserSettings({ aiLanguage: selectedLanguage });
@@ -5079,7 +5079,7 @@ async function testLLMAPICore(llmModel, llmBaseUrl, llmApiKey) {
             error: 'Please fill in the complete LLM API Configuration（Model、Base URL、API Key）'
         };
     }
-    
+
     try {
         const response = await fetch('/api/settings/test/llm', {
             method: 'POST',
@@ -5090,7 +5090,7 @@ async function testLLMAPICore(llmModel, llmBaseUrl, llmApiKey) {
                 llmApiKey: llmApiKey
             })
         });
-        
+
         const data = await response.json();
         return data;
     } catch (error) {
@@ -5105,14 +5105,14 @@ async function testLLMAPICore(llmModel, llmBaseUrl, llmApiKey) {
 async function testLLMAPI() {
     const btn = document.getElementById('test-llm-api');
     const resultDiv = document.getElementById('llm-test-result');
-    
+
     if (!btn || !resultDiv) return;
-    
+
     // Get current configuration
     const llmModel = document.getElementById('llm-model').value.trim();
     const llmBaseUrl = document.getElementById('llm-base-url').value.trim();
     const llmApiKey = document.getElementById('llm-api-key').value.trim();
-    
+
     if (!llmModel || !llmBaseUrl || !llmApiKey) {
         resultDiv.innerHTML = `
             <div style="padding: 12px; background: #fff3cd; border: 1px solid #ffc107; border-radius: 6px; color: #856404;">
@@ -5122,7 +5122,7 @@ async function testLLMAPI() {
         resultDiv.style.display = 'block';
         return;
     }
-    
+
     // Update button state
     const originalHTML = btn.innerHTML;
     btn.disabled = true;
@@ -5133,10 +5133,10 @@ async function testLLMAPI() {
             <i class="fas fa-spinner fa-spin"></i> Testing LLM API connect...
         </div>
     `;
-    
+
     // Call core test function
     const data = await testLLMAPICore(llmModel, llmBaseUrl, llmApiKey);
-    
+
     if (data.success) {
         resultDiv.innerHTML = `
             <div style="padding: 12px; background: #d4edda; border: 1px solid #28a745; border-radius: 6px; color: #155724;">
@@ -5152,7 +5152,7 @@ async function testLLMAPI() {
             </div>
         `;
     }
-    
+
     btn.disabled = false;
     btn.innerHTML = originalHTML;
 }
@@ -5162,23 +5162,23 @@ async function testMineruAPI(event) {
     // Find the test button that was clicked (could be in either local or API config)
     const btn = event && event.currentTarget ? event.currentTarget : document.getElementById('test-mineru-btn');
     const resultDiv = document.getElementById('mineru-test-result');
-    
+
     if (!btn || !resultDiv) return;
-    
+
     // Get current mode
     const mode = document.querySelector('input[name="mineru-mode"]:checked');
     const modeValue = mode ? mode.value : 'local';
-    
+
     // Update button state
     const originalHTML = btn.innerHTML;
     btn.disabled = true;
     btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Under test...';
     resultDiv.style.display = 'block';
-    
+
     if (modeValue === 'local') {
         // Test local server
         const mineruServerUrl = document.getElementById('mineru-server-url').value.trim();
-        
+
         if (!mineruServerUrl) {
             resultDiv.innerHTML = `
                 <div style="padding: 12px; background: #fff3cd; border: 1px solid #ffc107; border-radius: 6px; color: #856404;">
@@ -5190,13 +5190,13 @@ async function testMineruAPI(event) {
             btn.innerHTML = originalHTML;
             return;
         }
-        
+
         resultDiv.innerHTML = `
             <div style="padding: 12px; background: #e7f3ff; border: 1px solid #2196F3; border-radius: 6px; color: #0d47a1;">
                 <i class="fas fa-spinner fa-spin"></i> Testing MinerU Server connect...
             </div>
         `;
-        
+
         try {
             const response = await fetch('/api/settings/test/mineru', {
                 method: 'POST',
@@ -5205,9 +5205,9 @@ async function testMineruAPI(event) {
                     mineruServerUrl: mineruServerUrl
                 })
             });
-            
+
             const data = await response.json();
-            
+
             if (data.success) {
                 resultDiv.innerHTML = `
                     <div style="padding: 12px; background: #d4edda; border: 1px solid #28a745; border-radius: 6px; color: #155724;">
@@ -5234,7 +5234,7 @@ async function testMineruAPI(event) {
     } else {
         // Test API token
         const mineruApiToken = document.getElementById('mineru-api-token').value.trim();
-        
+
         if (!mineruApiToken) {
             resultDiv.innerHTML = `
                 <div style="padding: 12px; background: #fff3cd; border: 1px solid #ffc107; border-radius: 6px; color: #856404;">
@@ -5246,13 +5246,13 @@ async function testMineruAPI(event) {
             btn.innerHTML = originalHTML;
             return;
         }
-        
+
         resultDiv.innerHTML = `
             <div style="padding: 12px; background: #e7f3ff; border: 1px solid #2196F3; border-radius: 6px; color: #0d47a1;">
                 <i class="fas fa-spinner fa-spin"></i> Testing MinerU API Token...
             </div>
         `;
-        
+
         try {
             const response = await fetch('/api/settings/test/mineru-api', {
                 method: 'POST',
@@ -5261,9 +5261,9 @@ async function testMineruAPI(event) {
                     apiToken: mineruApiToken
                 })
             });
-            
+
             const data = await response.json();
-            
+
             if (data.success) {
                 resultDiv.innerHTML = `
                     <div style="padding: 12px; background: #d4edda; border: 1px solid #28a745; border-radius: 6px; color: #155724;">
@@ -5287,7 +5287,7 @@ async function testMineruAPI(event) {
             `;
         }
     }
-    
+
     btn.disabled = false;
     btn.innerHTML = originalHTML;
 }
@@ -5353,14 +5353,14 @@ function generateIdenticon(seed, size = 5) {
         hash = ((hash << 5) - hash) + char;
         hash = hash & hash;
     }
-    
+
     // Generate color - Use a seed to generate a nice color
     const hue = Math.abs(hash % 360);
     const saturation = 65 + Math.abs((hash >> 8) % 20);
     const lightness = 45 + Math.abs((hash >> 16) % 15);
     const bgColor = `hsl(${hue}, ${saturation}%, ${lightness}%)`;
     const fgColor = `hsl(${hue}, ${saturation}%, ${lightness + 35}%)`;
-    
+
     // Generate pixel patterns (5x5 symmetry)
     const pattern = [];
     for (let y = 0; y < size; y++) {
@@ -5374,7 +5374,7 @@ function generateIdenticon(seed, size = 5) {
             pattern[y][size - 1 - x] = pixel;
         }
     }
-    
+
     return { pattern, bgColor, fgColor, size };
 }
 
@@ -5382,13 +5382,13 @@ function generateIdenticon(seed, size = 5) {
 function drawIdenticon(canvas, seed) {
     const ctx = canvas.getContext('2d');
     const { pattern, bgColor, fgColor, size } = generateIdenticon(seed);
-    
+
     const cellSize = canvas.width / size;
-    
+
     // draw background
     ctx.fillStyle = bgColor;
     ctx.fillRect(0, 0, canvas.width, canvas.height);
-    
+
     // draw pixels
     ctx.fillStyle = fgColor;
     for (let y = 0; y < size; y++) {
@@ -5486,7 +5486,7 @@ async function uploadAvatar(avatarData) {
 // Update all avatar displays
 async function updateAvatars() {
     const userSettings = await getUserSettings();
-    
+
     // Draw avatar to canvas auxiliary function
     const drawAvatarToCanvas = (canvas, avatarUrl, userName) => {
         if (avatarUrl) {
@@ -5514,21 +5514,21 @@ async function updateAvatars() {
             drawIdenticon(canvas, userName);
         }
     };
-    
+
     const avatarUrl = userSettings.avatar ? '/api/settings/avatar' : null;
-    
+
     // Navigation bar avatar
     const navCanvas = document.getElementById('nav-avatar-canvas');
     if (navCanvas) {
         drawAvatarToCanvas(navCanvas, avatarUrl, userSettings.name);
     }
-    
+
     // Settings Page avatar
     const settingCanvas = document.getElementById('setting-avatar-canvas');
     if (settingCanvas) {
         drawAvatarToCanvas(settingCanvas, avatarUrl, userSettings.name);
     }
-    
+
     // Update name display
     const nameEl = document.getElementById('setting-user-name');
     if (nameEl) {
@@ -5541,12 +5541,12 @@ function setupUserProfileEvents() {
     // Avatar upload
     const settingAvatar = document.getElementById('setting-user-avatar');
     const avatarUpload = document.getElementById('avatar-upload');
-    
+
     if (settingAvatar && avatarUpload) {
         settingAvatar.addEventListener('click', () => {
             avatarUpload.click();
         });
-        
+
         avatarUpload.addEventListener('change', async (e) => {
             const file = e.target.files[0];
             if (file) {
@@ -5554,7 +5554,7 @@ function setupUserProfileEvents() {
                     showMessage('Please select image file', 'warning');
                     return;
                 }
-                
+
                 const reader = new FileReader();
                 reader.onload = async (event) => {
                     const img = new Image();
@@ -5564,7 +5564,7 @@ function setupUserProfileEvents() {
                         const maxSize = 200;
                         let width = img.width;
                         let height = img.height;
-                        
+
                         if (width > height) {
                             if (width > maxSize) {
                                 height *= maxSize / width;
@@ -5576,14 +5576,14 @@ function setupUserProfileEvents() {
                                 height = maxSize;
                             }
                         }
-                        
+
                         canvas.width = width;
                         canvas.height = height;
                         const ctx = canvas.getContext('2d');
                         ctx.drawImage(img, 0, 0, width, height);
-                        
+
                         const avatarData = canvas.toDataURL('image/jpeg', 0.8);
-                        
+
                         // upload to server
                         const result = await uploadAvatar(avatarData);
                         if (result) {
@@ -5599,7 +5599,7 @@ function setupUserProfileEvents() {
             }
         });
     }
-    
+
     // Name edit (double click)
     const nameEl = document.getElementById('setting-user-name');
     if (nameEl) {
@@ -5607,7 +5607,7 @@ function setupUserProfileEvents() {
             nameEl.contentEditable = true;
             nameEl.classList.add('editing');
             nameEl.focus();
-            
+
             // Select text
             const range = document.createRange();
             range.selectNodeContents(nameEl);
@@ -5615,11 +5615,11 @@ function setupUserProfileEvents() {
             sel.removeAllRanges();
             sel.addRange(range);
         });
-        
+
         nameEl.addEventListener('blur', async () => {
             nameEl.contentEditable = false;
             nameEl.classList.remove('editing');
-            
+
             const newName = nameEl.textContent.trim();
             if (newName) {
                 const userSettings = await getUserSettings();
@@ -5637,7 +5637,7 @@ function setupUserProfileEvents() {
                 nameEl.textContent = userSettings.name;
             }
         });
-        
+
         nameEl.addEventListener('keydown', async (e) => {
             if (e.key === 'Enter') {
                 e.preventDefault();
@@ -5681,20 +5681,20 @@ function getReadingYearRange() {
     const historyData = getDailyReadingDataSync();
     const dailyData = getDailyReadingMinutes(historyData);
     const years = new Set();
-    
+
     Object.keys(dailyData).forEach(dateStr => {
         if (dailyData[dateStr] > 0) {
             const year = parseInt(dateStr.split('-')[0], 10);
             years.add(year);
         }
     });
-    
+
     if (years.size === 0) {
         // Without any data, returns the current year
         const thisYear = new Date().getFullYear();
         return { minYear: thisYear, maxYear: thisYear };
     }
-    
+
     const yearArray = Array.from(years).sort((a, b) => a - b);
     return {
         minYear: yearArray[0],
@@ -5707,7 +5707,7 @@ function setupHeatmapControls() {
     // Year selection
     const prevBtn = document.getElementById('year-prev');
     const nextBtn = document.getElementById('year-next');
-    
+
     if (prevBtn) {
         prevBtn.addEventListener('click', () => {
             const { minYear } = getReadingYearRange();
@@ -5718,7 +5718,7 @@ function setupHeatmapControls() {
             }
         });
     }
-    
+
     if (nextBtn) {
         nextBtn.addEventListener('click', () => {
             const thisYear = new Date().getFullYear();
@@ -5729,24 +5729,24 @@ function setupHeatmapControls() {
             }
         });
     }
-    
+
     // Color selection
     const legend = document.getElementById('heatmap-legend');
     const dropdown = document.getElementById('color-scheme-dropdown');
-    
+
     if (legend && dropdown) {
         legend.addEventListener('click', (e) => {
             e.stopPropagation();
             dropdown.classList.toggle('show');
         });
-        
+
         // Click elsewhere to close the drop-down box
         document.addEventListener('click', (e) => {
             if (!dropdown.contains(e.target) && !legend.contains(e.target)) {
                 dropdown.classList.remove('show');
             }
         });
-        
+
         // Click on color options
         dropdown.querySelectorAll('.color-scheme-option').forEach(option => {
             option.addEventListener('click', () => {
@@ -5765,16 +5765,16 @@ function updateYearDisplay() {
     const nextBtn = document.getElementById('year-next');
     const thisYear = new Date().getFullYear();
     const { minYear } = getReadingYearRange();
-    
+
     if (yearEl) {
         yearEl.textContent = currentHeatmapYear;
     }
-    
+
     // Disable the previous year button if it is already the earliest year with data
     if (prevBtn) {
         prevBtn.disabled = currentHeatmapYear <= minYear;
     }
-    
+
     // Disable next year button if it is already this year
     if (nextBtn) {
         nextBtn.disabled = currentHeatmapYear >= thisYear;
@@ -5785,18 +5785,18 @@ function updateYearDisplay() {
 function setHeatmapColorScheme(scheme, save = true) {
     const container = document.querySelector('.heatmap-container');
     const dropdown = document.getElementById('color-scheme-dropdown');
-    
+
     if (container) {
         container.setAttribute('data-scheme', scheme);
     }
-    
+
     // Update selected status
     if (dropdown) {
         dropdown.querySelectorAll('.color-scheme-option').forEach(option => {
             option.classList.toggle('active', option.dataset.scheme === scheme);
         });
     }
-    
+
     // Save to server
     if (save) {
         saveUserSettings({ heatmapColorScheme: scheme });
@@ -5815,25 +5815,25 @@ async function loadHeatmapColorScheme() {
 function setupSettingsNavigation() {
     const navItems = document.querySelectorAll('.setting-sidebar-nav .setting-nav-item');
     const panels = document.querySelectorAll('.setting-main .setting-panel');
-    
+
     console.log('Set navigation initialization, navItems:', navItems.length, 'panels:', panels.length);
-    
+
     navItems.forEach(item => {
-        item.addEventListener('click', function(e) {
+        item.addEventListener('click', function (e) {
             e.preventDefault();
             const targetPanel = this.dataset.setting;
             console.log('Click to navigate:', targetPanel);
-            
+
             // Update navigation status
             navItems.forEach(nav => nav.classList.remove('active'));
             this.classList.add('active');
-            
+
             // Switch panel
             panels.forEach(panel => {
                 if (panel.id === `setting-panel-${targetPanel}`) {
                     panel.style.display = 'block';
                     console.log('display panel:', panel.id);
-                    
+
                     // If you switch to Daily arXiv Panel, load settings and bind events
                     if (targetPanel === 'daily-arxiv') {
                         loadDailyArxivSettings().then(() => {
@@ -5860,7 +5860,7 @@ function formatDateLocal(date) {
 // Record daily reading time
 function recordDailyReadingTime(minutes) {
     const today = formatDateLocal(new Date());
-    
+
     // Send to server
     fetch('/api/settings/reading-history/record', {
         method: 'POST',
@@ -5869,7 +5869,7 @@ function recordDailyReadingTime(minutes) {
     }).catch(e => {
         console.error('Failed to record daily reading time:', e);
     });
-    
+
     // Also update local cache（for immediate display）
     if (readingHistoryCache) {
         readingHistoryCache[today] = (readingHistoryCache[today] || 0) + minutes;
@@ -5925,7 +5925,7 @@ function getDailyReadingMinutes(historyData) {
 // Add test reading data
 async function addTestReadingData() {
     const today = formatDateLocal(new Date());
-    
+
     try {
         // Add today's test data（30minute）
         await fetch('/api/settings/reading-history/record', {
@@ -5933,7 +5933,7 @@ async function addTestReadingData() {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ minutes: 30, date: today })
         });
-        
+
         // Add random data from the past week
         for (let i = 1; i <= 7; i++) {
             const date = new Date();
@@ -5946,14 +5946,14 @@ async function addTestReadingData() {
                 body: JSON.stringify({ minutes, date: dateStr })
             });
         }
-        
+
         // Clear cache and reload
         readingHistoryCache = null;
         await getDailyReadingData();
-        
+
         console.log('Test data has been added');
         showMessage('Test data has been added and the heat map has been refreshed....', 'success');
-        
+
         // Refresh heat map
         renderHeatmap();
         renderOverviewStats();
@@ -5971,7 +5971,7 @@ async function clearReadingData() {
             readingHistoryCache = null;
             console.log('Reading data cleared');
             showMessage('Reading data cleared', 'success');
-            
+
             // Refresh heat map
             renderHeatmap();
             renderOverviewStats();
@@ -5986,37 +5986,37 @@ async function clearReadingData() {
 function renderHeatmap(year) {
     const grid = document.getElementById('heatmap-grid');
     const monthsContainer = document.getElementById('heatmap-months');
-    
+
     if (!grid || !monthsContainer) {
         console.log('Heatmap element not found', { grid, monthsContainer });
         return;
     }
-    
+
     year = year || new Date().getFullYear();
     // Use the synchronous cached version, make sure the data has been loaded before calling
     const historyData = getDailyReadingDataSync();
     const data = getDailyReadingMinutes(historyData);
     console.log('Heat map data:', data, 'years:', year);
-    
+
     const today = new Date();
     const isCurrentYear = year === today.getFullYear();
-    
+
     // Clear existing content
     grid.innerHTML = '';
     monthsContainer.innerHTML = '';
-    
+
     // Calculate the start and end dates of the year
     const yearStart = new Date(year, 0, 1);
     const yearEnd = isCurrentYear ? today : new Date(year, 11, 31);
-    
+
     // Find the Sunday of the week in which the first day of the year falls
     const startDate = new Date(yearStart);
     startDate.setDate(startDate.getDate() - startDate.getDay());
-    
+
     // Calculate grading threshold for reading time
     const allValues = Object.values(data).filter(v => v > 0);
     let thresholds = [0, 15, 30, 60, 120]; // Default threshold（minute）
-    
+
     if (allValues.length > 0) {
         const sorted = [...allValues].sort((a, b) => a - b);
         const p25 = sorted[Math.floor(sorted.length * 0.25)] || 15;
@@ -6024,7 +6024,7 @@ function renderHeatmap(year) {
         const p75 = sorted[Math.floor(sorted.length * 0.75)] || 60;
         thresholds = [0, p25, p50, p75, p75 * 1.5];
     }
-    
+
     // Get reading level
     function getLevel(minutes) {
         if (!minutes || minutes <= 0) return 0;
@@ -6033,7 +6033,7 @@ function renderHeatmap(year) {
         if (minutes < thresholds[3]) return 3;
         return 4;
     }
-    
+
     // Format time
     function formatMinutes(mins) {
         if (mins < 60) return `${mins} minute`;
@@ -6041,41 +6041,41 @@ function renderHeatmap(year) {
         const minutes = mins % 60;
         return minutes > 0 ? `${hours}h ${minutes}m` : `${hours}h`;
     }
-    
+
     // month name
     const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-    
+
     // Generate month labels（fixed12indivual）
     monthNames.forEach(name => {
         const monthSpan = document.createElement('span');
         monthSpan.textContent = name;
         monthsContainer.appendChild(monthSpan);
     });
-    
+
     let totalActiveDays = 0;
     let totalYearMinutes = 0;
-    
+
     // Generate weeks of the entire year
     const currentDate = new Date(startDate);
     const endOfYear = new Date(year, 11, 31);
     // Find the Saturday of the week in which the year ends
     const finalDate = new Date(endOfYear);
     finalDate.setDate(finalDate.getDate() + (6 - finalDate.getDay()));
-    
+
     while (currentDate <= finalDate) {
         const weekDiv = document.createElement('div');
         weekDiv.className = 'heatmap-week';
-        
+
         // Generate a week7sky
         for (let day = 0; day < 7; day++) {
             const dayDiv = document.createElement('div');
             dayDiv.className = 'heatmap-day';
-            
+
             const dateYear = currentDate.getFullYear();
             const isInYear = dateYear === year;
             const isInFuture = currentDate > today;
             const isValidDate = isInYear && !isInFuture;
-            
+
             if (isValidDate) {
                 // Format date using local time（Avoid time zone issues）
                 const year = currentDate.getFullYear();
@@ -6084,27 +6084,27 @@ function renderHeatmap(year) {
                 const dateStr = `${year}-${month}-${day}`;
                 const minutes = data[dateStr] || 0;
                 const level = getLevel(minutes);
-                
+
                 dayDiv.setAttribute('data-level', level);
                 dayDiv.setAttribute('data-date', dateStr);
-                
+
                 // top two rows（Sunday and Monday）of tooltip Show down
                 if (day <= 1) {
                     dayDiv.classList.add('tooltip-bottom');
                 }
-                
+
                 // Format date display
                 const displayDate = currentDate.toLocaleDateString('en-US', {
                     month: 'short',
                     day: 'numeric',
                     weekday: 'short'
                 });
-                
-                const tooltip = minutes > 0 
+
+                const tooltip = minutes > 0
                     ? `${displayDate}: ${formatMinutes(minutes)}`
                     : `${displayDate}: No reading history`;
                 dayDiv.setAttribute('data-tooltip', tooltip);
-                
+
                 if (minutes > 0) {
                     totalActiveDays++;
                     totalYearMinutes += minutes;
@@ -6113,14 +6113,14 @@ function renderHeatmap(year) {
                 // Dates that are not in the current year or in the future are displayed as empty
                 dayDiv.style.visibility = 'hidden';
             }
-            
+
             weekDiv.appendChild(dayDiv);
             currentDate.setDate(currentDate.getDate() + 1);
         }
-        
+
         grid.appendChild(weekDiv);
     }
-    
+
     // Update total activity count
     const totalEl = document.getElementById('heatmap-total');
     if (totalEl) {
@@ -6144,11 +6144,11 @@ async function renderOverviewStats() {
         } catch (e) {
             console.error('Failed to get the number of papers:', e);
         }
-        
+
         // Obtain daily reading data from the server to calculate the total reading time
         const historyData = getDailyReadingDataSync();
         const dailyData = getDailyReadingMinutes(historyData);
-        
+
         // Calculate total reading time（minutes because dailyData Minutes are stored in）
         let totalMinutes = 0;
         Object.values(dailyData).forEach(minutes => {
@@ -6156,7 +6156,7 @@ async function renderOverviewStats() {
         });
         const totalHours = Math.floor(totalMinutes / 60);
         const remainingMinutes = totalMinutes % 60;
-        
+
         // Calculate data for this week（From Monday to today）
         const today = new Date();
         today.setHours(0, 0, 0, 0);
@@ -6164,7 +6164,7 @@ async function renderOverviewStats() {
         const mondayOffset = dayOfWeek === 0 ? -6 : 1 - dayOfWeek; // If it’s Sunday, move forward6sky；Otherwise it will be pushed to Monday
         const monday = new Date(today);
         monday.setDate(today.getDate() + mondayOffset);
-        
+
         let weekMinutes = 0;
         const weekDates = [];
         for (let i = 0; i <= dayOfWeek || (dayOfWeek === 0 && i <= 6); i++) {
@@ -6174,10 +6174,10 @@ async function renderOverviewStats() {
             weekDates.push(dateStr);
             weekMinutes += (dailyData[dateStr] || 0);
         }
-        
+
         const weekHours = Math.floor(weekMinutes / 60);
         const weekRemainingMinutes = weekMinutes % 60;
-        
+
         // Count the number of papers read this week（Accurate calculation）
         let weekPapers = 0;
         try {
@@ -6198,7 +6198,7 @@ async function renderOverviewStats() {
                 weekPapers = Math.max(1, Math.min(estimatedPapers, maxPapers));
             }
         }
-        
+
         // Format this week's time display
         let weekTimeDisplay;
         if (weekHours > 0) {
@@ -6206,10 +6206,10 @@ async function renderOverviewStats() {
         } else {
             weekTimeDisplay = `${weekMinutes}m`;
         }
-        
+
         // Calculate the number of consecutive reading days
         const { currentStreak, bestStreak } = calculateStreaks(dailyData);
-        
+
         // Format time display
         let timeDisplay;
         if (totalHours > 0) {
@@ -6217,7 +6217,7 @@ async function renderOverviewStats() {
         } else {
             timeDisplay = `${totalMinutes}m`;
         }
-        
+
         // renew UI
         const totalPapersEl = document.getElementById('stat-total-papers');
         const totalTimeEl = document.getElementById('stat-total-time');
@@ -6226,20 +6226,20 @@ async function renderOverviewStats() {
         const currentStreakEl = document.getElementById('stat-current-streak');
         const bestStreakEl = document.getElementById('stat-best-streak');
         const userStatsEl = document.getElementById('setting-total-stats');
-        
+
         if (totalPapersEl) totalPapersEl.textContent = totalPapers;
         if (totalTimeEl) totalTimeEl.textContent = timeDisplay;
         if (weekPapersEl) weekPapersEl.textContent = weekPapers;
         if (weekTimeEl) weekTimeEl.textContent = weekTimeDisplay;
         if (currentStreakEl) currentStreakEl.textContent = currentStreak;
         if (bestStreakEl) bestStreakEl.textContent = bestStreak;
-        
+
         // User statistics summary
         const summaryHours = totalHours > 0 ? `${totalHours}h` : `${totalMinutes}m`;
         if (userStatsEl) userStatsEl.textContent = `${totalPapers} papers · ${summaryHours} read`;
-        
+
         console.log('Statistics:', { totalPapers, totalMinutes, totalHours, currentStreak, bestStreak });
-        
+
     } catch (e) {
         console.error('Failed to render statistics:', e);
     }
@@ -6249,28 +6249,28 @@ async function renderOverviewStats() {
 function calculateStreaks(dailyData) {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-    
+
     let currentStreak = 0;
     let bestStreak = 0;
     let tempStreak = 0;
-    
+
     // Check back from today
     const checkDate = new Date(today);
-    
+
     // Check if there are any readings today
     const todayStr = formatDateLocal(checkDate);
     if (dailyData[todayStr] && dailyData[todayStr] > 0) {
         currentStreak = 1;
         tempStreak = 1;
     }
-    
+
     // Check back
     checkDate.setDate(checkDate.getDate() - 1);
-    
+
     while (true) {
         const dateStr = formatDateLocal(checkDate);
         const hasReading = dailyData[dateStr] && dailyData[dateStr] > 0;
-        
+
         if (hasReading) {
             tempStreak++;
             if (currentStreak > 0 || tempStreak === 1) {
@@ -6287,21 +6287,21 @@ function calculateStreaks(dailyData) {
                 tempStreak = 0;
             }
         }
-        
+
         checkDate.setDate(checkDate.getDate() - 1);
-        
+
         // most checked 400 sky
         const daysDiff = Math.floor((today - checkDate) / (1000 * 60 * 60 * 24));
         if (daysDiff > 400) break;
     }
-    
+
     if (tempStreak > bestStreak) {
         bestStreak = tempStreak;
     }
     if (currentStreak > bestStreak) {
         bestStreak = currentStreak;
     }
-    
+
     return { currentStreak, bestStreak };
 }
 
@@ -6309,19 +6309,19 @@ function calculateStreaks(dailyData) {
 function renderRecentActivity() {
     const container = document.getElementById('recent-activity-list');
     if (!container) return;
-    
+
     try {
         const key = 'recentPapers';
         const saved = localStorage.getItem(key);
         let recentItems = [];
-        
+
         if (saved) {
             recentItems = JSON.parse(saved) || [];
         }
-        
+
         // Take the nearest 5 strip
         const displayItems = recentItems.slice(0, 5);
-        
+
         if (displayItems.length === 0) {
             container.innerHTML = `
                 <div class="recent-empty">
@@ -6331,7 +6331,7 @@ function renderRecentActivity() {
             `;
             return;
         }
-        
+
         // Get paper information and render it
         Promise.all(displayItems.map(async item => {
             try {
@@ -6346,7 +6346,7 @@ function renderRecentActivity() {
             return null;
         })).then(results => {
             const validResults = results.filter(r => r && r.paper);
-            
+
             if (validResults.length === 0) {
                 container.innerHTML = `
                     <div class="recent-empty">
@@ -6356,7 +6356,7 @@ function renderRecentActivity() {
                 `;
                 return;
             }
-            
+
             container.innerHTML = validResults.map(item => {
                 const paper = item.paper;
                 const viewedAt = new Date(item.viewedAt);
@@ -6373,7 +6373,7 @@ function renderRecentActivity() {
                         readTimeDisplay = `Read ${seconds}s`;
                     }
                 }
-                
+
                 return `
                     <div class="recent-item" onclick="openPaperFromRecent('${paper.id}')">
                         <div class="recent-item-icon">
@@ -6388,7 +6388,7 @@ function renderRecentActivity() {
                 `;
             }).join('');
         });
-        
+
     } catch (e) {
         console.error('Rendering recent reads failed:', e);
         container.innerHTML = `
@@ -6407,7 +6407,7 @@ function getTimeAgo(date) {
     const diffMins = Math.floor(diffMs / 60000);
     const diffHours = Math.floor(diffMins / 60);
     const diffDays = Math.floor(diffHours / 24);
-    
+
     if (diffMins < 1) return 'just';
     if (diffMins < 60) return `${diffMins} minutes ago`;
     if (diffHours < 24) return `${diffHours} hours ago`;
@@ -6440,7 +6440,7 @@ function loadHabitSettings() {
     const saved = localStorage.getItem('habitSettings');
     let settings = { recentCount: 10 };
     if (saved) {
-        try { settings = Object.assign(settings, JSON.parse(saved)); } catch {}
+        try { settings = Object.assign(settings, JSON.parse(saved)); } catch { }
     }
     const input = document.getElementById('habit-recent-count');
     if (input) input.value = settings.recentCount;
@@ -6449,7 +6449,7 @@ function loadHabitSettings() {
 function getHabitSettings() {
     const saved = localStorage.getItem('habitSettings');
     if (saved) {
-        try { return JSON.parse(saved); } catch {}
+        try { return JSON.parse(saved); } catch { }
     }
     return { recentCount: 10 };
 }
@@ -6485,7 +6485,7 @@ function updateTaskIndicator() {
     const aCount = analyzeQueued + analyzeRunning;
     tiTCount.textContent = tCount;
     tiACount.textContent = aCount;
-    
+
     // Update button style（Highlight if there is a task）
     const btnT = document.getElementById('btn-show-translating');
     const btnA = document.getElementById('btn-show-analyzing');
@@ -6512,12 +6512,12 @@ function renderTaskTooltip() {
     // translate
     const tBlock = [];
     translationQueue.forEach(pid => {
-        const p = (papers || []).find(x=>x.id===pid) || {};
+        const p = (papers || []).find(x => x.id === pid) || {};
         tBlock.push(`<div class=\"tt-item\"><i class=\"fas fa-file-pdf\"></i><span>(queue)</span> ${escapeHtml(p.title || p.filename || pid)}</div>`);
     });
     Object.entries(translationStatus).forEach(([pid, s]) => {
         if (s.status === 'translating') {
-            const p = (papers || []).find(x=>x.id===pid) || {};
+            const p = (papers || []).find(x => x.id === pid) || {};
             tBlock.push(`<div class=\"tt-item\"><i class=\"fas fa-file-pdf\"></i><span>(implement)</span> ${escapeHtml(p.title || p.filename || pid)}</div>`);
         }
     });
@@ -6528,12 +6528,12 @@ function renderTaskTooltip() {
     // Interpretation
     const aBlock = [];
     analysisQueue.forEach(pid => {
-        const p = (papers || []).find(x=>x.id===pid) || {};
+        const p = (papers || []).find(x => x.id === pid) || {};
         aBlock.push(`<div class=\"tt-item\"><i class=\"fas fa-file-pdf\"></i><span>(queue)</span> ${escapeHtml(p.title || p.filename || pid)}</div>`);
     });
     Object.entries(analysisStatus).forEach(([pid, s]) => {
         if (s.status === 'analyzing') {
-            const p = (papers || []).find(x=>x.id===pid) || {};
+            const p = (papers || []).find(x => x.id === pid) || {};
             aBlock.push(`<div class=\"tt-item\"><i class=\"fas fa-file-pdf\"></i><span>(implement)</span> ${escapeHtml(p.title || p.filename || pid)}</div>`);
         }
     });
@@ -6592,17 +6592,17 @@ async function requestTranslation(paperId, event) {
         showMessage('Paper not found', 'error');
         return;
     }
-    
+
     // Check user's AI output language setting
     const userSettings = await getUserSettings();
     const aiLanguage = (userSettings && userSettings.aiLanguage) ? userSettings.aiLanguage : 'zh';
-    
+
     // If AI output language is English, translation is not needed (papers are already in English)
     if (aiLanguage && aiLanguage.toLowerCase() === 'en') {
         showMessage('Current AI output language is English, and the paper is already in English. Translation is not needed.', 'warning');
         return;
     }
-    
+
     // Check if there is a Chinese version
     if (paper.has_chinese_version) {
         if (confirm('This paper already has a Chinese version. Do you want to re-translate it?')) {
@@ -6611,7 +6611,7 @@ async function requestTranslation(paperId, event) {
             return;
         }
     }
-    
+
     // Check settings（use newAgenticUnified configuration）
     const settings = await getAgenticSettings();
     if (!settings || !settings.llmModel || !settings.llmBaseUrl || !settings.llmApiKey) {
@@ -6619,13 +6619,13 @@ async function requestTranslation(paperId, event) {
         switchTab('setting');
         return;
     }
-    
+
     // add to queue
     if (translationStatus[paperId]) {
         // This paper is already in the translation queue and will not be added again.
         return;
     }
-    
+
     translationQueue.push(paperId);
     // Update queue position（Including the current one）
     const queuePosition = translationQueue.length;
@@ -6633,7 +6633,7 @@ async function requestTranslation(paperId, event) {
     saveQueuesToStorage(); // Save queue status
     renderPapersList(); // Update display now
     updateTaskIndicator();
-    
+
     // Start processing the queue
     processTranslationQueue();
 }
@@ -6647,16 +6647,16 @@ async function processTranslationQueue() {
     if (translationQueue.length === 0) {
         return; // Queue is empty
     }
-    
+
     // Atomic setting: set the flag first, then get the task
     isTranslating = true;
     const paperId = translationQueue.shift();
     saveQueuesToStorage();
-    
+
     try {
         updateTranslationStatus(paperId, 'translating', 0);
         renderPapersList(); // Update display
-        
+
         const settings = await getTranslationSettings();
         const response = await fetch('/api/paper/translate', {
             method: 'POST',
@@ -6670,19 +6670,19 @@ async function processTranslationQueue() {
                 openai_api_key: settings.llmApiKey
             })
         });
-        
+
         const result = await response.json();
-        
+
         if (response.ok && result.success) {
             const taskId = result.task_id;
-            
+
             // Start polling logs
             startLogPolling(taskId, paperId);
-            
+
             // Update the status to Translating and savetaskId
             updateTranslationStatus(paperId, 'translating', 0, taskId);
             renderPapersList(); // Update display
-            
+
             // Show log view button prompt
             // Do not display the startup prompt and the user can see the progress through the status bar
         } else {
@@ -6710,21 +6710,21 @@ function startLogPolling(taskId, paperId) {
     if (translationLogInterval[taskId]) {
         clearInterval(translationLogInterval[taskId]);
     }
-    
+
     // Every2Poll once per second
     translationLogInterval[taskId] = setInterval(async () => {
         try {
             const response = await fetch(`/api/paper/translate/${taskId}/logs`);
             const result = await response.json();
-            
+
             if (response.ok && result.success) {
                 const status = result.status;
-                
+
                 // Stop polling if task completes or fails
                 if (status === 'completed' || status === 'failed' || status === 'cancelled') {
                     clearInterval(translationLogInterval[taskId]);
                     delete translationLogInterval[taskId];
-                    
+
                     // update status（reservetaskId）
                     const currentTaskId = translationStatus[paperId]?.taskId;
                     if (status === 'completed') {
@@ -6745,7 +6745,7 @@ function startLogPolling(taskId, paperId) {
                             showMessage(errorMsg || 'Translation failed', 'error');
                         }
                     }
-                    
+
                     // Continue processing the queue
                     isTranslating = false;
                     // Refresh the list based on the current view mode
@@ -6797,14 +6797,14 @@ async function showTranslationLogs(paperId, event) {
         showMessage('Translation task not found', 'warning');
         return;
     }
-    
+
     const taskId = status.taskId;
-    
+
     // Get log
     try {
         const response = await fetch(`/api/paper/translate/${taskId}/logs`);
         const result = await response.json();
-        
+
         if (response.ok && result.success) {
             // Show log modal box
             showLogModal(taskId, result.logs, result.status, paperId);
@@ -6823,12 +6823,12 @@ function showLogModal(taskId, logs, status, paperId) {
     const modalBody = document.querySelector('#modal-body');
     const confirmBtn = document.querySelector('#modal-confirm');
     const cancelBtn = document.querySelector('#modal-cancel');
-    
+
     modalTitle.textContent = 'Translation log';
-    
+
     const logContent = logs.length > 0 ? logs.join('\n') : 'No logs yet';
     const canCancel = status === 'running' || status === 'queued';
-    
+
     modalBody.innerHTML = `
         <div style="margin-bottom: 15px;">
             <strong>state:</strong> 
@@ -6848,13 +6848,13 @@ function showLogModal(taskId, logs, status, paperId) {
             ${escapeHtml(logContent)}
         </div>
     `;
-    
+
     confirmBtn.style.display = 'none';
     cancelBtn.textContent = 'closure';
     cancelBtn.onclick = () => hideModal();
-    
+
     showModal();
-    
+
     // If running, automatically refresh
     if (status === 'running' || status === 'queued') {
         const autoRefresh = setInterval(async () => {
@@ -6870,7 +6870,7 @@ function showLogModal(taskId, logs, status, paperId) {
                     if (logEl) {
                         logEl.textContent = result.logs.join('\n');
                     }
-                    
+
                     // If completed, stop automatic refresh
                     if (result.status === 'completed' || result.status === 'failed' || result.status === 'cancelled') {
                         clearInterval(autoRefresh);
@@ -6893,7 +6893,7 @@ function showLogModal(taskId, logs, status, paperId) {
                 console.error('Failed to refresh log:', error);
             }
         }, 2000);
-        
+
         // Stop automatic refresh when modal is closed
         const closeBtn = document.querySelector('.close');
         const originalClose = closeBtn.onclick;
@@ -6914,13 +6914,13 @@ async function cancelTranslation(taskId, paperId) {
     if (!confirm('Are you sure you want to terminate the translation?')) {
         return;
     }
-    
+
     try {
         const response = await fetch(`/api/paper/translate/${taskId}/cancel`, {
             method: 'POST'
         });
         const result = await response.json();
-        
+
         if (response.ok && result.success) {
             // The translation has been canceled and the status column will be updated automatically.
             stopLogPolling(taskId);
@@ -7020,12 +7020,12 @@ function updateTranslationStatus(paperId, status, queuePosition, taskId) {
         queuePosition: queuePosition,
         taskId: taskId || existingTaskId  // Keep what you havetaskId, or use new
     };
-    
+
     // If completed or with error, remove from status
     if (status === 'completed' || status === 'error') {
         delete translationStatus[paperId];
     }
-    
+
     // Update display（According to the current view mode）
     if (currentViewMode === 'translating') {
         // If you are viewing a translation list, refresh the list
@@ -7047,15 +7047,15 @@ function getTotalReadTimeText(paper) {
     const readTime = paper.read_time || 0; // readPDFtime（Second）
     const analysisViewTime = paper.analysis_view_time || 0; // readAI Interpretation time（Second）
     const totalTime = readTime + analysisViewTime;
-    
+
     if (totalTime === 0) {
         return '';
     }
-    
+
     // Convert to minutes and seconds
     const minutes = Math.floor(totalTime / 60);
     const seconds = totalTime % 60;
-    
+
     let timeText = '';
     if (minutes > 0) {
         timeText = `${minutes}m`;
@@ -7065,7 +7065,7 @@ function getTotalReadTimeText(paper) {
     } else {
         timeText = `${seconds}s`;
     }
-    
+
     return `<span style="color: #666; margin-left: 8px;">| Read: ${timeText}</span>`;
 }
 
@@ -7073,7 +7073,7 @@ function getTotalReadTimeText(paper) {
 function getTranslationStatusText(paperId) {
     const status = translationStatus[paperId];
     if (!status) return '';
-    
+
     if (status.status === 'translating') {
         return `<span class="translation-status translating">
             <i class="fas fa-spinner fa-spin"></i> Translating...
@@ -7143,53 +7143,53 @@ async function initImportFeature() {
             switchImportType(importType);
         });
     });
-    
+
     // initialization Zotero import
     const dropZone = document.getElementById('import-drop-zone');
     const fileInput = document.getElementById('rdf-file-input');
-    
+
     if (!dropZone || !fileInput) return;
-    
+
     // drag event
     dropZone.addEventListener('dragover', (e) => {
         e.preventDefault();
         e.stopPropagation();
         dropZone.classList.add('drag-over');
     });
-    
+
     dropZone.addEventListener('dragleave', (e) => {
         e.preventDefault();
         e.stopPropagation();
         dropZone.classList.remove('drag-over');
     });
-    
+
     dropZone.addEventListener('drop', (e) => {
         e.preventDefault();
         e.stopPropagation();
         dropZone.classList.remove('drag-over');
-        
+
         const files = e.dataTransfer.files;
         if (files.length > 0) {
             handleRdfFile(files[0]);
         }
     });
-    
+
     // Click to upload
     fileInput.addEventListener('change', (e) => {
         if (e.target.files.length > 0) {
             handleRdfFile(e.target.files[0]);
         }
     });
-    
+
     // Populate target directory selection list（Get the latest data）
     await populateImportTargetCategories();
-    
+
     // Check if there are any import tasks in progress（Restore after page refresh）
     checkExistingImportTask();
-    
+
     // Initialize import from export file
     initExportFileImport();
-    
+
     console.log('Import Function initialization completed');
 }
 
@@ -7202,11 +7202,11 @@ function switchImportType(type) {
             tab.classList.add('active');
         }
     });
-    
+
     // Switch panel display
     const zoteroPanel = document.getElementById('import-zotero-panel');
     const exportPanel = document.getElementById('import-export-panel');
-    
+
     if (type === 'zotero') {
         zoteroPanel.style.display = 'block';
         exportPanel.style.display = 'none';
@@ -7220,33 +7220,33 @@ function switchImportType(type) {
 function initExportFileImport() {
     const dropZone = document.getElementById('export-import-drop-zone');
     const fileInput = document.getElementById('export-file-input');
-    
+
     if (!dropZone || !fileInput) return;
-    
+
     // drag event
     dropZone.addEventListener('dragover', (e) => {
         e.preventDefault();
         e.stopPropagation();
         dropZone.classList.add('drag-over');
     });
-    
+
     dropZone.addEventListener('dragleave', (e) => {
         e.preventDefault();
         e.stopPropagation();
         dropZone.classList.remove('drag-over');
     });
-    
+
     dropZone.addEventListener('drop', (e) => {
         e.preventDefault();
         e.stopPropagation();
         dropZone.classList.remove('drag-over');
-        
+
         const files = e.dataTransfer.files;
         if (files.length > 0) {
             handleExportZipFile(files[0]);
         }
     });
-    
+
     // Click to upload
     fileInput.addEventListener('change', (e) => {
         if (e.target.files.length > 0) {
@@ -7261,15 +7261,15 @@ async function handleExportZipFile(file) {
         showMessage('Please select ZIP document', 'error');
         return;
     }
-    
+
     const dropZone = document.getElementById('export-import-drop-zone');
     const dropZoneContent = document.getElementById('export-drop-zone-content');
     const progressContainer = document.getElementById('export-import-progress-container');
-    
+
     // Hide the contents of the drag area and show the progress
     if (dropZoneContent) dropZoneContent.style.display = 'none';
     progressContainer.style.display = 'block';
-    
+
     // reset progress
     updateExportImportProgress({
         status: 'uploading',
@@ -7282,13 +7282,13 @@ async function handleExportZipFile(file) {
         skipped_count: 0,
         duplicate_count: 0,
     });
-    
+
     // use XMLHttpRequest to support upload progress
     const formData = new FormData();
     formData.append('file', file);
-    
+
     const xhr = new XMLHttpRequest();
-    
+
     // Monitor upload progress
     xhr.upload.addEventListener('progress', (e) => {
         if (e.lengthComputable) {
@@ -7306,20 +7306,20 @@ async function handleExportZipFile(file) {
             });
         }
     });
-    
+
     // Monitor upload completion
     xhr.addEventListener('load', () => {
         if (xhr.status === 200) {
             try {
                 const data = JSON.parse(xhr.responseText);
-                
+
                 if (!data.success) {
                     showMessage(data.error || 'Import failed', 'error');
                     if (dropZoneContent) dropZoneContent.style.display = 'flex';
                     progressContainer.style.display = 'none';
                     return;
                 }
-                
+
                 // Upload completed, start processing
                 updateExportImportProgress({
                     status: 'processing',
@@ -7332,13 +7332,13 @@ async function handleExportZipFile(file) {
                     skipped_count: 0,
                     duplicate_count: 0,
                 });
-                
+
                 // Start monitoring the import progress
                 const taskId = data.task_id;
                 startExportImportProgressStream(taskId);
-                
+
                 showMessage('Import task started', 'success');
-                
+
             } catch (error) {
                 console.error('Failed to parse response:', error);
                 showMessage('Import failed: ' + error.message, 'error');
@@ -7351,21 +7351,21 @@ async function handleExportZipFile(file) {
             progressContainer.style.display = 'none';
         }
     });
-    
+
     // Monitor upload errors
     xhr.addEventListener('error', () => {
         showMessage('Upload failed: network error', 'error');
         if (dropZoneContent) dropZoneContent.style.display = 'flex';
         progressContainer.style.display = 'none';
     });
-    
+
     // Monitor upload cancellation
     xhr.addEventListener('abort', () => {
         showMessage('Upload canceled', 'error');
         if (dropZoneContent) dropZoneContent.style.display = 'flex';
         progressContainer.style.display = 'none';
     });
-    
+
     // Send request
     xhr.open('POST', '/api/import/from-export');
     xhr.send(formData);
@@ -7374,25 +7374,25 @@ async function handleExportZipFile(file) {
 // Start monitoring the export file import progress（SSE）
 function startExportImportProgressStream(taskId) {
     let exportImportEventSource = new EventSource(`/api/import/zotero/progress/${taskId}`);
-    
+
     exportImportEventSource.onmessage = (event) => {
         try {
             const data = JSON.parse(event.data);
             updateExportImportProgress(data);
-            
+
             // If completed or failed, close the connection
             if (data.status === 'completed' || data.status === 'error') {
                 exportImportEventSource.close();
-                
+
                 // Make sure to turn off loading status
                 showLoading(false);
-                
+
                 // Reset now UI, remove progress display
                 const dropZoneContent = document.getElementById('export-drop-zone-content');
                 const progressContainer = document.getElementById('export-import-progress-container');
                 if (dropZoneContent) dropZoneContent.style.display = 'flex';
                 if (progressContainer) progressContainer.style.display = 'none';
-                
+
                 // Silently refresh the classification tree（Do not show loading status）
                 loadCategories(true).catch(err => {
                     console.error('Failed to refresh classification tree:', err);
@@ -7402,7 +7402,7 @@ function startExportImportProgressStream(taskId) {
             console.error('Failed to parse progress data:', e);
         }
     };
-    
+
     exportImportEventSource.onerror = (e) => {
         console.error('SSE Connection error:', e);
         if (exportImportEventSource) {
@@ -7414,7 +7414,7 @@ function startExportImportProgressStream(taskId) {
 // Update export file import progress
 function updateExportImportProgress(data) {
     const { status, progress, current, total, message, success_count, failed_count, skipped_count, duplicate_count } = data;
-    
+
     const statusText = document.getElementById('export-import-status-text');
     const progressPercent = document.getElementById('export-import-progress-percent');
     const progressFill = document.getElementById('export-import-progress-fill');
@@ -7423,7 +7423,7 @@ function updateExportImportProgress(data) {
     const failedCountEl = document.getElementById('export-import-failed-count');
     const skippedCountEl = document.getElementById('export-import-skipped-count');
     const duplicateCountEl = document.getElementById('export-import-duplicate-count');
-    
+
     if (status === 'parsing' || status === 'uploading') {
         statusText.textContent = message || 'Processing...';
         progressPercent.textContent = '0%';
@@ -7447,7 +7447,7 @@ function updateExportImportProgress(data) {
         currentItem.textContent = message || 'unknown error';
         currentItem.style.color = '#d73a49';
     }
-    
+
     // update count
     if (successCountEl) successCountEl.textContent = success_count || 0;
     if (failedCountEl) failedCountEl.textContent = failed_count || 0;
@@ -7459,38 +7459,38 @@ function updateExportImportProgress(data) {
 async function populateImportTargetCategories() {
     const select = document.getElementById('import-target-category');
     if (!select) return;
-    
+
     // Keep the currently selected value
     const currentValue = select.value;
-    
+
     // Keep default options
     select.innerHTML = '<option value="">root directory（default）</option>';
-    
+
     try {
         // from API Get the latest directory data
         const response = await fetch('/api/categories');
         const latestCategories = await response.json();
-        
+
         // Add directory options recursively
         function addCategoryOptions(node, level = 0) {
             if (!node.children) return;
-            
+
             node.children.forEach(child => {
                 const indent = '　'.repeat(level); // Use full-width spaces for indentation
                 const option = document.createElement('option');
                 option.value = child.id;
                 option.textContent = `${indent}📁 ${child.name}`;
                 select.appendChild(option);
-                
+
                 // Add subdirectories recursively
                 if (child.children && child.children.length > 0) {
                     addCategoryOptions(child, level + 1);
                 }
             });
         }
-        
+
         addCategoryOptions(latestCategories);
-        
+
         // Restore previously selected value（if it still exists）
         if (currentValue) {
             const optionExists = Array.from(select.options).some(opt => opt.value === currentValue);
@@ -7498,7 +7498,7 @@ async function populateImportTargetCategories() {
                 select.value = currentValue;
             }
         }
-        
+
         // Update global variables at the same time to maintain consistency
         categories = latestCategories;
     } catch (error) {
@@ -7506,14 +7506,14 @@ async function populateImportTargetCategories() {
         // If retrieval fails, use global variables as fallback
         function addCategoryOptions(node, level = 0) {
             if (!node.children) return;
-            
+
             node.children.forEach(child => {
                 const indent = '　'.repeat(level);
                 const option = document.createElement('option');
                 option.value = child.id;
                 option.textContent = `${indent}📁 ${child.name}`;
                 select.appendChild(option);
-                
+
                 if (child.children && child.children.length > 0) {
                     addCategoryOptions(child, level + 1);
                 }
@@ -7528,23 +7528,23 @@ async function checkExistingImportTask() {
     try {
         const response = await fetch('/api/import/zotero/status');
         const data = await response.json();
-        
+
         if (data.has_task && data.status !== 'completed' && data.status !== 'error') {
             console.log('Discover ongoing import tasks:', data.task_id);
             importInProgress = true;
-            
+
             // Show progress interface
             document.getElementById('drop-zone-content').style.display = 'none';
             document.getElementById('import-progress-container').style.display = 'block';
             document.getElementById('import-result').style.display = 'none';
-            
+
             // Update current progress
             updateImportStatus(
                 `Importing paper (${data.current}/${data.total})...`,
                 data.progress,
                 data.message || 'Processing...'
             );
-            
+
             // Reconnect SSE
             currentImportTaskId = data.task_id;
             startImportProgressStream(data.task_id);
@@ -7553,19 +7553,19 @@ async function checkExistingImportTask() {
             importInProgress = false;
             currentImportTaskId = null;
             showLoading(false);
-            
+
             const dropZoneContent = document.getElementById('drop-zone-content');
             const progressContainer = document.getElementById('import-progress-container');
             const importResult = document.getElementById('import-result');
-            
+
             if (dropZoneContent) dropZoneContent.style.display = 'flex';
             if (progressContainer) progressContainer.style.display = 'none';
             if (importResult) importResult.style.display = 'none';
-            
+
             // Show success message
             const msg = `Import completed! success ${data.success_count || 0} Chapter`;
             showMessage(msg, 'success');
-            
+
             // Silently refresh the classification tree（Do not show loading status）
             loadCategories(true).catch(err => {
                 console.error('Failed to refresh classification tree:', err);
@@ -7582,42 +7582,42 @@ async function handleRdfFile(file) {
         showMessage('Please upload .rdf format file', 'error');
         return;
     }
-    
+
     if (importInProgress) {
         showMessage('Importing, please wait for completion', 'warning');
         return;
     }
-    
+
     importInProgress = true;
-    
+
     // Hide upload area and show progress
     document.getElementById('drop-zone-content').style.display = 'none';
     document.getElementById('import-progress-container').style.display = 'block';
     document.getElementById('import-result').style.display = 'none';
-    
+
     updateImportStatus('Uploading RDF document...', 0, 'In preparation...');
-    
+
     // Get target directory
     const targetCategoryId = document.getElementById('import-target-category')?.value || '';
-    
+
     // Upload files
     const formData = new FormData();
     formData.append('file', file);
     formData.append('target_category_id', targetCategoryId);
-    
+
     try {
         const response = await fetch('/api/import/zotero', {
             method: 'POST',
             body: formData
         });
-        
+
         if (!response.ok) {
             const error = await response.json();
             throw new Error(error.error || 'Upload failed');
         }
-        
+
         const result = await response.json();
-        
+
         if (result.success) {
             // If there is information about restoring the import, a prompt will be displayed.
             if (result.already_imported > 0) {
@@ -7626,7 +7626,7 @@ async function handleRdfFile(file) {
                     'info'
                 );
             }
-            
+
             // Start monitoring the import progress
             startImportProgressStream(result.task_id);
         } else {
@@ -7650,17 +7650,17 @@ function startImportProgressStream(taskId) {
     if (importEventSource) {
         importEventSource.close();
     }
-    
+
     currentImportTaskId = taskId;
-    
+
     // The cancel button is hidden and will not be shown again
     // const cancelBtn = document.getElementById('cancel-import-btn');
     // if (cancelBtn) {
     //     cancelBtn.style.display = 'inline-block';
     // }
-    
+
     importEventSource = new EventSource(`/api/import/zotero/progress/${taskId}`);
-    
+
     importEventSource.onmessage = (event) => {
         try {
             const data = JSON.parse(event.data);
@@ -7669,7 +7669,7 @@ function startImportProgressStream(taskId) {
             console.error('Failed to parse progress data:', e);
         }
     };
-    
+
     importEventSource.onerror = (e) => {
         console.error('SSE Connection error:', e);
         if (importEventSource) {
@@ -7685,14 +7685,14 @@ const REFRESH_INTERVAL = 3000; // Every3Refresh the paper list once every second
 
 function handleImportProgress(data) {
     const { status, progress, current, total, message, success_count, failed_count, skipped_count, duplicate_count, others_count, original_total, already_imported_count } = data;
-    
+
     if (status === 'parsing') {
         updateImportStatus('Parsing RDF document...', 0, message || 'Obtaining paper information...');
     } else if (status === 'importing') {
         const percent = total > 0 ? Math.round((current / total) * 100) : 0;
         let statusText = `Importing paper (${current}/${total})...`;
         let detailText = message || `Processing...`;
-        
+
         // If there is information about restoring the import, it will be displayed in the details.
         if (already_imported_count > 0 && original_total) {
             const actualCurrent = already_imported_count + current;
@@ -7701,13 +7701,13 @@ function handleImportProgress(data) {
                 detailText = `skipped ${already_imported_count} imported papers,${message || 'Processing...'}`;
             }
         }
-        
+
         updateImportStatus(
             statusText,
             percent,
             detailText
         );
-        
+
         // Regularly refresh the paper list（If you are currently on the home page）
         const now = Date.now();
         if (now - lastRefreshTime > REFRESH_INTERVAL) {
@@ -7727,22 +7727,22 @@ function handleImportProgress(data) {
         }
         importInProgress = false;
         currentImportTaskId = null;
-        
+
         // Hide cancel button
         const cancelBtn = document.getElementById('cancel-import-btn');
         if (cancelBtn) {
             cancelBtn.style.display = 'none';
         }
-        
+
         // Update status display
         updateImportStatus('Import canceled', progress || 0, message || 'Import task canceled');
-        
+
         // Remove all loading status
         showLoading(false);
-        
+
         // Show cancellation message
         showMessage('Import canceled', 'warning');
-        
+
         // Reset interface after delay
         setTimeout(() => {
             resetImport();
@@ -7755,34 +7755,34 @@ function handleImportProgress(data) {
         }
         importInProgress = false;
         currentImportTaskId = null;
-        
+
         // Hide cancel button
         const cancelBtn = document.getElementById('cancel-import-btn');
         if (cancelBtn) {
             cancelBtn.style.display = 'none';
         }
-        
+
         // Remove all loading status
         showLoading(false);
-        
+
         // Directly hide all import-relatedUI, return to normal state
         const dropZoneContent = document.getElementById('drop-zone-content');
         const progressContainer = document.getElementById('import-progress-container');
         const importResult = document.getElementById('import-result');
-        
+
         if (dropZoneContent) dropZoneContent.style.display = 'flex';
         if (progressContainer) progressContainer.style.display = 'none';
         if (importResult) importResult.style.display = 'none';
-        
+
         // Reset file input
         const fileInput = document.getElementById('rdf-file-input');
         if (fileInput) fileInput.value = '';
-        
+
         // Silently refresh the classification tree（Do not show loading status）
         loadCategories(true).catch(err => {
             console.error('Failed to refresh classification tree:', err);
         });
-        
+
         // If you are currently in category view, refresh the paper list
         if (currentCategoryId) {
             loadPapers(currentCategoryId).catch(err => {
@@ -7796,13 +7796,13 @@ function handleImportProgress(data) {
         }
         importInProgress = false;
         currentImportTaskId = null;
-        
+
         // Hide cancel button
         const cancelBtn = document.getElementById('cancel-import-btn');
         if (cancelBtn) {
             cancelBtn.style.display = 'none';
         }
-        
+
         // Remove loading status
         showLoading(false);
         showMessage('Import failed: ' + (message || 'unknown error'), 'error');
@@ -7816,20 +7816,20 @@ async function cancelImport() {
         showMessage('There are no import tasks in progress', 'warning');
         return;
     }
-    
+
     const cancelBtn = document.getElementById('cancel-import-btn');
     if (cancelBtn) {
         cancelBtn.disabled = true;
         cancelBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Canceling...';
     }
-    
+
     try {
         const response = await fetch(`/api/import/zotero/cancel/${currentImportTaskId}`, {
             method: 'POST'
         });
-        
+
         const result = await response.json();
-        
+
         if (result.success) {
             showMessage('Canceling import...', 'info');
         } else {
@@ -7854,7 +7854,7 @@ function updateImportStatus(statusText, percent, detail) {
     const statusTextEl = document.getElementById('import-status-text');
     const progressFill = document.getElementById('import-progress-fill');
     const progressDetail = document.getElementById('import-progress-detail');
-    
+
     if (statusTextEl) statusTextEl.textContent = statusText;
     if (progressFill) progressFill.style.width = percent + '%';
     if (progressDetail) progressDetail.textContent = detail;
@@ -7866,15 +7866,15 @@ function showImportResult(successCount, failedCount, skippedCount, duplicateCoun
     importInProgress = false;
     currentImportTaskId = null;
     showLoading(false);
-    
+
     const dropZoneContent = document.getElementById('drop-zone-content');
     const progressContainer = document.getElementById('import-progress-container');
     const importResult = document.getElementById('import-result');
-    
+
     if (dropZoneContent) dropZoneContent.style.display = 'flex';
     if (progressContainer) progressContainer.style.display = 'none';
     if (importResult) importResult.style.display = 'none';
-    
+
     // Show success message
     let msg = `Import completed! success ${successCount} Chapter`;
     if (failedCount > 0) msg += `,fail ${failedCount} Chapter`;
@@ -7887,12 +7887,12 @@ function showImportResult(successCount, failedCount, skippedCount, duplicateCoun
 function resetImport() {
     importInProgress = false;
     currentImportTaskId = null;
-    
+
     if (importEventSource) {
         importEventSource.close();
         importEventSource = null;
     }
-    
+
     // Hide cancel button
     const cancelBtn = document.getElementById('cancel-import-btn');
     if (cancelBtn) {
@@ -7900,11 +7900,11 @@ function resetImport() {
         cancelBtn.disabled = false;
         cancelBtn.innerHTML = '<i class="fas fa-times"></i> Cancel import';
     }
-    
+
     document.getElementById('drop-zone-content').style.display = 'flex';
     document.getElementById('import-progress-container').style.display = 'none';
     document.getElementById('import-result').style.display = 'none';
-    
+
     // Reset file input
     const fileInput = document.getElementById('rdf-file-input');
     if (fileInput) fileInput.value = '';
@@ -7915,21 +7915,21 @@ async function switchSettingPanel(panelName) {
     document.querySelectorAll('.setting-nav-item').forEach(b => b.classList.remove('active'));
     const targetBtn = document.querySelector(`.setting-nav-item[data-setting="${panelName}"]`);
     if (targetBtn) targetBtn.classList.add('active');
-    
+
     document.querySelectorAll('.setting-panel').forEach(p => p.style.display = 'none');
     const targetPanel = document.getElementById(`setting-panel-${panelName}`);
     if (targetPanel) targetPanel.style.display = 'block';
-    
+
     // If you switch to Import Panel, refresh directory selection list（Get the latest data）
     if (panelName === 'import') {
         await populateImportTargetCategories();
     }
-    
+
     // If you switch to Export panel, reset UI
     if (panelName === 'export') {
         resetExportUI();
     }
-    
+
     // If you switch to Daily arXiv Panel, load settings
     if (panelName === 'daily-arxiv') {
         await loadDailyArxivSettings();
@@ -7940,7 +7940,7 @@ async function switchSettingPanel(panelName) {
         // Bind the enter event of the keyword input box
         setupDailyArxivKeywordInput();
     }
-    
+
     // save state
     saveCurrentViewState();
 }
@@ -8063,20 +8063,20 @@ async function requestAnalysis(paperId, event) {
 
     // Check settings（use newAgenticUnified configuration）
     const settings = await getAgenticSettings();
-    
+
     if (!settings) {
         showMessage('Please configure it in settings firstAIFunction parameters（LLM APIandMinerU）', 'warning');
         // Switch to settings page
         document.querySelector('.nav-tab[data-tab="setting"]').click();
         return;
     }
-    
+
     // Check MinerU configuration based on mode
     const useApi = settings.mineruUseApi === true;
-    const mineruConfigured = useApi 
+    const mineruConfigured = useApi
         ? (settings.mineruApiToken && settings.mineruApiToken.trim() !== '')
         : (settings.mineruServerUrl && settings.mineruServerUrl.trim() !== '');
-    
+
     if (!mineruConfigured || !settings.llmBaseUrl || !settings.llmApiKey) {
         showMessage('Please configure it in settings firstAIFunction parameters（LLM APIandMinerU）', 'warning');
         // Switch to settings page
@@ -8096,12 +8096,12 @@ async function requestAnalysis(paperId, event) {
 
     // add to queue
     analysisQueue.push(paperId);
-    
+
     // update status
     const queuePosition = analysisQueue.length;
     updateAnalysisStatus(paperId, 'queued', queuePosition);
     saveQueuesToStorage();
-    
+
     // Update display now（According to the current view mode）
     if (currentViewMode === 'reading-list') {
         // Only the status of a single paper is updated in the to-read list, and the entire list is not refreshed.
@@ -8111,7 +8111,7 @@ async function requestAnalysis(paperId, event) {
     } else {
         renderAllPapers();
     }
-    
+
     // processing queue
     processAnalysisQueue();
     updateTaskIndicator();
@@ -8166,10 +8166,10 @@ async function processAnalysisQueue() {
         if (response.ok && result.success) {
             // keep task_id
             updateAnalysisStatus(paperId, 'analyzing', null, result.task_id);
-            
+
             // Start polling logs
             startAnalysisLogPolling(result.task_id, paperId);
-            
+
             // Polling task status
             pollAnalysisStatus(result.task_id, paperId);
         } else {
@@ -8254,7 +8254,7 @@ function updateAnalysisStatus(paperId, status, queuePosition = null, taskId = nu
     if (!analysisStatus[paperId]) {
         analysisStatus[paperId] = {};
     }
-    
+
     analysisStatus[paperId].status = status;
     if (queuePosition !== null) {
         analysisStatus[paperId].queuePosition = queuePosition;
@@ -8262,12 +8262,12 @@ function updateAnalysisStatus(paperId, status, queuePosition = null, taskId = nu
     if (taskId !== null || analysisStatus[paperId].taskId) {
         analysisStatus[paperId].taskId = taskId || analysisStatus[paperId].taskId;
     }
-    
+
     // If completed or with error, remove from status（Avoid rotating status being displayed all the time）
     if (status === 'completed' || status === 'error') {
         delete analysisStatus[paperId];
     }
-    
+
     // Update status display（According to the current view mode）
     if (currentViewMode === 'analyzing') {
         // If you are viewing a list of interpretations, refresh the list
@@ -8289,10 +8289,10 @@ function updateAnalysisStatus(paperId, status, queuePosition = null, taskId = nu
 function updatePaperStatusDisplay(paperId) {
     const paperItem = document.querySelector(`.paper-item[data-paper-id="${paperId}"]`);
     if (!paperItem) return;
-    
+
     const paper = papers.find(p => p.id === paperId);
     if (!paper) return;
-    
+
     // Update status column in list view（.paper-col-action）
     const actionCols = paperItem.querySelectorAll('.paper-col-action');
     if (actionCols.length >= 2) {
@@ -8301,7 +8301,7 @@ function updatePaperStatusDisplay(paperId) {
         // but .paper-col-action Include only translate, analyze, reading
         const translateActionCol = actionCols[0];
         const analyzeActionCol = actionCols[1];
-        
+
         // Update translation column
         const tStatus = translationStatus[paperId];
         let translateColHtml = '';
@@ -8315,7 +8315,7 @@ function updatePaperStatusDisplay(paperId) {
             translateColHtml = `<button class="paper-col-btn translate icon-only" onclick="requestTranslation('${paperId}', event)" title="AI Translate"><i class="fas fa-language"></i></button>`;
         }
         translateActionCol.innerHTML = translateColHtml;
-        
+
         // Update interpretation column
         const aStatus = analysisStatus[paperId];
         let analyzeColHtml = '';
@@ -8331,7 +8331,7 @@ function updatePaperStatusDisplay(paperId) {
         }
         analyzeActionCol.innerHTML = analyzeColHtml;
     }
-    
+
     // Update simultaneously .paper-meta in state（for detail view）
     const paperMeta = paperItem.querySelector('.paper-meta');
     if (paperMeta) {
@@ -8348,7 +8348,7 @@ function updatePaperStatusDisplay(paperId) {
             // Insert into meta starting position
             paperMeta.insertBefore(statusDiv, paperMeta.firstChild);
         }
-        
+
         // Update interpretation status
         const analysisStatusHtml = getAnalysisStatusText(paperId);
         const oldAnalysisStatus = paperMeta.querySelector('.analysis-status');
@@ -8361,7 +8361,7 @@ function updatePaperStatusDisplay(paperId) {
             statusDiv.innerHTML = analysisStatusHtml;
             paperMeta.appendChild(statusDiv);
         }
-        
+
         // Update view results button
         // Check if it needs to be displayed"View Chinese version"button
         const existingChineseBtn = paperItem.querySelector('.chinese-version-btn-container .chinese-version-btn[onclick*="openChineseVersion"]');
@@ -8378,7 +8378,7 @@ function updatePaperStatusDisplay(paperId) {
                 btnContainer.insertAdjacentHTML('beforeend', btnHtml);
             }
         }
-        
+
         // Check if it needs to be displayed"Check AI Interpretation"button
         const existingAnalysisBtn = paperItem.querySelector('.chinese-version-btn-container .chinese-version-btn[onclick*="viewAnalysisResult"]');
         if (paper.has_analysis_result) {
@@ -8403,7 +8403,7 @@ function updatePaperStatusDisplay(paperId) {
 function getAnalysisStatusText(paperId) {
     const status = analysisStatus[paperId];
     if (!status) return '';
-    
+
     if (status.status === 'analyzing') {
         const step = status.step === 'pdf2md' ? 'PDFchangeMarkdown' : status.step === 'llm_analysis' ? 'LLMInterpretation' : 'Interpreting';
         return `<span class="translation-status translating">
@@ -8432,20 +8432,20 @@ function startAnalysisLogPolling(taskId, paperId) {
     if (analysisLogInterval[taskId]) {
         clearInterval(analysisLogInterval[taskId]);
     }
-    
+
     analysisLogInterval[taskId] = setInterval(async () => {
         try {
             const response = await fetch(`/api/paper/analyze/${taskId}/logs`);
             const result = await response.json();
-            
+
             if (response.ok && result.success) {
                 const status = result.status;
-                
+
                 // Detect whether the task was terminated or failed
                 if (status === 'completed' || status === 'failed' || status === 'cancelled') {
                     clearInterval(analysisLogInterval[taskId]);
                     delete analysisLogInterval[taskId];
-                    
+
                     // update status
                     if (status === 'completed') {
                         updateAnalysisStatus(paperId, 'completed');
@@ -8460,7 +8460,7 @@ function startAnalysisLogPolling(taskId, paperId) {
                             showMessage(`Interpretation failed: ${errorMsg || 'unknown error'}`, 'error');
                         }
                     }
-                    
+
                     // Continue processing the queue
                     isAnalyzing = false;
                     updatePaperStatusDisplay(paperId);
@@ -8548,7 +8548,7 @@ function showAnalysisLogModal(taskId, logs, status, step, paperId) {
     const modalBody = document.querySelector('#modal-body');
     const confirmBtn = document.querySelector('#modal-confirm');
     const cancelBtn = document.querySelector('#modal-cancel');
-    
+
     modalTitle.textContent = 'Interpret logs';
     modalBody.innerHTML = `
         <div style="margin-bottom: 10px;">
@@ -8559,20 +8559,20 @@ function showAnalysisLogModal(taskId, logs, status, step, paperId) {
             ${logs.map(log => escapeHtml(log)).join('\n')}
         </div>
     `;
-    
+
     confirmBtn.style.display = status === 'running' ? 'inline-block' : 'none';
     confirmBtn.textContent = 'Cancel interpretation';
     cancelBtn.textContent = 'closure';
-    
+
     // Clear previous event listeners
     const confirmBtnClone = confirmBtn.cloneNode(true);
     const cancelBtnClone = cancelBtn.cloneNode(true);
     confirmBtn.parentNode.replaceChild(confirmBtnClone, confirmBtn);
     cancelBtn.parentNode.replaceChild(cancelBtnClone, cancelBtn);
-    
+
     const newConfirmBtn = document.getElementById('modal-confirm');
     const newCancelBtn = document.getElementById('modal-cancel');
-    
+
     if (status === 'running') {
         newConfirmBtn.onclick = async (e) => {
             e.preventDefault();
@@ -8580,22 +8580,22 @@ function showAnalysisLogModal(taskId, logs, status, step, paperId) {
             await cancelAnalysisTask(taskId, paperId);
         };
     }
-    
+
     newCancelBtn.onclick = (e) => {
         e.preventDefault();
         e.stopPropagation();
         hideModal();
     };
-    
+
     showModal();
-    
+
     // If the task is running, start automatically refreshing the log
     if (status === 'running') {
         const logInterval = setInterval(async () => {
             try {
                 const response = await fetch(`/api/paper/analyze/${taskId}/logs`);
                 const result = await response.json();
-                
+
                 if (response.ok && result.success) {
                     const logContent = document.getElementById('log-content');
                     const logStatus = document.getElementById('log-status');
@@ -8606,7 +8606,7 @@ function showAnalysisLogModal(taskId, logs, status, step, paperId) {
                     if (logStatus) {
                         logStatus.textContent = getStatusText(result.status);
                     }
-                    
+
                     // If the task is completed, stop refreshing
                     if (result.status !== 'running') {
                         clearInterval(logInterval);
@@ -8622,10 +8622,10 @@ function showAnalysisLogModal(taskId, logs, status, step, paperId) {
                 console.error('Failed to refresh log:', error);
             }
         }, 2000);
-        
+
         // When the modal is closed, clear the timer
         const originalHideModal = window.hideModal;
-        window.hideModal = function() {
+        window.hideModal = function () {
             clearInterval(logInterval);
             if (originalHideModal) {
                 originalHideModal();
@@ -8640,9 +8640,9 @@ async function cancelAnalysisTask(taskId, paperId) {
         const response = await fetch(`/api/paper/analyze/${taskId}/cancel`, {
             method: 'POST'
         });
-        
+
         const result = await response.json();
-        
+
         if (response.ok && result.success) {
             // Interpretation has been cancelled, the status column will be updated automatically
             updateAnalysisStatus(paperId, 'error');
@@ -8770,7 +8770,7 @@ async function viewAnalysisResult(paperId, event) {
             marked.setOptions({
                 breaks: true,
                 gfm: true,
-                highlight: function(code, lang) {
+                highlight: function (code, lang) {
                     if (typeof hljs !== 'undefined' && lang) {
                         try { return hljs.highlight(code, { language: lang }).value; }
                         catch (e) { return hljs.highlightAuto(code).value; }
@@ -8784,17 +8784,17 @@ async function viewAnalysisResult(paperId, event) {
         if (typeof marked !== 'undefined') {
             const preserved = [];
             const mdPreserved = markdownContent
-                .replace(/\$\$([\s\S]*?)\$\$/g, function(match) {
+                .replace(/\$\$([\s\S]*?)\$\$/g, function (match) {
                     const id = preserved.length;
                     preserved.push(match);
                     return `@@MJX_BLOCK_${id}@@`;
                 })
-                .replace(/(?<!\\)\$([^\n$]+)\$/g, function(match) {
+                .replace(/(?<!\\)\$([^\n$]+)\$/g, function (match) {
                     const id = preserved.length;
                     preserved.push(match);
                     return `@@MJX_INLINE_${id}@@`;
                 });
-            htmlContent = marked.parse(mdPreserved).replace(/@@MJX_(BLOCK|INLINE)_(\d+)@@/g, function(_, __, idx) {
+            htmlContent = marked.parse(mdPreserved).replace(/@@MJX_(BLOCK|INLINE)_(\d+)@@/g, function (_, __, idx) {
                 return preserved[Number(idx)];
             });
         } else {
@@ -8971,35 +8971,35 @@ function applyMarkdownStyles() {
 function setupSidebarResizing() {
     const resizer = document.getElementById('sidebar-resizer');
     const sidebar = document.querySelector('.sidebar');
-    
+
     if (!resizer || !sidebar) return;
-    
+
     resizer.addEventListener('mousedown', (e) => {
         e.preventDefault();
         e.stopPropagation();
-        
+
         const startX = e.pageX;
         const startWidth = sidebar.offsetWidth;
-        
+
         resizer.classList.add('resizing');
-        
+
         const onMouseMove = (e) => {
             e.preventDefault();
             // Dragging to the right is a positive number, dragging to the left is a negative number
             const diff = e.pageX - startX;
             const newWidth = Math.max(200, Math.min(window.innerWidth * 0.5, startWidth + diff));
-            
+
             requestAnimationFrame(() => {
                 sidebar.style.width = newWidth + 'px';
             });
         };
-        
+
         const onMouseUp = () => {
             resizer.classList.remove('resizing');
             document.removeEventListener('mousemove', onMouseMove);
             document.removeEventListener('mouseup', onMouseUp);
         };
-        
+
         document.addEventListener('mousemove', onMouseMove);
         document.addEventListener('mouseup', onMouseUp);
     });
@@ -9009,35 +9009,35 @@ function setupSidebarResizing() {
 function setupInfoPanelResizing() {
     const resizer = document.getElementById('info-panel-resizer');
     const panel = document.getElementById('info-panel');
-    
+
     if (!resizer || !panel) return;
-    
+
     resizer.addEventListener('mousedown', (e) => {
         e.preventDefault();
         e.stopPropagation();
-        
+
         const startX = e.pageX;
         const startWidth = panel.offsetWidth;
-        
+
         resizer.classList.add('resizing');
-        
+
         const onMouseMove = (e) => {
             e.preventDefault();
             // Dragging to the left is a positive number, dragging to the right is a negative number
             const diff = startX - e.pageX;
             const newWidth = Math.max(280, Math.min(window.innerWidth * 0.7, startWidth + diff));
-            
+
             requestAnimationFrame(() => {
                 panel.style.width = newWidth + 'px';
             });
         };
-        
+
         const onMouseUp = () => {
             resizer.classList.remove('resizing');
             document.removeEventListener('mousemove', onMouseMove);
             document.removeEventListener('mouseup', onMouseUp);
         };
-        
+
         document.addEventListener('mousemove', onMouseMove);
         document.addEventListener('mouseup', onMouseUp);
     });
@@ -9047,34 +9047,34 @@ function setupInfoPanelResizing() {
 function setupColumnResizing() {
     const resizers = document.querySelectorAll('.paper-header-resizer');
     const header = document.querySelector('.paper-header');
-    
+
     resizers.forEach(resizer => {
         resizer.addEventListener('mousedown', (e) => {
             e.preventDefault();
             e.stopPropagation();
-            
+
             const startX = e.pageX;
             const colIndex = parseInt(resizer.dataset.col);
-            
+
             // Get the current grid template
             const style = window.getComputedStyle(header);
             const cols = style.gridTemplateColumns.split(' ');
             const startWidth = parseFloat(cols[colIndex]);
-            
+
             resizer.classList.add('resizing');
-            
+
             // Cache all elements that need to be updated
             const items = Array.from(document.querySelectorAll('.paper-item'));
-            
+
             const onMouseMove = (e) => {
                 e.preventDefault();
                 const diff = e.pageX - startX;
                 const newWidth = Math.max(60, startWidth + diff);
-                
+
                 // Update directly without using intermediate variables
                 cols[colIndex] = newWidth + 'px';
                 const newTemplate = cols.join(' ');
-                
+
                 // use requestAnimationFrame Optimize performance
                 requestAnimationFrame(() => {
                     header.style.gridTemplateColumns = newTemplate;
@@ -9084,13 +9084,13 @@ function setupColumnResizing() {
                     });
                 });
             };
-            
+
             const onMouseUp = () => {
                 resizer.classList.remove('resizing');
                 document.removeEventListener('mousemove', onMouseMove);
                 document.removeEventListener('mouseup', onMouseUp);
             };
-            
+
             document.addEventListener('mousemove', onMouseMove);
             document.addEventListener('mouseup', onMouseUp);
         });
@@ -9100,16 +9100,16 @@ function setupColumnResizing() {
 // Cancel translation
 function cancelTranslation(paperId, event) {
     if (event) event.stopPropagation();
-    
+
     const status = translationStatus[paperId];
     if (!status) return;
-    
+
     // Remove from queue
     const queueIndex = translationQueue.indexOf(paperId);
     if (queueIndex > -1) {
         translationQueue.splice(queueIndex, 1);
     }
-    
+
     // If translation is in progress, stop the task
     if (status.taskId && status.status === 'translating') {
         fetch(`/api/paper/translate/${status.taskId}/cancel`, { method: 'POST' })
@@ -9132,12 +9132,12 @@ function cancelTranslation(paperId, event) {
                 showMessage('Cancel translation failed', 'error');
             });
     }
-    
+
     // Clean status
     delete translationStatus[paperId];
     saveQueuesToStorage();
     updateTaskIndicator();
-    
+
     // refresh display（According to the current view mode）
     if (currentViewMode === 'reading-list' || currentViewMode === 'translating') {
         updatePaperStatusDisplay(paperId);
@@ -9151,16 +9151,16 @@ function cancelTranslation(paperId, event) {
 // Cancel interpretation
 function cancelAnalysis(paperId, event) {
     if (event) event.stopPropagation();
-    
+
     const status = analysisStatus[paperId];
     if (!status) return;
-    
+
     // Remove from queue
     const queueIndex = analysisQueue.indexOf(paperId);
     if (queueIndex > -1) {
         analysisQueue.splice(queueIndex, 1);
     }
-    
+
     // If interpreting, stop the task
     if (status.taskId && status.status === 'analyzing') {
         fetch(`/api/paper/analyze/${status.taskId}/cancel`, { method: 'POST' })
@@ -9183,12 +9183,12 @@ function cancelAnalysis(paperId, event) {
                 showMessage('Failed to cancel interpretation', 'error');
             });
     }
-    
+
     // Clean status
     delete analysisStatus[paperId];
     saveQueuesToStorage();
     updateTaskIndicator();
-    
+
     // refresh display（According to the current view mode）
     if (currentViewMode === 'reading-list' || currentViewMode === 'analyzing') {
         updatePaperStatusDisplay(paperId);
@@ -9232,9 +9232,9 @@ let dailyArxivHideUnknownFirstAffiliation = false; // Whether to hide the first 
 // Region name standardized mapping table
 function normalizeCountryName(countryName) {
     if (!countryName) return '';
-    
+
     const normalized = countryName.trim();
-    
+
     // Standardized mapping table: mapping various variants to standard names
     const normalizationMap = {
         // Variations of the United States -> United States
@@ -9243,23 +9243,23 @@ function normalizeCountryName(countryName) {
         'U.S.': 'United States',
         'U.S.A.': 'United States',
         'United States of America': 'United States',
-        
+
         // Variations of the UK -> United Kingdom
         'UK': 'United Kingdom',
         'U.K.': 'United Kingdom',
         'Great Britain': 'United Kingdom',
         'Britain': 'United Kingdom',
-        
+
         // Variations of China -> China
         'PRC': 'China',
         'P.R.C.': 'China',
         "People's Republic of China": 'China',
-        
+
         // Variations of Korea -> South Korea
         'Korea': 'South Korea',
         'Republic of Korea': 'South Korea',
         'ROK': 'South Korea',
-        
+
         // Variations of Hong Kong -> Hong Kong
         'Hong Kong SAR': 'Hong Kong',
         'Hong Kong SAR China': 'Hong Kong',
@@ -9267,7 +9267,7 @@ function normalizeCountryName(countryName) {
         'Hong Kong SAR, China': 'Hong Kong',
         'Hong Kong, China': 'Hong Kong',
         'HK': 'Hong Kong',
-        
+
         // Variations of Macau -> Macao
         'Macau': 'Macao',
         'Macao SAR': 'Macao',
@@ -9280,17 +9280,17 @@ function normalizeCountryName(countryName) {
         'Macau, SAR China': 'Macao',
         'Macau SAR, China': 'Macao',
         'Macau, China': 'Macao',
-        
+
         // Variations of UAE -> United Arab Emirates
         'UAE': 'United Arab Emirates',
         'U.A.E.': 'United Arab Emirates',
     };
-    
+
     // Try an exact match first
     if (normalizationMap[normalized]) {
         return normalizationMap[normalized];
     }
-    
+
     // Case-insensitive matching
     const normalizedLower = normalized.toLowerCase();
     for (const [variant, standard] of Object.entries(normalizationMap)) {
@@ -9298,7 +9298,7 @@ function normalizeCountryName(countryName) {
             return standard;
         }
     }
-    
+
     // If no mapping is found, return the original name
     return normalized;
 }
@@ -9306,7 +9306,7 @@ function normalizeCountryName(countryName) {
 // Region name to flag emoji mapping
 function getCountryFlag(countryName) {
     if (!countryName) return '';
-    
+
     // Expanded country map with more countries and variants
     const countryMap = {
         // major countries
@@ -9445,12 +9445,12 @@ function getCountryFlag(countryName) {
         'Fiji': '🇫🇯',
         'Papua New Guinea': '🇵🇬',
     };
-    
+
     // exact match
     if (countryMap[countryName]) {
         return countryMap[countryName];
     }
-    
+
     // fuzzy matching（Not case sensitive）
     const countryLower = countryName.toLowerCase().trim();
     for (const [key, flag] of Object.entries(countryMap)) {
@@ -9458,7 +9458,7 @@ function getCountryFlag(countryName) {
             return flag;
         }
     }
-    
+
     // partial match（for processing "Hong Kong SAR China" Such a situation）
     // Check if a known region name is included
     for (const [key, flag] of Object.entries(countryMap)) {
@@ -9468,7 +9468,7 @@ function getCountryFlag(countryName) {
             return flag;
         }
     }
-    
+
     // Reverse match: if the key in the mapping table contains the entered country name（Used to handle abbreviations, etc.）
     for (const [key, flag] of Object.entries(countryMap)) {
         const keyLower = key.toLowerCase();
@@ -9476,7 +9476,7 @@ function getCountryFlag(countryName) {
             return flag;
         }
     }
-    
+
     // If not found, returns an empty string
     return '';
 }
@@ -9524,10 +9524,10 @@ function removeNotificationWithAnimation(notificationId = 'daily-arxiv-api-notif
 async function restartDailyArxivFetch() {
     // Remove existing notifications first（if there is）, give user feedback
     removeNotificationWithAnimation('daily-arxiv-api-notification');
-    
+
     // Wait for the animation to complete before testing
     await new Promise(resolve => setTimeout(resolve, 350));
-    
+
     // Test first LLM API
     const testResult = await testLLMAPIForDailyArxiv();
     if (!testResult.success) {
@@ -9550,13 +9550,13 @@ async function restartDailyArxivFetch() {
         showRoundedNotification('LLM API Call failed, stop Daily arXiv,Check, please LLM API set up.', 'error', true, 'daily-arxiv-api-notification', actionButton);
         return;
     }
-    
+
     // Test passed, update configuration status
     dailyArxivLLMConfigured = true;
-    
+
     // Use the currently viewed date（If not, use today's date）
     const dateToFetch = dailyArxivCurrentDate || new Date().toISOString().split('T')[0];
-    
+
     // Start crawling（Decide whether to crawl a single partition or all partitions based on the current view）
     if (dailyArxivCurrentCategory && dailyArxivCurrentCategory !== 'all') {
         // Grab the current partition
@@ -9575,7 +9575,7 @@ async function checkDailyArxivLLMConfig() {
             const data = await res.json();
             if (data.success) {
                 dailyArxivLLMConfigured = data.is_configured;
-                
+
                 // examine LLM API whether failed
                 if (data.llm_api_failed) {
                     // Display a permanent pop-up window with a restart button
@@ -9611,19 +9611,19 @@ async function checkDailyArxivLLMConfig() {
 async function initDailyArxiv() {
     // examine LLM Configuration
     await checkDailyArxivLLMConfig();
-    
+
     // Load settings
     await loadDailyArxivSettings();
-    
+
     // Load available dates
     await loadAvailableDates();
-    
+
     // Binding events
     const settingsBtn = document.getElementById('daily-arxiv-settings');
     if (settingsBtn) {
         settingsBtn.addEventListener('click', showDailyArxivSettingsModal);
     }
-    
+
     // date navigation buttons
     const prevDateBtn = document.getElementById('daily-arxiv-prev-date');
     const nextDateBtn = document.getElementById('daily-arxiv-next-date');
@@ -9633,7 +9633,7 @@ async function initDailyArxiv() {
     if (nextDateBtn) {
         nextDateBtn.addEventListener('click', () => navigateDate(1));
     }
-    
+
     const emptyEl = document.getElementById('daily-arxiv-empty');
     const gridEl = document.getElementById('daily-arxiv-grid');
     const filterBtn = document.getElementById('daily-arxiv-filter');
@@ -9694,19 +9694,19 @@ async function initDailyArxiv() {
             renderDailyArxivGrid();
         });
     }
-    
+
     // If there is a configuration partition, initialize the display and try to load the paper
     if (dailyArxivCategories.length > 0) {
         // Hide empty status prompts for unconfigured partitions
         if (emptyEl) emptyEl.style.display = 'none';
-        
+
         // Show all partitions by default
         dailyArxivCurrentCategory = 'all';
         renderDailyArxivCategoryTags();
-        
+
         // Load paper
         await loadPapersForCurrentDate();
-        
+
         // Check if there are partitions being fetched, if so start polling
         checkAndStartProgressPolling();
     } else {
@@ -9714,10 +9714,10 @@ async function initDailyArxiv() {
         if (emptyEl) emptyEl.style.display = 'flex';
         if (gridEl) gridEl.innerHTML = '';
     }
-    
+
     // Set the drag-to-width function of the filter panel
     setupDailyArxivFilterResizing();
-    
+
     // Initialize filter partition folding state（Expand by default）
     const filterSections = document.querySelectorAll('.filter-section-box');
     filterSections.forEach(section => {
@@ -9741,81 +9741,81 @@ function setupDailyArxivFilterResizing() {
         console.log('filterresizerAlready initialized');
         return;
     }
-    
+
     const filterPanel = document.getElementById('daily-arxiv-filter-panel');
     const resizer = document.getElementById('daily-arxiv-filter-resizer');
-    
+
     if (!filterPanel || !resizer) {
-        console.warn('Filter panel or adjustment handle not found', {filterPanel, resizer});
+        console.warn('Filter panel or adjustment handle not found', { filterPanel, resizer });
         return;
     }
-    
+
     // Check if element is visible
     const isVisible = filterPanel.offsetParent !== null;
     console.log('Whether the filter panel is visible:', isVisible, 'width:', filterPanel.offsetWidth);
     console.log('Resizerelement:', resizer, 'offsetWidth:', resizer.offsetWidth, 'offsetHeight:', resizer.offsetHeight);
-    
+
     filterResizerInitialized = true;
     console.log('✅ Filter panel drag adjustment function has been initialized');
-    
+
     let isResizing = false;
     let startX = 0;
     let startWidth = 0;
-    
+
     // Add for testinghoverEffect
     resizer.addEventListener('mouseenter', () => {
         console.log('🖱️ mouse enterresizerarea');
     });
-    
+
     resizer.addEventListener('mouseleave', () => {
         console.log('🖱️ mouse awayresizerarea');
     });
-    
+
     // Prevent events from bubbling up
     resizer.addEventListener('mousedown', (e) => {
         isResizing = true;
         startX = e.clientX;
         startWidth = filterPanel.offsetWidth;
         resizer.classList.add('resizing');
-        
+
         console.log('🔵 Start adjusting filter width:', startWidth, 'px, mouse position:', startX);
-        
+
         // Prevent default behavior and event bubbling
         e.preventDefault();
         e.stopPropagation();
-        
+
         // Add global styles to improve dragging experience
         document.body.style.cursor = 'col-resize';
         document.body.style.userSelect = 'none';
     });
-    
+
     document.addEventListener('mousemove', (e) => {
         if (!isResizing) return;
-        
+
         e.preventDefault();
-        
+
         const deltaX = e.clientX - startX;
         const newWidth = startWidth + deltaX;
-        
+
         // Limit minimum and maximum width
         const minWidth = 240;
         const maxWidth = 600;
-        
+
         if (newWidth >= minWidth && newWidth <= maxWidth) {
             filterPanel.style.width = `${newWidth}px`;
         }
     });
-    
+
     document.addEventListener('mouseup', () => {
         if (isResizing) {
             isResizing = false;
             resizer.classList.remove('resizing');
             document.body.style.cursor = '';
             document.body.style.userSelect = '';
-            
+
             const finalWidth = filterPanel.style.width;
             console.log('✅ Adjustment completed, final width:', finalWidth);
-            
+
             // save width to localStorage
             try {
                 localStorage.setItem('dailyArxivFilterPanelWidth', finalWidth);
@@ -9824,7 +9824,7 @@ function setupDailyArxivFilterResizing() {
             }
         }
     });
-    
+
     // from localStorage restore width
     try {
         const savedWidth = localStorage.getItem('dailyArxivFilterPanelWidth');
@@ -9840,7 +9840,7 @@ function setupDailyArxivFilterResizing() {
 // Check if there are partitions being fetched, if so start polling
 async function checkAndStartProgressPolling() {
     let hasActiveTask = false;
-    
+
     // Check all partitions, start polling for all ongoing tasks
     for (const cat of dailyArxivCategories) {
         try {
@@ -9852,32 +9852,32 @@ async function checkAndStartProgressPolling() {
                     hasActiveTask = true;
                     // Start polling for this partition
                     startProgressPolling(cat);
-                    
+
                     // If the partition is the currently viewed partition（or"all"）, update the progress display immediately
                     if (dailyArxivCurrentCategory === 'all' || cat === dailyArxivCurrentCategory) {
                         updateProgressUI(cat, progress);
-                        
+
                         // If there are crawled papers, the display will be updated immediately
                         if (progress.papers && progress.papers.length > 0) {
                             // Application front-end standardization
                             const normalizedPapers = applyFrontendNormalizationToPapers(progress.papers);
-                            
+
                             // Update paper cache
                             normalizedPapers.forEach(paper => {
-                                const paperDate = paper.announced 
-                                    ? paper.announced.split('T')[0] 
+                                const paperDate = paper.announced
+                                    ? paper.announced.split('T')[0]
                                     : dailyArxivCurrentDate;
                                 const cacheKey = `${paperDate}_${cat}`;
-                                
+
                                 if (!dailyArxivPapers[cacheKey]) {
                                     dailyArxivPapers[cacheKey] = [];
                                 }
-                                
+
                                 // Check if it already exists
                                 const existingIndex = dailyArxivPapers[cacheKey].findIndex(
                                     p => p.arxiv_id === paper.arxiv_id
                                 );
-                                
+
                                 if (existingIndex >= 0) {
                                     // Update existing paper
                                     dailyArxivPapers[cacheKey][existingIndex] = paper;
@@ -9886,7 +9886,7 @@ async function checkAndStartProgressPolling() {
                                     dailyArxivPapers[cacheKey].push(paper);
                                 }
                             });
-                            
+
                             // Refresh grid display
                             renderDailyArxivGrid();
                         }
@@ -9897,7 +9897,7 @@ async function checkAndStartProgressPolling() {
             console.error(`examine ${cat} Progress failed:`, err);
         }
     }
-    
+
     // If there are active tasks, refresh the list of available dates（Dates may have been added）
     if (hasActiveTask) {
         await loadAvailableDates();
@@ -9912,7 +9912,7 @@ async function loadAvailableDates() {
             const data = await res.json();
             dailyArxivAvailableDates = data.dates || [];
             const today = data.today;
-            
+
             // By default, the latest date of the paper will be displayed, if not, today will be displayed.
             if (dailyArxivAvailableDates.length > 0) {
                 dailyArxivCurrentDate = dailyArxivAvailableDates[0];  // latest date
@@ -9920,7 +9920,7 @@ async function loadAvailableDates() {
                 dailyArxivCurrentDate = today;
                 dailyArxivAvailableDates = [today];
             }
-            
+
             updateDateDisplay();
             updateDateNavButtons();
         }
@@ -9943,15 +9943,15 @@ function updateDateDisplay() {
 function updateDateNavButtons() {
     const prevBtn = document.getElementById('daily-arxiv-prev-date');
     const nextBtn = document.getElementById('daily-arxiv-next-date');
-    
+
     if (!dailyArxivAvailableDates.length) {
         if (prevBtn) prevBtn.disabled = true;
         if (nextBtn) nextBtn.disabled = true;
         return;
     }
-    
+
     const currentIndex = dailyArxivAvailableDates.indexOf(dailyArxivCurrentDate);
-    
+
     // The date list is in descending order（latest first）
     if (prevBtn) {
         prevBtn.disabled = currentIndex >= dailyArxivAvailableDates.length - 1;
@@ -9967,16 +9967,16 @@ async function navigateDate(direction) {
     // direction: -1 means moving forward（Older），1 Indicates the future（renew）
     // The date list is in descending order, so -1 correspond index+1，1 correspond index-1
     const newIndex = currentIndex - direction;
-    
+
     if (newIndex >= 0 && newIndex < dailyArxivAvailableDates.length) {
         dailyArxivCurrentDate = dailyArxivAvailableDates[newIndex];
         saveCurrentViewState();  // save state
         updateDateDisplay();
         updateDateNavButtons();
-        
+
         // Load papers for this date（Even if there is a partition being crawled, you can switch to view other dates）
         await loadPapersForCurrentDate();
-        
+
         // Check if there are partitions being crawled on the date you switched to
         if (dailyArxivCurrentCategory) {
             checkCategoryProgress(dailyArxivCurrentCategory);
@@ -9989,22 +9989,22 @@ async function loadPapersForCurrentDate() {
     if (!dailyArxivCurrentDate) {
         return;
     }
-    
+
     const emptyEl = document.getElementById('daily-arxiv-empty');
-    
+
     // Partitions have been configured and empty status prompts are hidden.
     if (dailyArxivCategories.length > 0 && emptyEl) {
         emptyEl.style.display = 'none';
     }
-    
+
     // in the case of"all", load all partitions；Otherwise load the specified partition
-    const categoriesToLoad = dailyArxivCurrentCategory === 'all' 
-        ? dailyArxivCategories 
+    const categoriesToLoad = dailyArxivCurrentCategory === 'all'
+        ? dailyArxivCategories
         : [dailyArxivCurrentCategory];
-    
+
     const loadingEl = document.getElementById('daily-arxiv-loading');
     let needsLoading = false;
-    
+
     // Check if it needs to be loaded from the server
     for (const cat of categoriesToLoad) {
         const cacheKey = `${dailyArxivCurrentDate}_${cat}`;
@@ -10013,10 +10013,10 @@ async function loadPapersForCurrentDate() {
             break;
         }
     }
-    
+
     if (needsLoading) {
         if (loadingEl) loadingEl.style.display = 'flex';
-        
+
         try {
             // Load all required partitions
             await Promise.all(categoriesToLoad.map(async (cat) => {
@@ -10038,7 +10038,7 @@ async function loadPapersForCurrentDate() {
             if (loadingEl) loadingEl.style.display = 'none';
         }
     }
-    
+
     // After the paper data is loaded, first refresh the filter options and then render the grid.
     renderDailyArxivFilterAffiliations();
     renderDailyArxivFilterCountries();
@@ -10059,12 +10059,18 @@ async function loadDailyArxivSettings() {
         if (res.ok) {
             dailyArxivSettings = await res.json();
             dailyArxivCategories = dailyArxivSettings.categories || [];
-            
+
             // Update settings panel values
+            const enabledEl = document.getElementById('daily-arxiv-enabled');
             const retentionDaysEl = document.getElementById('daily-arxiv-retention-days');
             const checkIntervalEl = document.getElementById('daily-arxiv-check-interval');
             const maxKeywordsEl = document.getElementById('daily-arxiv-max-keywords');
-            
+
+            if (enabledEl) {
+                enabledEl.checked = dailyArxivSettings.enabled === true; // Default to false
+                enabledEl.addEventListener('change', autoSaveDailyArxivSettings);
+            }
+
             if (retentionDaysEl) {
                 retentionDaysEl.value = dailyArxivSettings.retentionDays || 7;
                 retentionDaysEl.addEventListener('change', autoSaveDailyArxivSettings);
@@ -10077,12 +10083,12 @@ async function loadDailyArxivSettings() {
                 maxKeywordsEl.value = dailyArxivSettings.maxKeywords || 1;
                 maxKeywordsEl.addEventListener('change', autoSaveDailyArxivSettings);
             }
-            
+
             renderDailyArxivCategoryTags();
             renderDailyArxivSettingsCategoryList();
             renderDailyArxivKeywordList();
         }
-        
+
         // Load list of known institutions
         await loadKnownInstitutions();
     } catch (err) {
@@ -10109,13 +10115,14 @@ async function loadKnownInstitutions() {
 // keep Daily arXiv set up
 async function saveDailyArxivSettings(silent = false) {
     try {
+        const enabled = document.getElementById('daily-arxiv-enabled')?.checked;
         const retentionDays = parseInt(document.getElementById('daily-arxiv-retention-days')?.value) || 7;
         const checkInterval = parseInt(document.getElementById('daily-arxiv-check-interval')?.value) || 10;
         const maxKeywords = parseInt(document.getElementById('daily-arxiv-max-keywords')?.value) || 1;
-        
+
         // Limit the maximum number of keywords to 1-3 within range
         const clampedMaxKeywords = Math.max(1, Math.min(3, maxKeywords));
-        
+
         // Get keyword list（rendered fromDOMextracted from）
         const keywordList = [];
         const keywordItems = document.querySelectorAll('.daily-arxiv-keyword-item .keyword-text');
@@ -10125,19 +10132,20 @@ async function saveDailyArxivSettings(silent = false) {
                 keywordList.push(keyword);
             }
         });
-        
+
+        dailyArxivSettings.enabled = enabled;
         dailyArxivSettings.categories = dailyArxivCategories;
         dailyArxivSettings.retentionDays = retentionDays;
         dailyArxivSettings.checkIntervalMinutes = checkInterval;
         dailyArxivSettings.maxKeywords = clampedMaxKeywords;
         dailyArxivSettings.keywordList = keywordList;
-        
+
         const res = await fetch('/api/settings/daily-arxiv', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(dailyArxivSettings)
         });
-        
+
         if (res.ok) {
             if (!silent) {
                 showMessage('Daily arXiv Settings saved', 'success');
@@ -10156,18 +10164,18 @@ async function saveDailyArxivSettings(silent = false) {
 function addDailyArxivCategory() {
     const input = document.getElementById('daily-arxiv-new-category');
     if (!input) return;
-    
+
     const category = input.value.trim().toLowerCase();
     if (!category) {
         showMessage('Please enter a partition name', 'warning');
         return;
     }
-    
+
     if (dailyArxivCategories.includes(category)) {
         showMessage('The partition already exists', 'warning');
         return;
     }
-    
+
     dailyArxivCategories.push(category);
     input.value = '';
     renderDailyArxivSettingsCategoryList();
@@ -10182,7 +10190,7 @@ function addDailyArxivCategoryQuick(category) {
         showMessage('The partition already exists', 'warning');
         return;
     }
-    
+
     dailyArxivCategories.push(category);
     renderDailyArxivSettingsCategoryList();
     renderDailyArxivCategoryTags();
@@ -10206,12 +10214,12 @@ function removeDailyArxivCategory(category) {
 function renderDailyArxivSettingsCategoryList() {
     const container = document.getElementById('daily-arxiv-category-list');
     if (!container) return;
-    
+
     if (dailyArxivCategories.length === 0) {
         container.innerHTML = '';
         return;
     }
-    
+
     container.innerHTML = dailyArxivCategories.map(cat => `
         <div class="daily-arxiv-category-item">
             <span>${cat}</span>
@@ -10226,14 +10234,14 @@ function renderDailyArxivSettingsCategoryList() {
 function renderDailyArxivKeywordList() {
     const container = document.getElementById('daily-arxiv-keyword-list');
     if (!container) return;
-    
+
     const keywordList = dailyArxivSettings.keywordList || [];
-    
+
     if (keywordList.length === 0) {
         container.innerHTML = '<div style="color: #8b949e; font-size: 13px; padding: 8px;">There are no keywords yet, please add them in the input box below</div>';
         return;
     }
-    
+
     container.innerHTML = keywordList.map((keyword, index) => {
         // Escape special characters to prevent XSS
         const escapedKeyword = keyword.replace(/"/g, '&quot;').replace(/'/g, '&#39;');
@@ -10253,24 +10261,24 @@ function renderDailyArxivKeywordList() {
 function addDailyArxivKeyword() {
     const input = document.getElementById('daily-arxiv-new-keyword');
     if (!input) return;
-    
+
     const keyword = input.value.trim();
     if (!keyword) {
         showMessage('Please enter keywords', 'warning');
         return;
     }
-    
+
     // make sure keywordList exist
     if (!dailyArxivSettings.keywordList) {
         dailyArxivSettings.keywordList = [];
     }
-    
+
     if (dailyArxivSettings.keywordList.includes(keyword)) {
         showMessage('This keyword already exists', 'warning');
         input.value = '';
         return;
     }
-    
+
     dailyArxivSettings.keywordList.push(keyword);
     input.value = '';
     renderDailyArxivKeywordList();
@@ -10283,7 +10291,7 @@ function removeDailyArxivKeyword(keyword) {
     if (!dailyArxivSettings.keywordList) {
         dailyArxivSettings.keywordList = [];
     }
-    
+
     const index = dailyArxivSettings.keywordList.indexOf(keyword);
     if (index > -1) {
         dailyArxivSettings.keywordList.splice(index, 1);
@@ -10297,11 +10305,11 @@ function removeDailyArxivKeyword(keyword) {
 function setupDailyArxivKeywordInput() {
     const keywordInput = document.getElementById('daily-arxiv-new-keyword');
     if (!keywordInput) return;
-    
+
     // Remove old event listener（if exists）
     const newKeywordInput = keywordInput.cloneNode(true);
     keywordInput.parentNode.replaceChild(newKeywordInput, keywordInput);
-    
+
     // Bind carriage return event
     newKeywordInput.addEventListener('keydown', (e) => {
         if (e.key === 'Enter') {
@@ -10315,18 +10323,18 @@ function setupDailyArxivKeywordInput() {
 function renderDailyArxivCategoryTags() {
     const container = document.getElementById('daily-arxiv-categories');
     if (!container) return;
-    
+
     // Count the number of papers in each partition
     let allCount = 0;
     const categoryCounts = {};
-    
+
     dailyArxivCategories.forEach(cat => {
         const cacheKey = `${dailyArxivCurrentDate}_${cat}`;
         const papers = dailyArxivPapers[cacheKey] || [];
         categoryCounts[cat] = papers.length;
         allCount += papers.length;
     });
-    
+
     // Add to"all"Label
     const allTag = `
         <span class="daily-arxiv-category-tag ${dailyArxivCurrentCategory === 'all' ? 'active' : ''}" 
@@ -10335,7 +10343,7 @@ function renderDailyArxivCategoryTags() {
             all${allCount ? ' (' + allCount + ')' : ''}
         </span>
     `;
-    
+
     // Generate individual partition labels
     const categoryTags = dailyArxivCategories.map(cat => {
         const isActive = cat === dailyArxivCurrentCategory;
@@ -10348,7 +10356,7 @@ function renderDailyArxivCategoryTags() {
             </span>
         `;
     }).join('');
-    
+
     container.innerHTML = allTag + categoryTags;
 }
 
@@ -10358,11 +10366,11 @@ async function testLLMAPIForDailyArxiv() {
         // Get current LLM Configuration
         const response = await fetch('/api/settings/agentic');
         const settings = await response.json();
-        
+
         const llmModel = settings.llmModel?.trim() || '';
         const llmBaseUrl = settings.llmBaseUrl?.trim() || '';
         const llmApiKey = settings.llmApiKey?.trim() || '';
-        
+
         // Direct reuse testLLMAPICore function
         return await testLLMAPICore(llmModel, llmBaseUrl, llmApiKey);
     } catch (error) {
@@ -10377,7 +10385,7 @@ async function testLLMAPIForDailyArxiv() {
 function showRoundedNotification(message, type = 'error', persistent = true, notificationId = 'daily-arxiv-api-notification', actionButton = null) {
     // If the notification already exists, only update the content
     let notification = document.getElementById(notificationId);
-    
+
     if (notification) {
         // Update the content of an existing notification
         const messageSpan = notification.querySelector('span');
@@ -10399,7 +10407,7 @@ function showRoundedNotification(message, type = 'error', persistent = true, not
         }
         return;
     }
-    
+
     // Create notification element
     notification = document.createElement('div');
     notification.id = notificationId;
@@ -10419,7 +10427,7 @@ function showRoundedNotification(message, type = 'error', persistent = true, not
         animation: slideInRight 0.3s ease-out;
         max-width: 400px;
     `;
-    
+
     // Set styles based on type（reference ti-item design）
     if (type === 'error') {
         notification.style.background = '#fff5f5';
@@ -10434,7 +10442,7 @@ function showRoundedNotification(message, type = 'error', persistent = true, not
         notification.style.color = '#0b61c8';
         notification.style.border = '1px solid #9cc7ff';
     }
-    
+
     notification.innerHTML = `
         <i class="fas fa-exclamation-triangle" style="font-size: 14px;"></i>
         <span>${message}</span>
@@ -10454,7 +10462,7 @@ function showRoundedNotification(message, type = 'error', persistent = true, not
             <i class="fas fa-times"></i>
         </button>
     `;
-    
+
     // Add animation style（if not yet）
     if (!document.getElementById('daily-arxiv-notification-style')) {
         const style = document.createElement('style');
@@ -10483,9 +10491,9 @@ function showRoundedNotification(message, type = 'error', persistent = true, not
         `;
         document.head.appendChild(style);
     }
-    
+
     document.body.appendChild(notification);
-    
+
     // if persistent for false，5Automatically removed after seconds
     if (!persistent) {
         setTimeout(() => {
@@ -10508,16 +10516,16 @@ async function triggerFetchPapers(force = false) {
         }, 100);
         return;
     }
-    
+
     if (dailyArxivCategories.length === 0) {
         showMessage('Please configure first arXiv Partition', 'warning');
         return;
     }
-    
+
     if (!dailyArxivCurrentCategory) {
         dailyArxivCurrentCategory = dailyArxivCategories[0];
     }
-    
+
     // Test before crawling LLM API
     const testResult = await testLLMAPIForDailyArxiv();
     if (!testResult.success) {
@@ -10539,7 +10547,7 @@ async function triggerFetchPapers(force = false) {
         showRoundedNotification('LLM API Call failed, stop Daily arXiv,Check, please LLM API set up.', 'error', true, 'daily-arxiv-api-notification', actionButton);
         return;
     }
-    
+
     try {
         // Trigger background crawl（Use the currently viewed date, or today's date if not available）
         const dateToFetch = dailyArxivCurrentDate || new Date().toISOString().split('T')[0];
@@ -10552,9 +10560,9 @@ async function triggerFetchPapers(force = false) {
                 force: force,
             })
         });
-        
+
         const data = await res.json();
-        
+
         if (data.success) {
             showMessage(`Start crawling ${dailyArxivCurrentCategory} paper...`, 'info');
             // Start polling progress
@@ -10582,12 +10590,12 @@ async function triggerFetchAllCategories(force = false, dateStr = null) {
         }, 100);
         return;
     }
-    
+
     if (dailyArxivCategories.length === 0) {
         showMessage('Please configure first arXiv Partition', 'warning');
         return;
     }
-    
+
     // Test before crawling LLM API
     const testResult = await testLLMAPIForDailyArxiv();
     if (!testResult.success) {
@@ -10609,21 +10617,21 @@ async function triggerFetchAllCategories(force = false, dateStr = null) {
         showRoundedNotification('LLM API Call failed, stop Daily arXiv,Check, please LLM API set up.', 'error', true, 'daily-arxiv-api-notification', actionButton);
         return;
     }
-    
+
     try {
         // Trigger background crawl of all partitions（Use if a date is specified, otherwise use today's date）
         const dateToFetch = dateStr || new Date().toISOString().split('T')[0];
         const res = await fetch('/api/daily-arxiv/fetch-all', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ 
+            body: JSON.stringify({
                 force: force,
                 date: dateToFetch
             })
         });
-        
+
         const data = await res.json();
-        
+
         if (data.success) {
             showMessage(`Start crawling ${dailyArxivCategories.length} Papers on partitions...`, 'info');
             // Start independent progress polling for each partition
@@ -10645,9 +10653,9 @@ function startProgressPolling(category) {
     if (dailyArxivProgressIntervals[category]) {
         clearInterval(dailyArxivProgressIntervals[category]);
     }
-    
+
     let idleCount = 0;
-    
+
     // Start polling
     dailyArxivProgressIntervals[category] = setInterval(async () => {
         try {
@@ -10655,11 +10663,11 @@ function startProgressPolling(category) {
             if (res.ok) {
                 const data = await res.json();
                 const progress = data.progress;
-                
+
                 // if processing
                 if (progress.status === 'fetching' || progress.status === 'processing') {
                     idleCount = 0;
-                    
+
                     // Currently selected partition or"all"update progress barUI
                     const shouldShowProgress = dailyArxivCurrentCategory === 'all' || category === dailyArxivCurrentCategory;
                     if (shouldShowProgress) {
@@ -10668,7 +10676,7 @@ function startProgressPolling(category) {
                         if (progressEl) progressEl.style.display = 'block';
                         if (loadingEl) loadingEl.style.display = 'none';
                         updateProgressUI(category, progress);
-                        
+
                         // Make sure to hide"No new papers yet"interface
                         const gridEl = document.getElementById('daily-arxiv-grid');
                         if (gridEl) {
@@ -10678,29 +10686,29 @@ function startProgressPolling(category) {
                             }
                         }
                     }
-                    
+
                     // Display crawled papers in real time（All partitions update data）
                     if (progress.papers && progress.papers.length > 0) {
                         let hasNewPaper = false;
                         let hasNewPaperForCurrentView = false;
                         const newDates = new Set();
-                        
+
                         progress.papers.forEach(paper => {
-                            const paperDate = paper.announced 
-                                ? paper.announced.split('T')[0] 
+                            const paperDate = paper.announced
+                                ? paper.announced.split('T')[0]
                                 : dailyArxivCurrentDate;
                             const cacheKey = `${paperDate}_${category}`;
-                            
+
                             // debug log
                             if (!dailyArxivPapers[cacheKey] || !dailyArxivPapers[cacheKey].some(p => p.arxiv_id === paper.arxiv_id)) {
                                 console.log(`[Daily arXiv] new paper: ${paper.title.substring(0, 50)}... | date: ${paperDate} | Partition: ${category} | 当前查看: ${dailyArxivCurrentDate}`);
                             }
-                            
+
                             // Record new date
                             if (paperDate && !dailyArxivAvailableDates.includes(paperDate)) {
                                 newDates.add(paperDate);
                             }
-                            
+
                             if (!dailyArxivPapers[cacheKey]) {
                                 dailyArxivPapers[cacheKey] = [];
                             }
@@ -10716,7 +10724,7 @@ function startProgressPolling(category) {
                                 }
                             }
                         });
-                        
+
                         // Update list of available dates
                         if (newDates.size > 0) {
                             newDates.forEach(date => {
@@ -10728,19 +10736,19 @@ function startProgressPolling(category) {
                             dailyArxivAvailableDates.sort((a, b) => b.localeCompare(a));
                             updateDateNavButtons();
                         }
-                        
+
                         // Only new papers in the current section and date will be updated and displayed in real time.
                         if (hasNewPaperForCurrentView) {
                             renderDailyArxivGrid();
                         }
-                        
+
                         // Update all partition labels（Show number of papers）
                         if (hasNewPaper) {
                             renderDailyArxivCategoryTags();
                         }
                     }
                 }
-                
+
                 // On completion or error, stop polling for this partition
                 if (progress.status === 'done' || progress.status === 'error') {
                     stopProgressPolling(category);
@@ -10752,7 +10760,7 @@ function startProgressPolling(category) {
                     // Update partition label display
                     renderDailyArxivCategoryTags();
                 }
-                
+
                 // If idle, increment count
                 if (progress.status === 'idle') {
                     idleCount++;
@@ -10775,25 +10783,25 @@ function stopProgressPolling(category = null) {
             clearInterval(dailyArxivProgressIntervals[category]);
             delete dailyArxivProgressIntervals[category];
         }
-        
+
         // Reset the slow download prompt status of this partition
         delete dailyArxivSlowDownloadNotified[category];
         dailyArxivLastPaperKey = '';
-        
+
         // Remove slow download prompt（if exists）
         const slowDownloadNotification = document.getElementById('daily-arxiv-slow-download-notification');
         if (slowDownloadNotification) {
             slowDownloadNotification.remove();
         }
-        
+
         // If it is the current partition or"all", and no other partitions are crawling, hide the progress bar
-        const shouldHideProgress = (dailyArxivCurrentCategory === 'all' || category === dailyArxivCurrentCategory) 
+        const shouldHideProgress = (dailyArxivCurrentCategory === 'all' || category === dailyArxivCurrentCategory)
             && Object.keys(dailyArxivProgressIntervals).length === 0;
-        
+
         if (shouldHideProgress) {
             const progressEl = document.getElementById('daily-arxiv-progress');
             const loadingEl = document.getElementById('daily-arxiv-loading');
-            
+
             if (loadingEl) loadingEl.style.display = 'none';
             if (progressEl) {
                 setTimeout(() => {
@@ -10807,20 +10815,20 @@ function stopProgressPolling(category = null) {
             clearInterval(dailyArxivProgressIntervals[cat]);
         });
         dailyArxivProgressIntervals = {};
-        
+
         // Reset slow download prompt status for all partitions
         dailyArxivSlowDownloadNotified = {};
         dailyArxivLastPaperKey = '';
-        
+
         // Remove slow download prompt（if exists）
         const slowDownloadNotification = document.getElementById('daily-arxiv-slow-download-notification');
         if (slowDownloadNotification) {
             slowDownloadNotification.remove();
         }
-        
+
         const progressEl = document.getElementById('daily-arxiv-progress');
         const loadingEl = document.getElementById('daily-arxiv-loading');
-        
+
         if (loadingEl) loadingEl.style.display = 'none';
         if (progressEl) {
             setTimeout(() => {
@@ -10836,17 +10844,17 @@ function updateProgressUI(category, progress) {
     const countEl = document.getElementById('daily-arxiv-progress-count');
     const barEl = document.getElementById('daily-arxiv-progress-bar');
     const currentEl = document.getElementById('daily-arxiv-progress-current');
-    
+
     if (titleEl) titleEl.textContent = `Fetching ${category} paper...`;
     if (countEl) countEl.textContent = `${progress.current}/${progress.total}`;
-    
+
     const percent = progress.total > 0 ? (progress.current / progress.total * 100) : 0;
     if (barEl) barEl.style.width = `${percent}%`;
-    
+
     // Track the current paper and use it to detect paper switching
     const currentPaperKey = `${category}_${progress.current_paper || ''}`;
     const lastPaperKey = dailyArxivLastPaperKey || '';
-    
+
     // If the paper is switched, reset the slow download prompt status and remove the prompt
     if (currentPaperKey !== lastPaperKey && lastPaperKey) {
         delete dailyArxivSlowDownloadNotified[category];
@@ -10857,7 +10865,7 @@ function updateProgressUI(category, progress) {
         }
     }
     dailyArxivLastPaperKey = currentPaperKey;
-    
+
     if (currentEl) {
         if (progress.current_paper) {
             // Format elapsed time
@@ -10874,7 +10882,7 @@ function updateProgressUI(category, progress) {
                 const minutes = Math.floor((elapsedSeconds % 3600) / 60);
                 timeText = `${hours}Hour${minutes}minute`;
             }
-            
+
             // Format file size
             const pdfSizeBytes = progress.current_paper_pdf_size || 0;
             let sizeText = '';
@@ -10887,21 +10895,21 @@ function updateProgressUI(category, progress) {
                     sizeText = `${(pdfSizeBytes / (1024 * 1024)).toFixed(2)} MB`;
                 }
             }
-            
+
             // Truncate overly long titles
             const maxTitleLength = 50;
             let paperTitle = progress.current_paper;
             if (paperTitle.length > maxTitleLength) {
                 paperTitle = paperTitle.substring(0, maxTitleLength) + '...';
             }
-            
+
             // Build display text
             let displayText = `Downloading: ${paperTitle} (Elapsed time: ${timeText})`;
             if (sizeText) {
                 displayText += ` | ${sizeText}`;
             }
             currentEl.textContent = displayText;
-            
+
             // Check if the download time exceeds30Second
             if (elapsedSeconds > 30 && !dailyArxivSlowDownloadNotified[category]) {
                 // Show slow download prompt（Use standalone notificationsID, avoid comparing withLLM APIFailure prompt conflict）
@@ -10918,7 +10926,7 @@ function updateProgressUI(category, progress) {
             }
         }
     }
-    
+
     // Make sure the progress bar is hidden when shown"No new papers yet"interface
     const progressEl = document.getElementById('daily-arxiv-progress');
     if (progressEl && progressEl.style.display !== 'none') {
@@ -10940,7 +10948,7 @@ async function fetchDailyArxivPapers(forceRefresh = false) {
     const loadingEl = document.getElementById('daily-arxiv-loading');
     const emptyEl = document.getElementById('daily-arxiv-empty');
     const gridEl = document.getElementById('daily-arxiv-grid');
-    
+
     // Only displays empty status if no partition is configured
     if (dailyArxivCategories.length === 0) {
         if (loadingEl) loadingEl.style.display = 'none';
@@ -10948,24 +10956,24 @@ async function fetchDailyArxivPapers(forceRefresh = false) {
         if (gridEl) gridEl.innerHTML = '';
         return;
     }
-    
+
     // Partitions have been configured and empty status prompts are hidden.
     if (emptyEl) emptyEl.style.display = 'none';
-    
+
     // If no partition is selected, select the first one
     if (!dailyArxivCurrentCategory) {
         dailyArxivCurrentCategory = dailyArxivCategories[0];
     }
-    
+
     const cacheKey = `${dailyArxivCurrentDate}_${dailyArxivCurrentCategory}`;
-    
+
     // If there is already data in the cache and no forced refresh is required, it will be displayed directly.
     if (!forceRefresh && dailyArxivPapers[cacheKey] && dailyArxivPapers[cacheKey].length > 0) {
         renderDailyArxivGrid();
         renderDailyArxivCategoryTags();
         return;
     }
-    
+
     // Load from server
     await loadPapersForCurrentDate();
 }
@@ -10975,10 +10983,10 @@ async function switchDailyArxivCategory(category) {
     dailyArxivCurrentCategory = category;
     saveCurrentViewState();  // save state
     renderDailyArxivCategoryTags();
-    
+
     // load this partition（or all partitions）thesis
     await loadPapersForCurrentDate();
-    
+
     // Check whether the partition is being crawled, and if so, display a progress bar
     if (category !== 'all') {
         checkCategoryProgress(category);
@@ -10997,7 +11005,7 @@ async function checkCategoryProgress(category) {
         if (res.ok) {
             const data = await res.json();
             const progress = data.progress;
-            
+
             // If the partition is being crawled, display a progress bar
             if (progress.status === 'fetching' || progress.status === 'processing') {
                 const progressEl = document.getElementById('daily-arxiv-progress');
@@ -11005,7 +11013,7 @@ async function checkCategoryProgress(category) {
                 if (progressEl) progressEl.style.display = 'block';
                 if (loadingEl) loadingEl.style.display = 'none';
                 updateProgressUI(category, progress);
-                
+
                 // Make sure to hide"No new papers yet"interface
                 const gridEl = document.getElementById('daily-arxiv-grid');
                 if (gridEl) {
@@ -11261,27 +11269,27 @@ function getDailyArxivPapersForKeywordFilter() {
 function renderDailyArxivGrid() {
     const gridEl = document.getElementById('daily-arxiv-grid');
     const emptyEl = document.getElementById('daily-arxiv-empty');
-    
+
     if (!gridEl) return;
 
     // Restore the grid's default layout style before each rendering
     gridEl.classList.remove('daily-arxiv-grid-no-results');
-    
+
     // Get the papers in the current view（Sorted by time and in "all" Go down the view and merge the labels）
     const papers = getCurrentDailyArxivPapers();
-    
+
     if (papers.length === 0) {
         // Check if there are active filters or search criteria
-        const hasActiveFilters = 
-            dailyArxivFilterFirstAffiliation || 
-            dailyArxivSelectedAffiliations.size > 0 || 
+        const hasActiveFilters =
+            dailyArxivFilterFirstAffiliation ||
+            dailyArxivSelectedAffiliations.size > 0 ||
             dailyArxivExcludedAffiliations.size > 0 ||
             dailyArxivSelectedCountries.size > 0 ||
             dailyArxivExcludedCountries.size > 0 ||
             dailyArxivSelectedKeywords.size > 0 ||
             dailyArxivExcludedKeywords.size > 0 ||
             (dailyArxivSearchQuery && dailyArxivSearchQuery.trim().length > 0);
-        
+
         // If there is filtering/The search criteria resulted in no papers, displayed"No matching search results"
         if (hasActiveFilters) {
             // Change the entire grid area to a centered layout
@@ -11296,16 +11304,16 @@ function renderDailyArxivGrid() {
             if (emptyEl) emptyEl.style.display = 'none';
             return;
         }
-        
+
         // Check if any partitions are being crawled
         const isFetching = dailyArxivCurrentCategory === 'all'
             ? Object.keys(dailyArxivProgressIntervals).length > 0
             : dailyArxivProgressIntervals[dailyArxivCurrentCategory] !== undefined;
-        
+
         // Check whether the progress bar is displayed（If there is a progress bar displayed, it means that the crawling is in progress and should not be displayed."No new papers yet"）
         const progressEl = document.getElementById('daily-arxiv-progress');
         const isProgressVisible = progressEl && progressEl.style.display !== 'none';
-        
+
         // If there is a configuration partition but no paper
         if (dailyArxivCategories.length > 0) {
             // If crawling is in progress or the progress bar is displayed, the display is blank（Waiting for the paper to appear）
@@ -11316,16 +11324,16 @@ function renderDailyArxivGrid() {
                 const today = new Date().toISOString().split('T')[0];
                 const isToday = dailyArxivCurrentDate === today;
                 const hasOtherDates = dailyArxivAvailableDates.length > 1 || (dailyArxivAvailableDates.length === 1 && dailyArxivAvailableDates[0] !== today);
-                
+
                 let hint = '';
                 if (isToday && hasOtherDates) {
                     hint = '<p style="margin-top: 15px; font-size: 0.9em; color: #2196F3;"><i class="fas fa-info-circle"></i> Tip: Click on the date navigation above to view historical papers</p>';
                 }
-                
+
                 // show"Waiting"hint
                 // Add class to make grid Container centered
                 gridEl.classList.add('daily-arxiv-grid-no-results');
-                
+
                 // examine LLM Configuration
                 if (!dailyArxivLLMConfigured) {
                     gridEl.innerHTML = `
@@ -11367,16 +11375,16 @@ function renderDailyArxivGrid() {
         }
         return;
     }
-    
+
     if (emptyEl) emptyEl.style.display = 'none';
-    
+
     gridEl.innerHTML = papers.map((paper, index) => {
         // use announced date（Announcement date）instead of published（Submission date）
-        const date = paper.announced 
-            ? new Date(paper.announced).toLocaleDateString('en-US') 
+        const date = paper.announced
+            ? new Date(paper.announced).toLocaleDateString('en-US')
             : (paper.updated ? new Date(paper.updated).toLocaleDateString('en-US') : '');
         const authors = paper.authors ? (paper.authors.length > 50 ? paper.authors.substring(0, 50) + '...' : paper.authors) : '';
-        
+
         // Organization information display（Complete display, gray rounded border, different colors for different units）
         let affiliationsHtml = '';
         if (paper.affiliations && paper.affiliations.length > 0) {
@@ -11388,7 +11396,7 @@ function renderDailyArxivGrid() {
                 ${affTags}
             </div>`;
         }
-        
+
         // Region flag display（To remove duplicates, use set）- Will be displayed in the upper left corner of the image, to the right of the category label
         let countriesFlagsHtml = '';
         if (paper.countries && paper.countries.length > 0) {
@@ -11403,7 +11411,7 @@ function renderDailyArxivGrid() {
                 }
             }
         }
-        
+
         // Calculate classification labels for display:
         // - Give priority to using the merged all_fetch_categories
         // - Otherwise fall back to a single fetch_category / current partition / Main category of paper
@@ -11421,7 +11429,7 @@ function renderDailyArxivGrid() {
 
         // for thumbnails API The classification parameters still only take one specific partition to avoid illegal paths.
         const thumbnailCategory = categoryTags[0] || paper.fetch_category || paper.primary_category || dailyArxivCurrentCategory || '';
-        
+
         // Keyword display（Below the date, in black font, use LLM raw output）
         let keywordsHtml = '';
         if (paper.keywords && paper.keywords.length > 0) {
@@ -11433,7 +11441,7 @@ function renderDailyArxivGrid() {
             }).join('');
             keywordsHtml = `<div class="daily-arxiv-card-keywords">${kwTags}</div>`;
         }
-        
+
         // Generate thumbnailsURL
         let thumbnailHtml = '';
         if (paper.thumbnail_path) {
@@ -11455,7 +11463,7 @@ function renderDailyArxivGrid() {
                 <i class="fas fa-file-pdf placeholder-icon"></i>
             `;
         }
-        
+
         // Highlight function: only highlight the title when there is a search term/author/Institutions do <mark> pack
         const highlight = (text) => highlightDailyArxiv(text);
 
@@ -11474,9 +11482,9 @@ function renderDailyArxivGrid() {
                     ${paper.affiliations && paper.affiliations.length > 0 ? `
                         <div class="daily-arxiv-card-affiliations">
                             ${paper.affiliations.map(aff => {
-                                const color = getColorForString(aff);
-                                return `<span class="aff-mini-tag" style="color: ${color};">${highlight(aff)}</span>`;
-                            }).join('')}
+            const color = getColorForString(aff);
+            return `<span class="aff-mini-tag" style="color: ${color};">${highlight(aff)}</span>`;
+        }).join('')}
                         </div>
                     ` : ''}
                     <div class="daily-arxiv-card-meta">
@@ -11492,18 +11500,18 @@ function renderDailyArxivGrid() {
                                 <i class="fas fa-external-link-alt"></i>
                             </button>
                             ${(() => {
-                                // Check if the paper is on the to-read list
-                                const isInReadingList = paper.paper_id && readingListPaperIds.has(paper.paper_id);
-                                if (isInReadingList) {
-                                    return `<button class="daily-arxiv-card-action add-to-reading-list paper-col-btn reading icon-only in-list" data-paper-id="${paper.paper_id}" onclick="onDailyArxivRemoveFromReadingList(${index}, event)" title="Remove from to-read list">
+                // Check if the paper is on the to-read list
+                const isInReadingList = paper.paper_id && readingListPaperIds.has(paper.paper_id);
+                if (isInReadingList) {
+                    return `<button class="daily-arxiv-card-action add-to-reading-list paper-col-btn reading icon-only in-list" data-paper-id="${paper.paper_id}" onclick="onDailyArxivRemoveFromReadingList(${index}, event)" title="Remove from to-read list">
                                         <i class="fas fa-times"></i>
                                     </button>`;
-                                } else {
-                                    return `<button class="daily-arxiv-card-action add-to-reading-list paper-col-btn reading icon-only" onclick="onDailyArxivAddToReadingList(${index}, event)" title="Add to Readling List">
+                } else {
+                    return `<button class="daily-arxiv-card-action add-to-reading-list paper-col-btn reading icon-only" onclick="onDailyArxivAddToReadingList(${index}, event)" title="Add to Readling List">
                                         <i class="fas fa-book-open"></i>
                                     </button>`;
-                                }
-                            })()}
+                }
+            })()}
                         </div>
                     </div>
                     ${keywordsHtml}
@@ -11531,26 +11539,26 @@ function renderDailyArxivFilterAffiliations() {
         const affs = paper.affiliations || [];
         if (affs.length > 0) {
             firstAffCount++;
-            
+
             // Check if there are common institutions
             if (affs.some(aff => dailyArxivKnownInstitutions.has(aff))) {
                 knownInstCount++;
             }
         }
-        
+
         // Determine which institutions are counted based on special filter conditions
         let affsToCount = affs;
-        
+
         // if enabled"first unit"Filter to only count the first institution
         if (dailyArxivFilterFirstAffiliation && affs.length > 0) {
             affsToCount = [affs[0]];
         }
-        
+
         affsToCount.forEach(aff => {
             if (!aff) return;
             const key = aff;
             const isKnown = dailyArxivKnownInstitutions.has(aff);
-            
+
             if (!stats.has(key)) {
                 stats.set(key, { count: 1, color: getColorForString(key), isKnown });
             } else {
@@ -11683,7 +11691,7 @@ function renderDailyArxivFilterAffiliations() {
         btn.addEventListener('click', (e) => {
             // If the click is x button, does not trigger selection
             if (e.target.closest('.filter-remove-btn')) return;
-            
+
             const aff = btn.getAttribute('data-affiliation');
             if (!aff) return;
             // If it has been excluded, cancel the exclusion first
@@ -11763,7 +11771,7 @@ function renderDailyArxivFilterCountries() {
         const countLabel = count > 1 ? ` (${count})` : '';
         const activeClass = isSelected ? 'active' : '';
         const excludedClass = isExcluded ? 'excluded' : '';
-        
+
         // If there is no flag, display the abbreviation or simplified name
         let displayText = flag;
         if (!flag) {
@@ -11779,7 +11787,7 @@ function renderDailyArxivFilterCountries() {
                 displayText = country;
             }
         }
-        
+
         return `
             <button 
                 class="daily-arxiv-filter-affiliation ${activeClass} ${excludedClass}" 
@@ -11802,7 +11810,7 @@ function renderDailyArxivFilterCountries() {
         btn.addEventListener('click', (e) => {
             // If the click is x button, does not trigger selection
             if (e.target.closest('.filter-remove-btn')) return;
-            
+
             const country = btn.getAttribute('data-country');
             if (!country) return;
             // If it has been excluded, cancel the exclusion first
@@ -11944,7 +11952,7 @@ function renderDailyArxivFilterKeywords() {
         btn.addEventListener('click', (e) => {
             // If the click is x button, does not trigger selection
             if (e.target.closest('.filter-remove-btn')) return;
-            
+
             const keyword = btn.getAttribute('data-keyword');
             if (!keyword) return;
             // If it has been excluded, cancel the exclusion first
@@ -11994,13 +12002,13 @@ function showDailyArxivDetail(index) {
     const papers = getCurrentDailyArxivPapers();
     const paper = papers[index];
     if (!paper) return;
-    
+
     // use announced date（Announcement date）
-    const announcedDate = paper.announced 
-        ? new Date(paper.announced).toLocaleDateString('en-US') 
+    const announcedDate = paper.announced
+        ? new Date(paper.announced).toLocaleDateString('en-US')
         : '';
     const submitDate = paper.published ? new Date(paper.published).toLocaleDateString('en-US') : '';
-    
+
     // Institutional information area（with color）
     let affiliationsHtml = '';
     if (paper.affiliations && paper.affiliations.length > 0) {
@@ -12009,7 +12017,7 @@ function showDailyArxivDetail(index) {
             const textColor = getColorForString(aff);
             return `<span class="affiliation-tag" style="background: ${bgColor}; color: ${textColor};">${escapeHtml(aff)}</span>`;
         }).join('');
-        
+
         // Region flag display（Remove duplicates）
         let countriesFlagsHtml = '';
         if (paper.countries && paper.countries.length > 0) {
@@ -12027,7 +12035,7 @@ function showDailyArxivDetail(index) {
                 }
             }
         }
-        
+
         affiliationsHtml = `
             <div class="daily-arxiv-detail-affiliations">
                 <h4><i class="fas fa-building"></i> Affiliations</h4>
@@ -12048,7 +12056,7 @@ function showDailyArxivDetail(index) {
             </div>
         `;
     }
-    
+
     // keyword area（Black font, use LLM raw output）
     let keywordsHtml = '';
     if (paper.keywords && paper.keywords.length > 0) {
@@ -12065,7 +12073,7 @@ function showDailyArxivDetail(index) {
             </div>
         `;
     }
-    
+
     // summary summary area（show first summary, then display abstract）
     let summaryHtml = '';
     if (paper.summary) {
@@ -12076,7 +12084,7 @@ function showDailyArxivDetail(index) {
             </div>
         `;
     }
-    
+
     const modalHtml = `
         <div class="daily-arxiv-detail-modal" onclick="if(event.target === this) closeDailyArxivDetail()">
             <div class="daily-arxiv-detail-content">
@@ -12139,7 +12147,7 @@ function showDailyArxivDetail(index) {
             </div>
         </div>
     `;
-    
+
     document.body.insertAdjacentHTML('beforeend', modalHtml);
 }
 
@@ -12157,7 +12165,7 @@ async function extractAffiliationsForPaper(paperIndex) {
     const papers = getCurrentDailyArxivPapers();
     const paper = papers[paperIndex];
     if (!paper) return;
-    
+
     // get Agentic Settings in LLM Configuration
     let agenticSettings = {};
     try {
@@ -12168,27 +12176,27 @@ async function extractAffiliationsForPaper(paperIndex) {
     } catch (err) {
         console.error('get Agentic Settings fail:', err);
     }
-    
+
     const llmBaseUrl = agenticSettings.llmBaseUrl;
     const llmApiKey = agenticSettings.llmApiKey;
-    
+
     if (!llmBaseUrl || !llmApiKey) {
         showMessage('Please configure it in settings first Agentic Settings of LLM API', 'warning');
         return;
     }
-    
+
     // Update button state
     const extractBtn = document.querySelector('.affiliation-extract-prompt button');
     if (extractBtn) {
         extractBtn.disabled = true;
         extractBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Extracting...';
     }
-    
+
     try {
         // Get the date and section information of a paper
         const paperDate = paper.fetch_date || dailyArxivCurrentDate;
         const paperCategory = paper.fetch_category || dailyArxivCurrentCategory;
-        
+
         const res = await fetch('/api/daily-arxiv/extract-affiliations', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -12198,15 +12206,15 @@ async function extractAffiliationsForPaper(paperIndex) {
                 fetch_category: paperCategory,
             })
         });
-        
+
         const data = await res.json();
-        
+
         if (data.success) {
             // Update local cache（Use the correct cache key）
-            const cacheKey = dailyArxivCurrentCategory === 'all' 
+            const cacheKey = dailyArxivCurrentCategory === 'all'
                 ? null  // All modes need to find the corresponding cache
                 : `${dailyArxivCurrentDate}_${dailyArxivCurrentCategory}`;
-            
+
             if (cacheKey && dailyArxivPapers[cacheKey]) {
                 // Find the corresponding paper and update it
                 const cachedPaper = dailyArxivPapers[cacheKey].find(p => p.arxiv_id === paper.arxiv_id);
@@ -12233,14 +12241,14 @@ async function extractAffiliationsForPaper(paperIndex) {
                     }
                 });
             }
-            
+
             // Refresh details modal box
             closeDailyArxivDetail();
             showDailyArxivDetail(paperIndex);
-            
+
             // Refresh grid display
             renderDailyArxivGrid();
-            
+
             const msgParts = [];
             if (data.affiliations && data.affiliations.length > 0) {
                 msgParts.push(`Extract to ${data.affiliations.length} institutions`);
@@ -12251,7 +12259,7 @@ async function extractAffiliationsForPaper(paperIndex) {
             if (data.github) {
                 msgParts.push('Extract to GitHub');
             }
-            
+
             if (msgParts.length > 0) {
                 showMessage(msgParts.join('，'), 'success');
             } else {
@@ -12385,7 +12393,7 @@ async function onDailyArxivRemoveFromReadingList(paperIndex, event) {
         }
 
         const data = await res.json();
-        
+
         if (data.requires_confirmation) {
             // Confirmation of deletion is required and a pop-up window will be displayed.
             const confirmed = confirm(data.message || 'The paper has not been moved to a certain directory. Do you want to delete the paper file?');
@@ -12442,30 +12450,30 @@ async function showDailyArxivView() {
     document.getElementById('paper-view').style.display = 'none';
     document.getElementById('setting-view').style.display = 'none';
     document.getElementById('daily-arxiv-view').style.display = 'block';
-    
+
     // hide"to-read list"Label
     const readingListLabel = document.getElementById('reading-list-label');
     if (readingListLabel) {
         readingListLabel.style.display = 'none';
     }
-    
+
     // Update navigation bar status
     document.querySelectorAll('.nav-tab').forEach(tab => tab.classList.remove('active'));
     const dailyArxivTab = document.querySelector('.nav-tab[data-tab="daily-arxiv"]');
     if (dailyArxivTab) dailyArxivTab.classList.add('active');
-    
+
     // examine LLM Configure and load settings, dates and papers
     // Check first LLM API state（A pop-up window will be displayed if it fails.）
     await checkDailyArxivLLMConfig();
-    
+
     await loadDailyArxivSettings();
     // Load available dates first（This will set dailyArxivCurrentDate）
     await loadAvailableDates();
-    
+
     // Check if the cache has paper data for the current date and partition
     const cacheKey = `${dailyArxivCurrentDate}_${dailyArxivCurrentCategory}`;
     const hasCachedData = dailyArxivPapers[cacheKey] && dailyArxivPapers[cacheKey].length > 0;
-    
+
     if (!hasCachedData && dailyArxivCategories.length > 0 && dailyArxivCurrentDate) {
         // If there is no data in the cache, try loading it from the server
         await loadPapersForCurrentDate();
@@ -12473,19 +12481,19 @@ async function showDailyArxivView() {
         // If there is cached data, render directly
         renderDailyArxivGrid();
     }
-    
+
     // Check whether there is an ongoing crawling task, and if so, automatically start progress polling
     // This ensures that users can see real-time progress when entering the interface
     if (dailyArxivCategories.length > 0) {
         // Check all partitions for ongoing tasks
         await checkAndStartProgressPolling();
-        
+
         // If a specific partition is currently selected, also checks the progress of that partition
         if (dailyArxivCurrentCategory && dailyArxivCurrentCategory !== 'all') {
             await checkCategoryProgress(dailyArxivCurrentCategory);
         }
     }
-    
+
     saveCurrentViewState();
 }
 // ==================== Custom organization configuration management ====================
@@ -12500,7 +12508,7 @@ async function loadCustomInstitutions() {
     try {
         const response = await fetch('/api/custom-institutions');
         const data = await response.json();
-        
+
         if (data.success) {
             customInstitutions = data.institutions || [];
             renderCustomInstitutions();
@@ -12517,9 +12525,9 @@ async function loadCustomInstitutions() {
  */
 function renderCustomInstitutions() {
     const listContainer = document.getElementById('custom-institution-list');
-    
+
     if (!listContainer) return;
-    
+
     if (customInstitutions.length === 0) {
         listContainer.innerHTML = `
             <div class="custom-institution-empty">
@@ -12528,7 +12536,7 @@ function renderCustomInstitutions() {
         `;
         return;
     }
-    
+
     listContainer.innerHTML = customInstitutions.map(inst => `
         <div class="custom-institution-item" ondblclick="editInstitution('${escapeHtml(inst.abbreviation)}')" title="Double click to edit">
             <i class="fas fa-university"></i>
@@ -12549,12 +12557,12 @@ function showAddInstitutionModal() {
     document.getElementById('modal-new-variant').value = '';
     document.getElementById('institution-modal-delete').style.display = 'none';
     updateVariantCount();
-    
+
     // Show modal box
     const modal = document.getElementById('institution-modal');
     modal.style.display = 'block';
     document.body.style.overflow = 'hidden'; // Prevent background from scrolling
-    
+
     setTimeout(() => {
         document.getElementById('modal-institution-abbr').focus();
     }, 100);
@@ -12566,7 +12574,7 @@ function showAddInstitutionModal() {
 function editInstitution(abbreviation) {
     const institution = customInstitutions.find(inst => inst.abbreviation === abbreviation);
     if (!institution) return;
-    
+
     currentEditingInstitution = institution;
     document.getElementById('institution-modal-title').textContent = 'Edit organization mapping';
     document.getElementById('modal-institution-abbr').value = abbreviation;
@@ -12575,12 +12583,12 @@ function editInstitution(abbreviation) {
     document.getElementById('modal-new-variant').value = '';
     document.getElementById('institution-modal-delete').style.display = 'inline-flex';
     updateVariantCount();
-    
+
     // Show modal box
     const modal = document.getElementById('institution-modal');
     modal.style.display = 'block';
     document.body.style.overflow = 'hidden';
-    
+
     setTimeout(() => {
         document.getElementById('modal-new-variant').focus();
     }, 100);
@@ -12591,13 +12599,13 @@ function editInstitution(abbreviation) {
  */
 function renderModalVariants(variants) {
     const listContainer = document.getElementById('modal-variants-list');
-    
+
     if (!variants || variants.length === 0) {
         listContainer.innerHTML = '';
         updateVariantCount();
         return;
     }
-    
+
     listContainer.innerHTML = variants.map(variant => `
         <div class="institution-variant-tag">
             <span class="variant-text">${escapeHtml(variant)}</span>
@@ -12606,7 +12614,7 @@ function renderModalVariants(variants) {
             </span>
         </div>
     `).join('');
-    
+
     updateVariantCount();
 }
 
@@ -12626,14 +12634,14 @@ function updateVariantCount() {
  */
 function normalizeAffiliationFrontend(affiliation) {
     if (!affiliation || !customInstitutions) return affiliation;
-    
+
     const affLower = affiliation.toLowerCase().trim();
-    
+
     // Traverse all custom institution mappings
     for (const inst of customInstitutions) {
         const abbr = inst.abbreviation;
         const variants = inst.variants || [];
-        
+
         // Check for an exact match of a variant（Not case sensitive）
         for (const variant of variants) {
             if (variant.toLowerCase().trim() === affLower) {
@@ -12642,7 +12650,7 @@ function normalizeAffiliationFrontend(affiliation) {
             }
         }
     }
-    
+
     return affiliation; // No match, return the original value
 }
 
@@ -12651,17 +12659,17 @@ function normalizeAffiliationFrontend(affiliation) {
  */
 function applyFrontendNormalizationToPapers(papers) {
     if (!papers || !Array.isArray(papers)) return papers;
-    
+
     return papers.map(paper => {
         if (paper.affiliations && Array.isArray(paper.affiliations)) {
             // Standardization organization name
-            const normalizedAffiliations = paper.affiliations.map(aff => 
+            const normalizedAffiliations = paper.affiliations.map(aff =>
                 normalizeAffiliationFrontend(aff)
             );
-            
+
             // Remove duplicates
             const uniqueAffiliations = [...new Set(normalizedAffiliations)];
-            
+
             return {
                 ...paper,
                 affiliations: uniqueAffiliations
@@ -12676,14 +12684,14 @@ function applyFrontendNormalizationToPapers(papers) {
  */
 async function refreshDailyArxivAfterInstitutionChange() {
     console.log('[Institution] Start refreshing Daily arXiv Paper data...');
-    
+
     // Check if there is Daily arXiv view
     const dailyArxivSection = document.getElementById('daily-arxiv-section');
     if (!dailyArxivSection) {
         console.log('[Institution] Not here Daily arXiv view, skip refresh');
         return;
     }
-    
+
     try {
         // Apply normalization to cached papers
         if (typeof dailyArxivPapers !== 'undefined') {
@@ -12694,19 +12702,19 @@ async function refreshDailyArxivAfterInstitutionChange() {
                 }
             }
         }
-        
+
         // Re-render the mesh
         if (typeof renderDailyArxivGrid === 'function') {
             renderDailyArxivGrid();
             console.log('[Institution] Thesis grid has been refreshed');
         }
-        
+
         // Re-render filter（The list of institutions will be updated）
         if (typeof renderDailyArxivFilterAffiliations === 'function') {
             renderDailyArxivFilterAffiliations();
             console.log('[Institution] Institution filter refreshed');
         }
-        
+
     } catch (error) {
         console.error('[Institution] refresh Daily arXiv fail:', error);
     }
@@ -12718,25 +12726,25 @@ async function refreshDailyArxivAfterInstitutionChange() {
 function addVariantInModal() {
     const input = document.getElementById('modal-new-variant');
     const variant = input.value.trim();
-    
+
     if (!variant) {
         showMessage('Please enter the full name of the organization', 'error');
         return;
     }
-    
+
     // Get the current variant list
     const currentVariants = getCurrentModalVariants();
-    
+
     // Check for duplicates
     if (currentVariants.includes(variant)) {
         showMessage('This variant already exists', 'warning');
         return;
     }
-    
+
     // Add new variant
     currentVariants.push(variant);
     renderModalVariants(currentVariants);
-    
+
     // Clear input box
     input.value = '';
     input.focus();
@@ -12759,7 +12767,7 @@ function removeVariantInModal(variant) {
 function getCurrentModalVariants() {
     const listContainer = document.getElementById('modal-variants-list');
     const tags = listContainer.querySelectorAll('.institution-variant-tag');
-    
+
     return Array.from(tags).map(tag => {
         // pass .variant-text Get text content
         const textSpan = tag.querySelector('.variant-text');
@@ -12772,23 +12780,23 @@ function getCurrentModalVariants() {
  */
 async function saveInstitutionInModal() {
     console.log('[Institution] Start saving organization...');
-    
+
     const abbreviation = document.getElementById('modal-institution-abbr').value.trim();
     const variants = getCurrentModalVariants();
-    
+
     console.log('[Institution] abbreviation:', abbreviation);
     console.log('[Institution] Variants:', variants);
-    
+
     if (!abbreviation) {
         showMessage('Please enter a standard abbreviation', 'error');
         return;
     }
-    
+
     if (variants.length === 0) {
         showMessage('At least one full name variant needs to be added', 'error');
         return;
     }
-    
+
     try {
         console.log('[Institution] Send request to /api/custom-institutions');
         const response = await fetch('/api/custom-institutions', {
@@ -12801,16 +12809,16 @@ async function saveInstitutionInModal() {
                 variants: variants
             })
         });
-        
+
         console.log('[Institution] response received:', response.status);
         const data = await response.json();
         console.log('[Institution] response data:', data);
-        
+
         if (data.success) {
             showMessage('The institution has been saved and the paper is being refreshed....', 'success');
             closeInstitutionModal();
             await loadCustomInstitutions();
-            
+
             // refresh Daily arXiv of thesis data to enable the new institutional mapping
             await refreshDailyArxivAfterInstitutionChange();
         } else {
@@ -12827,25 +12835,25 @@ async function saveInstitutionInModal() {
  */
 async function deleteInstitutionInModal() {
     if (!currentEditingInstitution) return;
-    
+
     const abbreviation = currentEditingInstitution.abbreviation;
-    
+
     if (!confirm(`Are you sure you want to delete the organization? ${abbreviation} ?`)) {
         return;
     }
-    
+
     try {
         const response = await fetch(`/api/custom-institutions/${encodeURIComponent(abbreviation)}`, {
             method: 'DELETE'
         });
-        
+
         const data = await response.json();
-        
+
         if (data.success) {
             showMessage('Deleted, refreshing the paper...', 'success');
             closeInstitutionModal();
             await loadCustomInstitutions();
-            
+
             // refresh Daily arXiv paper data
             await refreshDailyArxivAfterInstitutionChange();
         } else {
@@ -12880,7 +12888,7 @@ function initCustomInstitutionManagement() {
             }
         });
     }
-    
+
     // ESC key to close the modal
     document.addEventListener('keydown', (e) => {
         if (e.key === 'Escape') {
@@ -12896,10 +12904,10 @@ function initCustomInstitutionManagement() {
 document.addEventListener('DOMContentLoaded', () => {
     // Initialize custom organization management
     initCustomInstitutionManagement();
-    
+
     // Load custom institution list now（When the page loads）
     loadCustomInstitutions();
-    
+
     // Monitoring settings panel switch（Make sure to switch to Daily arXiv Also refresh when setting）
     const dailyArxivSettingBtn = document.querySelector('.setting-nav-item[data-setting="daily-arxiv"]');
     if (dailyArxivSettingBtn) {
@@ -12921,19 +12929,19 @@ async function initExportFeature() {
     const btnStartExport = document.getElementById('btn-start-export');
     const btnCancelExport = document.getElementById('btn-cancel-export');
     const btnDownloadExport = document.getElementById('btn-download-export');
-    
+
     if (btnStartExport) {
         btnStartExport.addEventListener('click', startExport);
     }
-    
+
     if (btnCancelExport) {
         btnCancelExport.addEventListener('click', cancelExport);
     }
-    
+
     if (btnDownloadExport) {
         btnDownloadExport.addEventListener('click', downloadExport);
     }
-    
+
     // Get and display papers directory path
     try {
         const response = await fetch('/api/papers-dir');
@@ -12953,11 +12961,11 @@ async function initExportFeature() {
 async function startExport() {
     const btnStart = document.getElementById('btn-start-export');
     const progressContainer = document.getElementById('export-progress-container');
-    
+
     // Disable start button
     btnStart.disabled = true;
     btnStart.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Starting...';
-    
+
     try {
         const response = await fetch('/api/export/start', {
             method: 'POST',
@@ -12966,27 +12974,27 @@ async function startExport() {
             },
             body: JSON.stringify({})
         });
-        
+
         const data = await response.json();
-        
+
         if (!data.success) {
             showMessage(data.error || 'Failed to start export', 'error');
             btnStart.disabled = false;
             btnStart.innerHTML = '<i class="fas fa-download"></i> Start export';
             return;
         }
-        
+
         exportTaskId = data.task_id;
-        
+
         // Show progress container
         progressContainer.style.display = 'block';
         btnStart.style.display = 'none';
-        
+
         // Start polling progress
         startExportProgressPolling();
-        
+
         showMessage('Export task started', 'success');
-        
+
     } catch (error) {
         console.error('Failed to start export:', error);
         showMessage('Failed to start export: ' + error.message, 'error');
@@ -13000,10 +13008,10 @@ function startExportProgressPolling() {
     if (exportProgressInterval) {
         clearInterval(exportProgressInterval);
     }
-    
+
     // Query once now
     checkExportProgress();
-    
+
     // Query once per second
     exportProgressInterval = setInterval(checkExportProgress, 1000);
 }
@@ -13011,24 +13019,24 @@ function startExportProgressPolling() {
 // Check export progress
 async function checkExportProgress() {
     if (!exportTaskId) return;
-    
+
     try {
         const response = await fetch(`/api/export/status/${exportTaskId}`);
         const data = await response.json();
-        
+
         if (!data.success) {
             stopExportProgressPolling();
             return;
         }
-        
+
         const task = data.task;
         updateExportProgress(task);
-        
+
         // Stop polling if task completes or fails
         if (task.status === 'completed' || task.status === 'failed' || task.status === 'cancelled') {
             stopExportProgressPolling();
         }
-        
+
     } catch (error) {
         console.error('Failed to query export progress:', error);
     }
@@ -13050,7 +13058,7 @@ function updateExportProgress(task) {
     const currentPaper = document.getElementById('export-current-paper');
     const btnDownload = document.getElementById('btn-download-export');
     const btnCancel = document.getElementById('btn-cancel-export');
-    
+
     // Update status text
     if (task.status === 'pending') {
         statusText.textContent = 'In preparation...';
@@ -13071,7 +13079,7 @@ function updateExportProgress(task) {
         statusText.style.color = '#6a737d';
         btnCancel.style.display = 'none';
     }
-    
+
     // update progress
     if (task.total > 0) {
         const percent = Math.round((task.progress / task.total) * 100);
@@ -13081,7 +13089,7 @@ function updateExportProgress(task) {
         progressText.textContent = '0 / 0';
         progressFill.style.width = '0%';
     }
-    
+
     // Update current paper
     if (task.current_paper && task.status === 'running') {
         currentPaper.textContent = task.current_paper;
@@ -13092,25 +13100,25 @@ function updateExportProgress(task) {
 // Cancel export
 async function cancelExport() {
     if (!exportTaskId) return;
-    
+
     if (!confirm('Are you sure you want to cancel the export?')) {
         return;
     }
-    
+
     try {
         const response = await fetch(`/api/export/cancel/${exportTaskId}`, {
             method: 'POST'
         });
-        
+
         const data = await response.json();
-        
+
         if (data.success) {
             showMessage('Export canceled', 'info');
             resetExportUI();
         } else {
             showMessage(data.error || 'Cancellation failed', 'error');
         }
-        
+
     } catch (error) {
         console.error('Cancel export failed:', error);
         showMessage('Cancel export failed: ' + error.message, 'error');
@@ -13120,18 +13128,18 @@ async function cancelExport() {
 // Download export file
 async function downloadExport() {
     if (!exportTaskId) return;
-    
+
     try {
         // Download directly from your browser
         window.location.href = `/api/export/download/${exportTaskId}`;
-        
+
         showMessage('Export file download has started', 'success');
-        
+
         // Reset after downloading UI
         setTimeout(() => {
             resetExportUI();
         }, 2000);
-        
+
     } catch (error) {
         console.error('Failed to download export file:', error);
         showMessage('Download failed: ' + error.message, 'error');
@@ -13146,20 +13154,20 @@ function resetExportUI() {
     const btnCancel = document.getElementById('btn-cancel-export');
     const statusText = document.getElementById('export-status-text');
     const currentPaper = document.getElementById('export-current-paper');
-    
+
     btnStart.disabled = false;
     btnStart.innerHTML = '<i class="fas fa-download"></i> Start export';
     btnStart.style.display = 'inline-flex';
-    
+
     progressContainer.style.display = 'none';
     btnDownload.style.display = 'none';
     btnCancel.style.display = 'inline-flex';
-    
+
     statusText.textContent = 'Exporting...';
     statusText.style.color = '';
     currentPaper.textContent = '';
     currentPaper.style.color = '';
-    
+
     exportTaskId = null;
     stopExportProgressPolling();
 }
@@ -13184,7 +13192,7 @@ async function showOnboardingModal() {
         } catch (e) {
             console.error('[Onboarding] Failed to load AI language setting:', e);
         }
-        
+
         modal.style.display = 'flex';
         // Prevent background from scrolling
         document.body.style.overflow = 'hidden';
@@ -13198,20 +13206,20 @@ async function closeOnboardingModal() {
     const modal = document.getElementById('onboarding-modal');
     const checkbox = document.getElementById('onboarding-dont-show');
     const languageEl = document.getElementById('onboarding-ai-language');
-    
+
     if (modal) {
         modal.style.display = 'none';
         // Restore background scrolling
         document.body.style.overflow = '';
     }
-    
+
     // Save AI language setting if changed
     if (languageEl) {
         try {
             const selectedLanguage = languageEl.value;
             await saveUserSettings({ aiLanguage: selectedLanguage });
             console.log('[Onboarding] AI language saved:', selectedLanguage);
-            
+
             // Update Agentic settings panel if it's open
             const aiLanguageEl = document.getElementById('ai-language');
             if (aiLanguageEl) {
@@ -13221,7 +13229,7 @@ async function closeOnboardingModal() {
             console.error('[Onboarding] Failed to save AI language setting:', e);
         }
     }
-    
+
     // If the user checked"Don't remind me next time", save to user settings
     if (checkbox && checkbox.checked) {
         try {
@@ -13246,13 +13254,13 @@ async function checkAndShowOnboarding() {
         // Check if it has been set from user settings"Don’t remind me next time"
         const userSettings = await getUserSettings();
         const dontShow = userSettings.onboardingDontShow;
-        
+
         // If the user has chosen not to show it again, skip the pop-up window
         if (dontShow === true) {
             console.log('[Onboarding] The user has chosen not to show it again and skip the pop-up window.');
             return;
         }
-        
+
         // Show newbie guide
         // Delay the display a bit to ensure the page is fully loaded
         console.log('[Onboarding] Show newbie guide popup（onboardingDontShow:', dontShow, '）');
@@ -13266,11 +13274,11 @@ async function checkAndShowOnboarding() {
 
 // Check whether you need to display the newbie guide after the page is loaded.
 // Use immediate execution functions to support lazy loading
-(function() {
+(function () {
     async function initOnboarding() {
         await checkAndShowOnboarding();
     }
-    
+
     // if DOM Loading is complete, execute immediately
     if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', initOnboarding);

@@ -1540,10 +1540,22 @@ Now the input abstract is:
     def _scheduler_loop(self):
         """scheduler main loop"""
         # Execute once immediately on startup
-        self._do_scheduled_fetch()
+        settings = self.get_settings()
+        if settings.get("enabled", False):
+            self._do_scheduled_fetch()
 
         while self._scheduler_running:
             settings = self.get_settings()
+            
+            # Check if enabled
+            if not settings.get("enabled", False):
+                # If disabled, check every minute
+                for _ in range(60):
+                    if not self._scheduler_running:
+                        return
+                    time.sleep(1)
+                continue
+            
             interval_minutes = settings.get("checkIntervalMinutes", 10)
 
             # wait

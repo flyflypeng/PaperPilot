@@ -178,6 +178,7 @@ DEFAULT_AGENTIC_SETTINGS = {
 
 # Default Daily arXiv settings
 DEFAULT_DAILY_ARXIV_SETTINGS = {
+    "enabled": False,  # Default to disabled
     "categories": ["cs.CV"],  # arXiv category list
     "checkIntervalMinutes": 30,  # Check interval (minutes)
     "retentionDays": 2,  # Retention days for papers
