@@ -116,6 +116,19 @@ const uploadZone = document.getElementById('upload-zone');
 const fileInput = document.getElementById('file-input');
 const loading = document.getElementById('loading');
 
+function showInfoPanel() {
+    const panel = document.getElementById('info-panel');
+    if (!panel) return;
+    panel.style.display = 'flex';
+}
+
+function hideInfoPanel() {
+    const panel = document.getElementById('info-panel');
+    if (!panel) return;
+    panel.classList.remove('wide');
+    panel.style.display = 'none';
+}
+
 // Save current view state
 function saveCurrentViewState() {
     const settingView = document.getElementById('setting-view');
@@ -815,6 +828,7 @@ async function loadPapers(categoryId, recursive = false) {
         currentViewMode = 'category';
         currentCategoryId = categoryId;
         saveCurrentViewState();
+        showInfoPanel();
         // hide"to-read list"Label
         const readingListLabel = document.getElementById('reading-list-label');
         if (readingListLabel) {
@@ -861,6 +875,7 @@ async function loadPapers(categoryId, recursive = false) {
 // Show list of papers in translation
 async function showTranslatingPapers() {
     try {
+        showInfoPanel();
         currentViewMode = 'translating';
         currentCategoryId = null; // Clear category selection
         saveCurrentViewState();
@@ -932,6 +947,9 @@ async function showTranslatingPapers() {
 // Show to-read list
 async function showReadingList() {
     try {
+        clearPaperInfo();
+        document.querySelectorAll('.paper-item.selected').forEach(item => item.classList.remove('selected'));
+        hideInfoPanel();
         currentViewMode = 'reading-list';
         currentCategoryId = null; // Clear category selection
         saveCurrentViewState();
@@ -1095,6 +1113,11 @@ async function removeFromReadingList(paperId, event) {
             // renewIDSets and counting
             readingListPaperIds.delete(paperId);
             await updateReadingListCount();
+            if (currentViewMode === 'reading-list' && currentPaperId === paperId) {
+                clearPaperInfo();
+                document.querySelectorAll('.paper-item.selected').forEach(item => item.classList.remove('selected'));
+                hideInfoPanel();
+            }
             // If you are currently viewing the to-read list, refresh the list
             if (currentViewMode === 'reading-list') {
                 showReadingList();
@@ -1115,6 +1138,7 @@ async function removeFromReadingList(paperId, event) {
 // Show list of papers in interpretation
 async function showAnalyzingPapers() {
     try {
+        showInfoPanel();
         currentViewMode = 'analyzing';
         currentCategoryId = null; // Clear category selection
         saveCurrentViewState();
@@ -1359,6 +1383,7 @@ function selectPaper(paperId) {
         }
     }
 
+    showInfoPanel();
     loadPaperInfo(paperId);
     markPaperViewed(paperId);
 }

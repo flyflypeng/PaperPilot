@@ -5,7 +5,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Resophy - Agentic Paper Reading</title>
-    <link rel="icon" type="image/png" href="{{ url_for('static', filename='images/website_logo.png') }}">
+    <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='images/website_logo.svg') }}">
+    <link rel="alternate icon" type="image/png" href="{{ url_for('static', filename='images/website_logo.png') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}?v=1.1">
     <!-- PDF.js (CDN) for client-side PDF metadata parsing -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
@@ -40,7 +41,7 @@
     <nav class="navbar">
         <div class="navbar-content">
             <div class="navbar-brand" id="navbar-brand" style="cursor: pointer;" title="Back to Home">
-                <img src="{{ url_for('static', filename='images/hompage_logo.png') }}" alt="Resophy" class="navbar-logo"
+                <img src="{{ url_for('static', filename='images/hompage_logo.svg') }}" alt="Resophy" class="navbar-logo"
                     id="navbar-logo"
                     onerror="this.style.display='none'; this.nextElementSibling.style.display='inline-block';">
                 <span class="navbar-brand-text" id="navbar-brand-text" style="display:none;"><i class="fas fa-book"></i>
@@ -1359,7 +1360,7 @@
     <div id="login-overlay" class="login-overlay" style="display: none;">
         <div class="login-card">
             <div class="login-header">
-                <img src="{{ url_for('static', filename='images/website_logo.png') }}" alt="Resophy Logo"
+                <img src="{{ url_for('static', filename='images/website_logo.svg') }}" alt="Resophy Logo"
                     class="login-logo" onerror="this.style.display='none'">
                 <h2 id="auth-title">Log In</h2>
                 <p>Welcome to Resophy Paper Reading</p>
