@@ -2116,6 +2116,7 @@ body {
 }
 
 .nav-tab.ti-paper {
+    display: none !important;
     background: #fff0f0 !important;
     color: #c62828 !important;
     border: 1px solid #ffcccb !important;

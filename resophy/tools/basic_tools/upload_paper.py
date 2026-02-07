@@ -22,6 +22,9 @@ from typing import Any, Dict, Optional
 
 import arxiv
 import PyPDF2
+import html
+import requests
+import xml.etree.ElementTree as ET
 
 from resophy.tools.basic_tools.arxiv_client import get_bibtex_enhanced
 from resophy.tools.basic_tools.pdf_extractor import (
@@ -135,33 +138,201 @@ def fetch_paper_by_arxiv_id_fast(arxiv_id: str) -> Optional[Dict[str, Any]]:
         arxiv_id = _normalize_arxiv_id(arxiv_id)
         print(f"[arXiv Fast] pass arXiv ID Get the paper: {arxiv_id}")
 
-        # call arXiv API
-        client = arxiv.Client()
-        search = arxiv.Search(id_list=[arxiv_id])
+        def _clean_text(text: Optional[str]) -> Optional[str]:
+            if not text:
+                return None
+            return re.sub(r"\s+", " ", text).strip() or None
 
-        paper = next(client.results(search), None)
-        if not paper:
+        def _fetch_via_atom_api(normalized_arxiv_id: str) -> Optional[Dict[str, Any]]:
+            try:
+                api_urls = [
+                    "https://export.arxiv.org/api/query",
+                    "https://arxiv.org/api/query",
+                ]
+                response_text = None
+                last_exc: Optional[Exception] = None
+                headers = {"User-Agent": "Resophy/1.0"}
+
+                for api_url in api_urls:
+                    try:
+                        response = requests.get(
+                            api_url,
+                            params={"id_list": normalized_arxiv_id},
+                            headers=headers,
+                            timeout=20,
+                        )
+                        response.raise_for_status()
+                        response_text = response.text
+                        break
+                    except Exception as exc:  # noqa: BLE001
+                        last_exc = exc
+                        continue
+
+                if not response_text:
+                    if last_exc:
+                        raise last_exc
+                    return None
+
+                root = ET.fromstring(response_text)
+                ns = {"atom": "http://www.w3.org/2005/Atom"}
+                entry = root.find("atom:entry", ns)
+                if entry is None:
+                    return None
+
+                title = _clean_text(entry.findtext("atom:title", default="", namespaces=ns))
+                summary = entry.findtext("atom:summary", default="", namespaces=ns)
+                published = _clean_text(
+                    entry.findtext("atom:published", default="", namespaces=ns)
+                )
+
+                authors = [
+                    _clean_text(author.findtext("atom:name", default="", namespaces=ns))
+                    for author in entry.findall("atom:author", ns)
+                ]
+                authors = [a for a in authors if a]
+                authors_str = ", ".join(authors)
+
+                categories = [
+                    cat.attrib.get("term")
+                    for cat in entry.findall("atom:category", ns)
+                    if cat.attrib.get("term")
+                ]
+                primary_category = categories[0] if categories else None
+
+                year = None
+                if published and len(published) >= 4:
+                    year = published[:4]
+
+                return {
+                    "title": title,
+                    "authors": authors_str,
+                    "abstract": _clean_text(summary),
+                    "summary": summary,
+                    "year": year,
+                    "arxiv_id": normalized_arxiv_id,
+                    "arxiv_url": f"https://arxiv.org/abs/{normalized_arxiv_id}",
+                    "bibtex": "",
+                    "published_date": published,
+                    "pdf_url": f"https://arxiv.org/pdf/{normalized_arxiv_id}.pdf",
+                    "primary_category": primary_category,
+                    "categories": categories,
+                }
+            except Exception as exc:  # noqa: BLE001
+                print(f"[arXiv Atom] ❌ Failed to get metadata: {exc}")
+                return None
+
+        def _fetch_via_abs_page(normalized_arxiv_id: str) -> Optional[Dict[str, Any]]:
+            try:
+                abs_url = f"https://arxiv.org/abs/{normalized_arxiv_id}"
+                response = requests.get(
+                    abs_url,
+                    headers={"User-Agent": "Resophy/1.0"},
+                    timeout=20,
+                )
+                response.raise_for_status()
+                page = response.text
+
+                title_match = re.search(
+                    r'<h1[^>]*class="title[^"]*"[^>]*>(?P<body>[\s\S]*?)</h1>',
+                    page,
+                    flags=re.IGNORECASE,
+                )
+                if not title_match:
+                    return None
+                title_body = title_match.group("body")
+                title_body = re.sub(r"<[^>]+>", " ", title_body)
+                title_body = html.unescape(title_body)
+                title_body = re.sub(r"^\s*Title:\s*", "", title_body).strip()
+                title = _clean_text(title_body)
+                if not title:
+                    return None
+
+                authors_match = re.search(
+                    r'<div[^>]*class="authors"[^>]*>(?P<body>[\s\S]*?)</div>',
+                    page,
+                    flags=re.IGNORECASE,
+                )
+                authors_str = ""
+                if authors_match:
+                    authors_body = authors_match.group("body")
+                    authors = re.findall(r">([^<]+)</a>", authors_body, flags=re.IGNORECASE)
+                    authors = [html.unescape(a).strip() for a in authors]
+                    authors = [a for a in authors if a]
+                    authors_str = ", ".join(authors)
+
+                abstract_match = re.search(
+                    r'<blockquote[^>]*class="abstract[^"]*"[^>]*>(?P<body>[\s\S]*?)</blockquote>',
+                    page,
+                    flags=re.IGNORECASE,
+                )
+                abstract = None
+                if abstract_match:
+                    abstract_body = abstract_match.group("body")
+                    abstract_body = re.sub(r"<[^>]+>", " ", abstract_body)
+                    abstract_body = html.unescape(abstract_body)
+                    abstract_body = re.sub(r"^\s*Abstract:\s*", "", abstract_body).strip()
+                    abstract = _clean_text(abstract_body)
+
+                return {
+                    "title": title,
+                    "authors": authors_str,
+                    "abstract": abstract,
+                    "summary": abstract or "",
+                    "year": None,
+                    "arxiv_id": normalized_arxiv_id,
+                    "arxiv_url": abs_url,
+                    "bibtex": "",
+                    "published_date": None,
+                    "pdf_url": f"https://arxiv.org/pdf/{normalized_arxiv_id}.pdf",
+                    "primary_category": None,
+                    "categories": None,
+                }
+            except Exception as exc:  # noqa: BLE001
+                print(f"[arXiv HTML] ❌ Failed to get metadata: {exc}")
+                return None
+
+        result: Optional[Dict[str, Any]] = None
+
+        try:
+            client = arxiv.Client()
+            search = arxiv.Search(id_list=[arxiv_id])
+
+            paper = next(client.results(search), None)
+            if paper and getattr(paper, "title", None):
+                authors_list = [author.name for author in paper.authors]
+                authors_str = ", ".join(authors_list)
+
+                title = _clean_text(paper.title)
+                summary = getattr(paper, "summary", "") or ""
+                published_date = paper.published.isoformat() if paper.published else None
+                year = str(paper.published.year) if paper.published else None
+
+                result = {
+                    "title": title,
+                    "authors": authors_str,
+                    "abstract": _clean_text(summary),
+                    "summary": summary,
+                    "year": year,
+                    "arxiv_id": arxiv_id,
+                    "arxiv_url": f"https://arxiv.org/abs/{arxiv_id}",
+                    "bibtex": "",
+                    "published_date": published_date,
+                    "pdf_url": getattr(paper, "pdf_url", None),
+                    "primary_category": getattr(paper, "primary_category", None),
+                    "categories": getattr(paper, "categories", None),
+                }
+        except Exception as exc:  # noqa: BLE001
+            print(f"[arXiv Fast] arxiv lib failed, fallback to Atom API: {exc}")
+
+        if not result or not result.get("title"):
+            result = _fetch_via_atom_api(arxiv_id)
+
+        if not result or not result.get("title"):
+            result = _fetch_via_abs_page(arxiv_id)
+
+        if not result or not result.get("title"):
             print(f"[arXiv Fast] not found arXiv ID: {arxiv_id}")
             return None
-
-        # Get author information
-        authors_list = [author.name for author in paper.authors]
-        authors_str = ", ".join(authors_list)
-
-        result = {
-            "title": paper.title,
-            "authors": authors_str,
-            "abstract": paper.summary.replace("\n", " ").strip(),
-            "summary": paper.summary,  # Keep original format
-            "year": str(paper.published.year) if paper.published else None,
-            "arxiv_id": arxiv_id,
-            "arxiv_url": f"https://arxiv.org/abs/{arxiv_id}",  # arXiv Link
-            "bibtex": "",  # Temporarily empty, obtained in the background DBLP post-fill
-            "published_date": paper.published.isoformat() if paper.published else None,
-            "pdf_url": paper.pdf_url,
-            "primary_category": paper.primary_category,
-            "categories": paper.categories,
-        }
 
         print(f"[arXiv Fast] ✅ Successfully obtained the paper: {result['title'][:50]}...")
         return result

@@ -260,7 +260,7 @@ def register_update_from_url_routes(
                 "original_filename": filename,
                 "file_path": file_path,
                 "upload_date": datetime.now().isoformat(),
-                "title": metadata.get("title", arxiv_id),
+                "title": (metadata.get("title") or arxiv_id),
                 "authors": metadata.get("authors", ""),
                 "arxiv_id": arxiv_id,
                 "arxiv_url": metadata.get("arxiv_url")
