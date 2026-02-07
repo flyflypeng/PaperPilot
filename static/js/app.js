@@ -8835,6 +8835,7 @@ async function viewAnalysisResult(paperId, event) {
         const paperInfoEl = document.getElementById('paper-info');
         if (!panel || !paperInfoEl) return;
 
+        showInfoPanel();
         // widened panel
         panel.classList.add('wide');
         // Clean up LLM output
@@ -8967,6 +8968,9 @@ function closeAnalysisView() {
         loadPaperInfo(currentPaperId);
     } else {
         document.getElementById('paper-info').innerHTML = '';
+        if (currentViewMode === 'reading-list') {
+            hideInfoPanel();
+        }
     }
 }
 

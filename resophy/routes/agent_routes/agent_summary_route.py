@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+import mimetypes
 import os
+import posixpath
 import subprocess
 import threading
 import uuid
@@ -473,9 +475,17 @@ def register_agent_summary_routes(
         if not pdf_path or not os.path.exists(pdf_path):
             return jsonify({"error": "PDFFile does not exist"}), 404
 
-        image_path = request.args.get("path")
+        image_path = (request.args.get("path") or "").strip()
         if not image_path:
             return jsonify({"error": "Image path not provided"}), 400
+
+        normalized = image_path.replace("\\", "/")
+        normalized = posixpath.normpath(normalized).lstrip("/")
+        if not normalized or normalized == ".":
+            return jsonify({"error": "Invalid image path"}), 400
+        parts = [p for p in normalized.split("/") if p]
+        if any(p == ".." for p in parts):
+            return jsonify({"error": "Invalid image path"}), 400
 
         pdf_dir = os.path.dirname(pdf_path)
         base_name = os.path.splitext(os.path.basename(pdf_path))[0]
@@ -483,37 +493,99 @@ def register_agent_summary_routes(
 
         image_file = None
         if os.path.exists(outputs_dir):
-            vlm_dir_specific = os.path.join(outputs_dir, base_name, "vlm")
-            if os.path.exists(vlm_dir_specific):
-                if image_path.startswith("images/"):
-                    potential_image = os.path.join(vlm_dir_specific, image_path)
-                else:
-                    potential_image = os.path.join(
-                        vlm_dir_specific, "images", image_path
-                    )
+            rel = normalized
+            rel_in_images = rel[len("images/") :] if rel.startswith("images/") else rel
+            requested_name = posixpath.basename(rel)
+            requested_stem, _ = os.path.splitext(requested_name)
 
-                if os.path.exists(potential_image) and os.path.isfile(potential_image):
-                    image_file = potential_image
+            def try_candidate(path: str) -> str | None:
+                if path and os.path.exists(path) and os.path.isfile(path):
+                    return path
+                return None
+
+            def iter_base_dirs() -> List[str]:
+                bases: List[str] = []
+                bases.append(os.path.join(outputs_dir, base_name, "vlm"))
+                bases.append(os.path.join(outputs_dir, base_name))
+                bases.append(outputs_dir)
+                try:
+                    for item in os.listdir(outputs_dir):
+                        item_path = os.path.join(outputs_dir, item)
+                        if not os.path.isdir(item_path):
+                            continue
+                        bases.append(item_path)
+                        bases.append(os.path.join(item_path, "vlm"))
+                except Exception:
+                    pass
+                seen: set[str] = set()
+                deduped: List[str] = []
+                for b in bases:
+                    b_norm = os.path.normpath(b)
+                    if b_norm in seen:
+                        continue
+                    seen.add(b_norm)
+                    deduped.append(b_norm)
+                return deduped
+
+            for base_dir in iter_base_dirs():
+                if not base_dir or not os.path.exists(base_dir):
+                    continue
+                candidates = [
+                    os.path.join(base_dir, rel),
+                    os.path.join(base_dir, rel_in_images),
+                    os.path.join(base_dir, "images", rel),
+                    os.path.join(base_dir, "images", rel_in_images),
+                    os.path.join(base_dir, requested_name),
+                    os.path.join(base_dir, "images", requested_name),
+                    os.path.join(base_dir, "assets", rel),
+                    os.path.join(base_dir, "assets", rel_in_images),
+                    os.path.join(base_dir, "assets", "images", rel_in_images),
+                ]
+                for candidate in candidates:
+                    found = try_candidate(candidate)
+                    if found:
+                        image_file = found
+                        break
+                if image_file:
+                    break
+
             if not image_file:
-                for item in os.listdir(outputs_dir):
-                    item_path = os.path.join(outputs_dir, item)
-                    if os.path.isdir(item_path):
-                        vlm_dir = os.path.join(item_path, "vlm")
-                        if os.path.exists(vlm_dir):
-                            if image_path.startswith("images/"):
-                                potential_image = os.path.join(vlm_dir, image_path)
-                            else:
-                                potential_image = os.path.join(
-                                    vlm_dir, "images", image_path
-                                )
+                suffixes = [
+                    rel,
+                    f"images/{rel_in_images}",
+                    rel_in_images,
+                ]
+                suffixes = [s.replace("\\", "/").lstrip("/") for s in suffixes if s]
 
-                            if os.path.exists(potential_image) and os.path.isfile(
-                                potential_image
-                            ):
-                                image_file = potential_image
-                                break
+                best: tuple[int, str] | None = None
+                for root, dirs, files in os.walk(outputs_dir):
+                    rel_root = os.path.relpath(root, outputs_dir)
+                    depth = 0 if rel_root == "." else rel_root.count(os.sep) + 1
+                    if depth > 6:
+                        dirs[:] = []
+                        continue
+                    for fname in files:
+                        full = os.path.join(root, fname)
+                        rel_full = os.path.relpath(full, outputs_dir).replace(os.sep, "/")
+                        score = 0
+                        if any(rel_full.endswith(suf) for suf in suffixes):
+                            score = 300
+                        elif fname == requested_name:
+                            score = 200
+                        elif requested_stem and os.path.splitext(fname)[0] == requested_stem:
+                            score = 100
+                        if score:
+                            if "images/" in rel_full:
+                                score += 5
+                            if best is None or score > best[0]:
+                                best = (score, full)
+                    if best and best[0] >= 300:
+                        break
+                if best:
+                    image_file = best[1]
 
         if not image_file or not os.path.exists(image_file):
             return jsonify({"error": "Image file does not exist"}), 404
 
-        return send_file(image_file, mimetype="image/jpeg")
+        mime_type, _ = mimetypes.guess_type(image_file)
+        return send_file(image_file, mimetype=mime_type or "application/octet-stream")
