@@ -1216,9 +1216,12 @@ function generatePaperItemHTML(paper, showCheckbox = false) {
     const tStatus = translationStatus[paper.id];
     let translateCol = '';
     if (tStatus && tStatus.status === 'translating') {
-        translateCol = `<div class="paper-col-action"><span class="paper-action-status processing"><i class="fas fa-spinner fa-spin"></i> Translating...<button class="paper-action-stop" onclick="cancelTranslation('${paper.id}', event)" title="Stop translation"><i class="fas fa-times"></i></button></span></div>`;
+        const progress = clampProgress(tStatus.progress ?? 0);
+        translateCol = `<div class="paper-col-action"><span class="paper-action-status processing translation-progress"><div class="translation-progress-top"><button class="paper-action-log" onclick="showTranslationLogs('${paper.id}', event)" title="View logs"><i class="fas fa-list"></i></button><span class="translation-progress-label">Translating</span><span class="translation-progress-percent">${Math.round(progress)}%</span></div><div class="progress-bar-container translation-progress-bar"><div class="progress-bar" style="width: ${progress}%;"></div></div><button class="paper-action-stop" onclick="cancelTranslationFromStatus('${paper.id}', event)" title="Stop translation"><i class="fas fa-times"></i></button></span></div>`;
     } else if (tStatus && tStatus.status === 'queued') {
-        translateCol = `<div class="paper-col-action"><span class="paper-action-status processing"><i class="fas fa-clock"></i> in queue<button class="paper-action-stop" onclick="cancelTranslation('${paper.id}', event)" title="Cancel queue"><i class="fas fa-times"></i></button></span></div>`;
+        const currentIndex = translationQueue.indexOf(paper.id) + 1;
+        const queueText = currentIndex > 0 ? `in queue (${currentIndex}/${translationQueue.length})` : 'in queue';
+        translateCol = `<div class="paper-col-action"><span class="paper-action-status processing"><button class="paper-action-log" onclick="showTranslationLogs('${paper.id}', event)" title="View logs"><i class="fas fa-list"></i></button><i class="fas fa-clock"></i> ${queueText}<button class="paper-action-stop" onclick="cancelTranslationFromQueue('${paper.id}', event)" title="Cancel queue"><i class="fas fa-times"></i></button></span></div>`;
     } else if (paper.has_chinese_version) {
         translateCol = `<div class="paper-col-action"><button class="paper-col-btn view chinese" onclick="openChineseVersion('${paper.id}', event)"><i class="fas fa-language"></i> Chinese version</button></div>`;
     } else {
@@ -6719,6 +6722,14 @@ function startLogPolling(taskId, paperId) {
 
             if (response.ok && result.success) {
                 const status = result.status;
+                const currentTaskId = translationStatus[paperId]?.taskId;
+                const progressNum = Number.parseFloat(result.progress);
+                const progressFromApi = Number.isFinite(progressNum) ? progressNum : null;
+                const progressFromLogs = progressFromApi === null ? parseTranslationProgressFromLogs(result.logs) : null;
+                const progress = progressFromApi !== null ? progressFromApi : (progressFromLogs ?? null);
+                if (status === 'queued' || status === 'running') {
+                    updateTranslationStatus(paperId, 'translating', 0, currentTaskId, progress);
+                }
 
                 // Stop polling if task completes or fails
                 if (status === 'completed' || status === 'failed' || status === 'cancelled') {
@@ -6726,7 +6737,6 @@ function startLogPolling(taskId, paperId) {
                     delete translationLogInterval[taskId];
 
                     // update status（reservetaskId）
-                    const currentTaskId = translationStatus[paperId]?.taskId;
                     if (status === 'completed') {
                         updateTranslationStatus(paperId, 'completed', 0, currentTaskId);
                         const paper = papers.find(p => p.id === paperId);
@@ -6793,8 +6803,12 @@ async function showTranslationLogs(paperId, event) {
         event.stopPropagation();
     }
     const status = translationStatus[paperId];
-    if (!status || !status.taskId) {
+    if (!status) {
         showMessage('Translation task not found', 'warning');
+        return;
+    }
+    if (!status.taskId) {
+        showLogModal('N/A', [], 'queued', paperId);
         return;
     }
 
@@ -7012,13 +7026,18 @@ function escapeHtml(text) {
 }
 
 // Update translation status
-function updateTranslationStatus(paperId, status, queuePosition, taskId) {
+function updateTranslationStatus(paperId, status, queuePosition, taskId, progress) {
     // Keep what you havetaskId
     const existingTaskId = translationStatus[paperId]?.taskId;
+    const existingProgress = translationStatus[paperId]?.progress;
+    const nextProgress = Number.isFinite(progress)
+        ? clampProgress(progress)
+        : (Number.isFinite(existingProgress) ? clampProgress(existingProgress) : (status === 'queued' ? 0 : undefined));
     translationStatus[paperId] = {
         status: status,
         queuePosition: queuePosition,
-        taskId: taskId || existingTaskId  // Keep what you havetaskId, or use new
+        taskId: taskId || existingTaskId,  // Keep what you havetaskId, or use new
+        progress: nextProgress,
     };
 
     // If completed or with error, remove from status
@@ -7075,8 +7094,10 @@ function getTranslationStatusText(paperId) {
     if (!status) return '';
 
     if (status.status === 'translating') {
+        const progress = clampProgress(status.progress ?? 0);
         return `<span class="translation-status translating">
-            <i class="fas fa-spinner fa-spin"></i> Translating...
+            Translating ${Math.round(progress)}%
+            <span class="progress-bar-container translation-status-bar"><span class="progress-bar" style="width: ${progress}%;"></span></span>
             <button class="status-cancel-btn" onclick="cancelTranslationFromStatus('${paperId}', event)" title="Cancel translation">
                 <i class="fas fa-times"></i>
             </button>
@@ -7092,6 +7113,54 @@ function getTranslationStatusText(paperId) {
         </span>`;
     }
     return '';
+}
+
+function clampProgress(value) {
+    const n = Number(value);
+    if (!Number.isFinite(n)) return 0;
+    return Math.max(0, Math.min(100, n));
+}
+
+function extractTranslationProgressFromText(text) {
+    if (!text) return null;
+    const percentMatches = [...String(text).matchAll(/(\d{1,3})(?:\.\d+)?\s*%/g)].map(m => Number(m[1]));
+    if (percentMatches.length > 0) {
+        return clampProgress(percentMatches[percentMatches.length - 1]);
+    }
+    const pageFraction = String(text).match(/\bpages?\b\D{0,20}(\d+)\s*\/\s*(\d+)\b/i);
+    if (pageFraction) {
+        const cur = Number(pageFraction[1]);
+        const total = Number(pageFraction[2]);
+        if (Number.isFinite(cur) && Number.isFinite(total) && total > 0) {
+            return clampProgress(Math.floor((cur * 100) / total));
+        }
+    }
+    const ofFraction = String(text).match(/\bpages?\b\D{0,20}(\d+)\s+of\s+(\d+)\b/i);
+    if (ofFraction) {
+        const cur = Number(ofFraction[1]);
+        const total = Number(ofFraction[2]);
+        if (Number.isFinite(cur) && Number.isFinite(total) && total > 0) {
+            return clampProgress(Math.floor((cur * 100) / total));
+        }
+    }
+    const genericFraction = String(text).match(/(?<!\d)(\d{1,5})\s*\/\s*(\d{1,5})(?!\d)/);
+    if (genericFraction) {
+        const cur = Number(genericFraction[1]);
+        const total = Number(genericFraction[2]);
+        if (Number.isFinite(cur) && Number.isFinite(total) && total > 0 && total >= cur) {
+            return clampProgress(Math.floor((cur * 100) / total));
+        }
+    }
+    return null;
+}
+
+function parseTranslationProgressFromLogs(logs) {
+    if (!Array.isArray(logs) || logs.length === 0) return null;
+    for (let i = logs.length - 1; i >= 0; i--) {
+        const progress = extractTranslationProgressFromText(logs[i]);
+        if (progress !== null) return progress;
+    }
+    return null;
 }
 
 // Open Chinese versionPDF
@@ -8306,9 +8375,12 @@ function updatePaperStatusDisplay(paperId) {
         const tStatus = translationStatus[paperId];
         let translateColHtml = '';
         if (tStatus && tStatus.status === 'translating') {
-            translateColHtml = `<span class="paper-action-status processing"><i class="fas fa-spinner fa-spin"></i> Translating...<button class="paper-action-stop" onclick="cancelTranslation('${paperId}', event)" title="Stop translation"><i class="fas fa-times"></i></button></span>`;
+            const progress = clampProgress(tStatus.progress ?? 0);
+            translateColHtml = `<span class="paper-action-status processing translation-progress"><div class="translation-progress-top"><button class="paper-action-log" onclick="showTranslationLogs('${paperId}', event)" title="View logs"><i class="fas fa-list"></i></button><span class="translation-progress-label">Translating</span><span class="translation-progress-percent">${Math.round(progress)}%</span></div><div class="progress-bar-container translation-progress-bar"><div class="progress-bar" style="width: ${progress}%;"></div></div><button class="paper-action-stop" onclick="cancelTranslationFromStatus('${paperId}', event)" title="Stop translation"><i class="fas fa-times"></i></button></span>`;
         } else if (tStatus && tStatus.status === 'queued') {
-            translateColHtml = `<span class="paper-action-status processing"><i class="fas fa-clock"></i> in queue<button class="paper-action-stop" onclick="cancelTranslation('${paperId}', event)" title="Cancel queue"><i class="fas fa-times"></i></button></span>`;
+            const currentIndex = translationQueue.indexOf(paperId) + 1;
+            const queueText = currentIndex > 0 ? `in queue (${currentIndex}/${translationQueue.length})` : 'in queue';
+            translateColHtml = `<span class="paper-action-status processing"><button class="paper-action-log" onclick="showTranslationLogs('${paperId}', event)" title="View logs"><i class="fas fa-list"></i></button><i class="fas fa-clock"></i> ${queueText}<button class="paper-action-stop" onclick="cancelTranslationFromQueue('${paperId}', event)" title="Cancel queue"><i class="fas fa-times"></i></button></span>`;
         } else if (paper.has_chinese_version) {
             translateColHtml = `<button class="paper-col-btn view chinese" onclick="openChineseVersion('${paperId}', event)"><i class="fas fa-language"></i> Chinese version</button>`;
         } else {
@@ -9213,6 +9285,7 @@ let dailyArxivSettings = {
     retentionDays: 7,
     checkIntervalMinutes: 10,
 };
+let dailyArxivEmptyDefaultHtml = null;
 let dailyArxivProgressIntervals = {};  // Progress polling timer for each partition: {category: intervalId}
 let dailyArxivSearchQuery = '';        // Daily arXiv Page search query
 let dailyArxivLLMConfigured = false;  // LLM configuration status
@@ -9228,6 +9301,44 @@ let dailyArxivKnownInstitutions = new Set(); // All known institutions（System 
 let dailyArxivFilterFirstAffiliation = false; // Whether to filter the first unit
 let dailyArxivFilterKnownInstitutions = false; // Whether to show only common institutions
 let dailyArxivHideUnknownFirstAffiliation = false; // Whether to hide the first unit belongs to"Other institutions"thesis
+
+function isDailyArxivEnabled() {
+    return dailyArxivSettings && dailyArxivSettings.enabled === true;
+}
+
+function setDailyArxivEmptyState(mode) {
+    const emptyEl = document.getElementById('daily-arxiv-empty');
+    if (!emptyEl) return;
+
+    if (dailyArxivEmptyDefaultHtml === null) {
+        dailyArxivEmptyDefaultHtml = emptyEl.innerHTML;
+    }
+
+    const mainEl = document.querySelector('.daily-arxiv-main');
+    const loadingEl = document.getElementById('daily-arxiv-loading');
+    const progressEl = document.getElementById('daily-arxiv-progress');
+    const filterPanel = document.getElementById('daily-arxiv-filter-panel');
+
+    if (mode === 'disabled') {
+        emptyEl.innerHTML = `
+            <i class="fas fa-ban fa-3x"></i>
+            <h3>Daily arXiv is disabled</h3>
+            <p>Please enable it in Settings → Daily arXiv → "Enable Daily arXiv".</p>
+            <button class="btn btn-primary" onclick="showDailyArxivSettingsModal()">
+                <i class="fas fa-cog"></i> Open settings
+            </button>
+        `;
+        emptyEl.style.display = 'flex';
+        if (mainEl) mainEl.style.display = 'none';
+        if (loadingEl) loadingEl.style.display = 'none';
+        if (progressEl) progressEl.style.display = 'none';
+        if (filterPanel) filterPanel.style.display = 'none';
+        return;
+    }
+
+    emptyEl.innerHTML = dailyArxivEmptyDefaultHtml;
+    if (mainEl) mainEl.style.display = '';
+}
 
 // Region name standardized mapping table
 function normalizeCountryName(countryName) {
@@ -9910,6 +10021,15 @@ async function loadAvailableDates() {
         const res = await fetch('/api/daily-arxiv/dates');
         if (res.ok) {
             const data = await res.json();
+            if (data.enabled === false || !isDailyArxivEnabled()) {
+                dailyArxivAvailableDates = [];
+                dailyArxivCurrentDate = data.today || new Date().toISOString().split('T')[0];
+                updateDateDisplay();
+                updateDateNavButtons();
+                setDailyArxivEmptyState('disabled');
+                return;
+            }
+
             dailyArxivAvailableDates = data.dates || [];
             const today = data.today;
 
@@ -9991,6 +10111,16 @@ async function loadPapersForCurrentDate() {
     }
 
     const emptyEl = document.getElementById('daily-arxiv-empty');
+    const loadingEl = document.getElementById('daily-arxiv-loading');
+    const gridEl = document.getElementById('daily-arxiv-grid');
+
+    if (!isDailyArxivEnabled()) {
+        setDailyArxivEmptyState('disabled');
+        if (gridEl) gridEl.innerHTML = '';
+        if (loadingEl) loadingEl.style.display = 'none';
+        return;
+    }
+    setDailyArxivEmptyState('default');
 
     // Partitions have been configured and empty status prompts are hidden.
     if (dailyArxivCategories.length > 0 && emptyEl) {
@@ -10002,7 +10132,6 @@ async function loadPapersForCurrentDate() {
         ? dailyArxivCategories
         : [dailyArxivCurrentCategory];
 
-    const loadingEl = document.getElementById('daily-arxiv-loading');
     let needsLoading = false;
 
     // Check if it needs to be loaded from the server
@@ -10087,6 +10216,7 @@ async function loadDailyArxivSettings() {
             renderDailyArxivCategoryTags();
             renderDailyArxivSettingsCategoryList();
             renderDailyArxivKeywordList();
+            setDailyArxivEmptyState(isDailyArxivEnabled() ? 'default' : 'disabled');
         }
 
         // Load list of known institutions
@@ -10504,6 +10634,11 @@ function showRoundedNotification(message, type = 'error', persistent = true, not
 
 // Trigger crawling of papers（current partition）
 async function triggerFetchPapers(force = false) {
+    if (!isDailyArxivEnabled()) {
+        showMessage('Daily arXiv is disabled in settings', 'warning');
+        setDailyArxivEmptyState('disabled');
+        return;
+    }
     // examine LLM Configuration
     if (!dailyArxivLLMConfigured) {
         showRoundedNotification('Please configure it in settings first LLM API（Model、Base URL、API Key）', 'warning');
@@ -10578,6 +10713,11 @@ async function triggerFetchPapers(force = false) {
 
 // Triggers crawling of papers in all partitions
 async function triggerFetchAllCategories(force = false, dateStr = null) {
+    if (!isDailyArxivEnabled()) {
+        showMessage('Daily arXiv is disabled in settings', 'warning');
+        setDailyArxivEmptyState('disabled');
+        return;
+    }
     // examine LLM Configuration
     if (!dailyArxivLLMConfigured) {
         showRoundedNotification('Please configure it in settings first LLM API（Model、Base URL、API Key）', 'warning');

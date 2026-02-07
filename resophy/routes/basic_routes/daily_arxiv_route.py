@@ -80,6 +80,13 @@ def register_daily_arxiv_routes(
     # Get the manager instance (singleton mode, if already in app.py If created in, the same instance will be returned)
     manager = get_manager(temp_papers_dir, daily_arxiv_settings_file)
 
+    def is_daily_arxiv_enabled() -> bool:
+        try:
+            settings = manager.get_settings()
+            return bool(settings.get("enabled", False))
+        except Exception:
+            return False
+
     # set up LLM Configure callbacks (if not set up already)
     def get_llm_config():
         if agentic_settings_file:
@@ -211,11 +218,22 @@ def register_daily_arxiv_routes(
     def api_get_available_dates():
         """Get a list of dates with papers"""
         try:
+            if not is_daily_arxiv_enabled():
+                today = get_today_arxiv_date()
+                return jsonify(
+                    {
+                        "success": True,
+                        "enabled": False,
+                        "dates": [],
+                        "today": today,
+                    }
+                )
             dates = manager.get_available_dates()
             today = get_today_arxiv_date()
             return jsonify(
                 {
                     "success": True,
+                    "enabled": True,
                     "dates": dates,
                     "today": today,
                 }
@@ -231,6 +249,16 @@ def register_daily_arxiv_routes(
         """Get papers of a certain date"""
         try:
             category = request.args.get("category")
+            if not is_daily_arxiv_enabled():
+                return jsonify(
+                    {
+                        "success": True,
+                        "enabled": False,
+                        "papers": [],
+                        "date": date_str,
+                        "category": category,
+                    }
+                )
             papers = manager.get_papers_for_date(date_str, category)
 
             # Add for each paper paper_id(if already in the library)
@@ -245,6 +273,7 @@ def register_daily_arxiv_routes(
             return jsonify(
                 {
                     "success": True,
+                    "enabled": True,
                     "papers": papers,
                     "date": date_str,
                     "category": category,
@@ -260,6 +289,16 @@ def register_daily_arxiv_routes(
     def api_fetch_daily_arxiv():
         """Manually trigger the crawling of papers (automatically crawl all papers on a specified date)"""
         try:
+            if not is_daily_arxiv_enabled():
+                return (
+                    jsonify(
+                        {
+                            "success": False,
+                            "error": "Daily arXiv 已在设置中关闭（Enable Daily arXiv = off），无法抓取。",
+                        }
+                    ),
+                    400,
+                )
             # examine LLM Configuration
             if not is_llm_configured():
                 return (
@@ -335,6 +374,16 @@ def register_daily_arxiv_routes(
     def api_fetch_all_categories():
         """Crawl all configured partitions (automatically crawl all papers today)"""
         try:
+            if not is_daily_arxiv_enabled():
+                return (
+                    jsonify(
+                        {
+                            "success": False,
+                            "error": "Daily arXiv 已在设置中关闭（Enable Daily arXiv = off），无法抓取。",
+                        }
+                    ),
+                    400,
+                )
             # examine LLM Configuration
             if not is_llm_configured():
                 return (
