@@ -11,8 +11,12 @@ from openai import OpenAI
 
 from resophy.core.base_paper import Paper
 from resophy.core.paper_store import paper_store
+from resophy.tools.basic_tools.chat_history_manager import ChatHistoryManager
 
 CategoryPath = List[str]
+
+# Initialize ChatHistoryManager
+chat_history_manager = ChatHistoryManager(paper_store)
 
 def register_agent_chat_routes(
     app,
@@ -22,6 +26,69 @@ def register_agent_chat_routes(
     get_papers_in_category: Callable[[str, CategoryPath], List[Paper]],
     agentic_settings_file: str,
 ) -> None:
+    
+    @app.route("/api/paper/chat/sessions", methods=["GET"])
+    def api_get_chat_sessions():
+        """Get all chat sessions for a paper"""
+        try:
+            paper_id = request.args.get("paper_id")
+            if not paper_id:
+                return jsonify({"success": False, "error": "Missing paper_id"}), 400
+                
+            sessions = chat_history_manager.get_sessions(paper_id)
+            return jsonify({"success": True, "sessions": sessions})
+        except Exception as e:
+            return jsonify({"success": False, "error": str(e)}), 500
+
+    @app.route("/api/paper/chat/session", methods=["GET"])
+    def api_get_chat_session():
+        """Get a specific chat session details"""
+        try:
+            paper_id = request.args.get("paper_id")
+            session_id = request.args.get("session_id")
+            
+            if not paper_id or not session_id:
+                return jsonify({"success": False, "error": "Missing parameters"}), 400
+                
+            session = chat_history_manager.get_session(paper_id, session_id)
+            if not session:
+                return jsonify({"success": False, "error": "Session not found"}), 404
+                
+            return jsonify({"success": True, "session": session})
+        except Exception as e:
+            return jsonify({"success": False, "error": str(e)}), 500
+
+    @app.route("/api/paper/chat/session", methods=["POST"])
+    def api_create_chat_session():
+        """Create a new chat session"""
+        try:
+            data = request.json or {}
+            paper_id = data.get("paper_id")
+            title = data.get("title", "New Chat")
+            
+            if not paper_id:
+                return jsonify({"success": False, "error": "Missing paper_id"}), 400
+                
+            session = chat_history_manager.create_session(paper_id, title)
+            return jsonify({"success": True, "session": session})
+        except Exception as e:
+            return jsonify({"success": False, "error": str(e)}), 500
+            
+    @app.route("/api/paper/chat/session", methods=["DELETE"])
+    def api_delete_chat_session():
+        """Delete a chat session"""
+        try:
+            paper_id = request.args.get("paper_id")
+            session_id = request.args.get("session_id")
+            
+            if not paper_id or not session_id:
+                return jsonify({"success": False, "error": "Missing parameters"}), 400
+                
+            success = chat_history_manager.delete_session(paper_id, session_id)
+            return jsonify({"success": success})
+        except Exception as e:
+            return jsonify({"success": False, "error": str(e)}), 500
+
     @app.route("/api/paper/chat", methods=["POST"])
     def api_chat_paper():
         """Chat with paper context - Streaming response"""
@@ -29,9 +96,20 @@ def register_agent_chat_routes(
             data = request.json or {}
             paper_id = data.get("paper_id")
             messages = data.get("messages", [])
+            session_id = data.get("session_id")
             
             if not paper_id or not messages:
                 return jsonify({"success": False, "error": "Missing required parameters"}), 400
+
+            # Auto-create session if not provided
+            if not session_id:
+                session = chat_history_manager.create_session(paper_id)
+                session_id = session['id']
+            
+            # Save user message
+            last_msg = messages[-1]
+            if last_msg['role'] == 'user':
+                 chat_history_manager.save_message(paper_id, session_id, 'user', last_msg['content'])
 
             # 1. Load LLM Settings
             if not os.path.exists(agentic_settings_file):
@@ -144,6 +222,7 @@ Answer the user's questions based on the paper content. If the answer is not in 
             client = OpenAI(api_key=openai_api_key, base_url=openai_base_url)
 
             def generate():
+                full_response = ""
                 try:
                     stream = client.chat.completions.create(
                         model=llm_model,
@@ -152,9 +231,17 @@ Answer the user's questions based on the paper content. If the answer is not in 
                         temperature=0.7
                     )
                     
+                    # Yield session ID first
+                    yield json.dumps({"session_id": session_id}) + "\n"
+                    
                     for chunk in stream:
                         if chunk.choices[0].delta.content:
-                            yield chunk.choices[0].delta.content
+                            content = chunk.choices[0].delta.content
+                            full_response += content
+                            yield content
+                            
+                    # Save AI response after stream completes
+                    chat_history_manager.save_message(paper_id, session_id, 'assistant', full_response)
                             
                 except Exception as e:
                     yield f"Error: {str(e)}"

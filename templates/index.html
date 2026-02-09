@@ -8,6 +8,7 @@
     <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='images/website_logo.svg') }}">
     <link rel="alternate icon" type="image/png" href="{{ url_for('static', filename='images/website_logo.png') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}?v=1.1">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/chat.css') }}?v=1.0">
     <!-- PDF.js (CDN) for client-side PDF metadata parsing -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js"></script>
@@ -15,7 +16,7 @@
     <!-- Marked.js (CDN) for rendering Markdown -->
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <!-- Highlight.js (CDN) for code highlighting -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
     <script>
         window.MathJax = {
@@ -1147,13 +1148,33 @@
                 <h4 id="chat-modal-title"><i class="fas fa-comments"></i> Chat with Paper</h4>
                 <span class="close" id="chat-modal-close">&times;</span>
             </div>
-            <div class="modal-body chat-modal-body" id="chat-messages">
-                <!-- Messages will appear here -->
-            </div>
-            <div class="modal-footer chat-modal-footer">
-                <div class="chat-input-container">
-                    <textarea id="chat-input" placeholder="Ask a question about the paper..." rows="1"></textarea>
-                    <button id="chat-send-btn" class="btn btn-primary"><i class="fas fa-paper-plane"></i></button>
+            <div class="modal-body chat-modal-body">
+                <div class="chat-container">
+                    <!-- Sidebar -->
+                    <div class="chat-sidebar">
+                        <div class="chat-sidebar-header">
+                            <span class="chat-sidebar-title">History</span>
+                            <button id="chat-new-session-btn" class="new-chat-btn">
+                                <i class="fas fa-plus"></i> New Chat
+                            </button>
+                        </div>
+                        <div id="chat-session-list" class="chat-session-list">
+                            <!-- Sessions will be loaded here -->
+                        </div>
+                    </div>
+                    
+                    <!-- Main Chat Area -->
+                    <div class="chat-main-area">
+                        <div id="chat-messages" class="chat-messages-container">
+                            <!-- Messages will appear here -->
+                        </div>
+                        <div class="modal-footer chat-modal-footer">
+                            <div class="chat-input-container">
+                                <textarea id="chat-input" placeholder="Ask a question about the paper..." rows="1"></textarea>
+                                <button id="chat-send-btn" class="btn btn-primary"><i class="fas fa-paper-plane"></i></button>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>

@@ -13560,10 +13560,63 @@ async function checkAndShowOnboarding() {
 let currentChatPaperId = null;
 let chatHistory = [];
 
-function openChat(paperId, event) {
+// Configure Marked.js with custom renderer
+function configureMarked() {
+    if (typeof marked === 'undefined') return;
+
+    // Prevent double configuration
+    if (marked.defaults && marked.defaults.renderer && marked.defaults.renderer._customized) return;
+
+    const renderer = new marked.Renderer();
+    renderer._customized = true; // Flag to prevent re-init
+
+    renderer.code = function (code, language) {
+        const validLang = !!(language && hljs.getLanguage(language));
+        const highlighted = validLang ? hljs.highlight(code, { language }).value : hljs.highlightAuto(code).value;
+        const langLabel = language || 'text';
+
+        return `
+        <div class="code-block-wrapper">
+            <div class="code-header">
+                <span class="code-lang">${langLabel}</span>
+                <button class="copy-btn" onclick="window.copyChatCode(this)">
+                    <i class="fas fa-copy"></i> Copy
+                </button>
+            </div>
+            <pre><code class="hljs ${language}">${highlighted}</code><textarea style="display:none">${code}</textarea></pre>
+        </div>`;
+    };
+
+    marked.setOptions({
+        renderer: renderer,
+        breaks: true,
+        gfm: true
+    });
+}
+
+// Global copy function for chat code blocks
+window.copyChatCode = function (btn) {
+    const wrapper = btn.closest('.code-block-wrapper');
+    const textarea = wrapper.querySelector('textarea');
+
+    if (navigator.clipboard && textarea) {
+        navigator.clipboard.writeText(textarea.value).then(() => {
+            const originalHtml = btn.innerHTML;
+            btn.innerHTML = '<i class="fas fa-check"></i> Copied!';
+            setTimeout(() => {
+                btn.innerHTML = originalHtml;
+            }, 2000);
+        });
+    }
+};
+
+async function openChat(paperId, event) {
     if (event) event.stopPropagation();
     currentChatPaperId = paperId;
+    currentSessionId = null;
     chatHistory = [];
+
+    configureMarked();
 
     const paper = papers.find(p => p.id === paperId);
     if (!paper) return;
@@ -13574,28 +13627,183 @@ function openChat(paperId, event) {
         modalTitle.innerHTML = `<i class="fas fa-comments"></i> Chat with: ${paper.title || paper.filename}`;
     }
 
-    // Clear chat body
-    const chatBody = document.getElementById('chat-messages');
-    if (chatBody) {
-        chatBody.innerHTML = `
-            <div class="chat-message ai-message">
-                <div class="message-content">
-                    Hello! I have read this paper. You can ask me anything about it.
-                </div>
-            </div>
-        `;
-    }
-
-    // Show modal
+    // Show modal first
     const modal = document.getElementById('chat-modal');
     if (modal) {
         modal.classList.add('show');
+    }
 
-        // Focus on textarea
-        setTimeout(() => {
-            const textarea = document.getElementById('chat-input');
-            if (textarea) textarea.focus();
-        }, 100);
+    // Clear main chat area
+    const chatBody = document.getElementById('chat-messages');
+    if (chatBody) {
+        chatBody.innerHTML = '';
+    }
+
+    // Load sessions
+    await loadChatSessions(paperId);
+}
+
+async function loadChatSessions(paperId) {
+    try {
+        const response = await fetch(`/api/paper/chat/sessions?paper_id=${paperId}`);
+        const data = await response.json();
+
+        const sessionListEl = document.getElementById('chat-session-list');
+        if (!sessionListEl) return;
+
+        sessionListEl.innerHTML = '';
+
+        if (data.success && data.sessions.length > 0) {
+            // Render list
+            data.sessions.forEach(session => {
+                const el = createSessionElement(session);
+                sessionListEl.appendChild(el);
+            });
+
+            // Auto-select first session
+            await switchSession(data.sessions[0].id);
+        } else {
+            // No sessions, create a new one automatically
+            await createNewSession(true);
+        }
+
+    } catch (e) {
+        console.error("Failed to load sessions:", e);
+    }
+}
+
+function createSessionElement(session) {
+    const div = document.createElement('div');
+    div.className = 'chat-session-item';
+    div.dataset.id = session.id;
+
+    // Format date
+    const date = new Date(session.updated_at * 1000);
+    const dateStr = date.toLocaleDateString() + ' ' + date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+    div.innerHTML = `
+        <span class="session-title">${session.title}</span>
+        <span class="session-preview">${session.preview || 'No messages'}</span>
+        <div class="session-date">${dateStr}</div>
+        <button class="session-delete-btn" onclick="deleteSession('${session.id}', event)" title="Delete Chat">
+            <i class="fas fa-trash"></i>
+        </button>
+    `;
+
+    div.onclick = () => switchSession(session.id);
+    return div;
+}
+
+async function createNewSession(isAuto = false) {
+    if (!currentChatPaperId) return;
+
+    // Optimistic UI update
+    const sessionListEl = document.getElementById('chat-session-list');
+
+    try {
+        const response = await fetch('/api/paper/chat/session', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ paper_id: currentChatPaperId })
+        });
+        const data = await response.json();
+
+        if (data.success) {
+            const session = data.session;
+            session.preview = 'New conversation';
+            const el = createSessionElement(session);
+
+            if (sessionListEl.firstChild) {
+                sessionListEl.insertBefore(el, sessionListEl.firstChild);
+            } else {
+                sessionListEl.appendChild(el);
+            }
+
+            await switchSession(session.id);
+
+            // Focus input
+            setTimeout(() => {
+                document.getElementById('chat-input')?.focus();
+            }, 100);
+        }
+    } catch (e) {
+        console.error("Failed to create session:", e);
+    }
+}
+
+async function switchSession(sessionId) {
+    if (currentSessionId === sessionId) return;
+    currentSessionId = sessionId;
+
+    // Update active state in sidebar
+    document.querySelectorAll('.chat-session-item').forEach(el => {
+        el.classList.toggle('active', el.dataset.id === sessionId);
+    });
+
+    // Load session details
+    const chatBody = document.getElementById('chat-messages');
+    chatBody.innerHTML = '<div style="text-align:center; padding:20px; color:#999;"><i class="fas fa-spinner fa-spin"></i> Loading...</div>';
+
+    try {
+        const response = await fetch(`/api/paper/chat/session?paper_id=${currentChatPaperId}&session_id=${sessionId}`);
+        const data = await response.json();
+
+        chatBody.innerHTML = '';
+        chatHistory = [];
+
+        if (data.success && data.session) {
+            const messages = data.session.messages || [];
+
+            // Always show greeting for empty sessions
+            if (messages.length === 0) {
+                appendChatMessage('ai', 'Hello! I have read this paper. You can ask me anything about it.');
+            } else {
+                messages.forEach(msg => {
+                    // Map 'assistant' back to 'ai' for UI function if needed, but standard is 'assistant'
+                    const role = msg.role === 'assistant' ? 'ai' : msg.role;
+                    appendChatMessage(role, msg.content);
+                    chatHistory.push({ role: msg.role, content: msg.content });
+                });
+            }
+
+            // Scroll to bottom
+            setTimeout(() => {
+                chatBody.scrollTop = chatBody.scrollHeight;
+            }, 50);
+        }
+    } catch (e) {
+        chatBody.innerHTML = '<div style="text-align:center; color:red;">Failed to load chat history.</div>';
+        console.error(e);
+    }
+}
+
+async function deleteSession(sessionId, event) {
+    if (event) event.stopPropagation();
+    if (!confirm('Are you sure you want to delete this chat?')) return;
+
+    try {
+        const response = await fetch(`/api/paper/chat/session?paper_id=${currentChatPaperId}&session_id=${sessionId}`, {
+            method: 'DELETE'
+        });
+        const data = await response.json();
+
+        if (data.success) {
+            // Remove from UI
+            const el = document.querySelector(`.chat-session-item[data-id="${sessionId}"]`);
+            if (el) el.remove();
+
+            // If current session was deleted, switch to another or create new
+            if (currentSessionId === sessionId) {
+                const firstSession = document.querySelector('.chat-session-item');
+                if (firstSession) {
+                    switchSession(firstSession.dataset.id);
+                } else {
+                    createNewSession(true);
+                }
+            }
+        }
+    } catch (e) {
+        console.error("Failed to delete session:", e);
     }
 }
 
@@ -13608,7 +13816,7 @@ function closeChatModal() {
 }
 
 async function sendChatMessage() {
-    if (!currentChatPaperId) return;
+    if (!currentChatPaperId || !currentSessionId) return;
 
     const textarea = document.getElementById('chat-input');
     const message = textarea.value.trim();
@@ -13616,15 +13824,22 @@ async function sendChatMessage() {
 
     // Clear input
     textarea.value = '';
+    textarea.style.height = 'auto';
 
     // Append user message
     appendChatMessage('user', message);
     chatHistory.push({ role: 'user', content: message });
 
-    // Create placeholder for AI response
-    const aiMessageDiv = appendChatMessage('ai', '');
-    const aiContentDiv = aiMessageDiv.querySelector('.message-content');
-    aiContentDiv.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Thinking...';
+    // Create placeholder for AI response with thinking indicator
+    const aiMessageRow = appendChatMessage('ai', '', true);
+    const aiBubble = aiMessageRow.querySelector('.message-bubble');
+
+    aiBubble.innerHTML = `
+        <div class="typing-indicator">
+            <div class="typing-dot"></div>
+            <div class="typing-dot"></div>
+            <div class="typing-dot"></div>
+        </div>`;
 
     let fullResponse = '';
 
@@ -13636,7 +13851,8 @@ async function sendChatMessage() {
             },
             body: JSON.stringify({
                 paper_id: currentChatPaperId,
-                messages: chatHistory
+                messages: chatHistory,
+                session_id: currentSessionId
             })
         });
 
@@ -13647,20 +13863,40 @@ async function sendChatMessage() {
         const reader = response.body.getReader();
         const decoder = new TextDecoder();
 
-        // Remove spinner
-        aiContentDiv.innerHTML = '';
+        let isFirstChunk = true;
 
         while (true) {
             const { done, value } = await reader.read();
             if (done) break;
 
             const chunk = decoder.decode(value, { stream: true });
-            fullResponse += chunk;
+
+            let contentToDisplay = chunk;
+
+            if (isFirstChunk) {
+                const lines = chunk.split('\n');
+                // Check if first line is JSON
+                try {
+                    const meta = JSON.parse(lines[0]);
+                    if (meta.session_id) {
+                        // Remove first line from content
+                        contentToDisplay = lines.slice(1).join('\n');
+                    }
+                } catch (e) {
+                    // Not JSON, treat as content
+                }
+                isFirstChunk = false;
+            }
+
+            if (!contentToDisplay) continue;
+
+            fullResponse += contentToDisplay;
 
             if (typeof marked !== 'undefined') {
-                aiContentDiv.innerHTML = marked.parse(fullResponse);
+                // Add blinking cursor
+                aiBubble.innerHTML = marked.parse(fullResponse) + '<span class="cursor-blink">|</span>';
             } else {
-                aiContentDiv.textContent = fullResponse;
+                aiBubble.textContent = fullResponse;
             }
 
             // Scroll to bottom
@@ -13668,34 +13904,61 @@ async function sendChatMessage() {
             chatBody.scrollTop = chatBody.scrollHeight;
         }
 
+        // Final render without cursor
+        if (typeof marked !== 'undefined') {
+            aiBubble.innerHTML = marked.parse(fullResponse);
+            // Trigger MathJax render if available
+            if (window.MathJax && window.MathJax.typesetPromise) {
+                window.MathJax.typesetPromise([aiBubble]).catch(err => console.log('MathJax error:', err));
+            }
+        }
+
         // Add to history
         chatHistory.push({ role: 'assistant', content: fullResponse });
 
+        // Refresh session list title preview
+        loadChatSessions(currentChatPaperId);
+
     } catch (error) {
         console.error('Chat error:', error);
-        aiContentDiv.innerHTML += '<br><span style="color: red;">Error sending message.</span>';
+        aiBubble.innerHTML += '<br><span style="color: #fa5252;">Error sending message.</span>';
     }
 }
 
-function appendChatMessage(role, text) {
+function appendChatMessage(role, text, isThinking = false) {
     const chatBody = document.getElementById('chat-messages');
-    const messageDiv = document.createElement('div');
-    messageDiv.className = `chat-message ${role === 'user' ? 'user-message' : 'ai-message'}`;
 
-    const contentDiv = document.createElement('div');
-    contentDiv.className = 'message-content';
+    const rowDiv = document.createElement('div');
+    rowDiv.className = `message-row ${role}`; // .user or .ai
 
-    if (role === 'ai' && typeof marked !== 'undefined' && text) {
-        contentDiv.innerHTML = marked.parse(text);
-    } else {
-        contentDiv.textContent = text;
+    // Avatar
+    const avatarDiv = document.createElement('div');
+    avatarDiv.className = `message-avatar ${role}`;
+    avatarDiv.innerHTML = role === 'user' ? '<i class="fas fa-user"></i>' : '<i class="fas fa-robot"></i>';
+
+    // Bubble
+    const bubbleDiv = document.createElement('div');
+    bubbleDiv.className = 'message-bubble';
+
+    if (!isThinking) {
+        if (role === 'ai' && typeof marked !== 'undefined' && text) {
+            bubbleDiv.innerHTML = marked.parse(text);
+            if (window.MathJax && window.MathJax.typesetPromise) {
+                // Defer MathJax to avoid blocking UI during initial render
+                setTimeout(() => window.MathJax.typesetPromise([bubbleDiv]), 0);
+            }
+        } else {
+            bubbleDiv.textContent = text;
+        }
     }
 
-    messageDiv.appendChild(contentDiv);
-    chatBody.appendChild(messageDiv);
+    rowDiv.appendChild(avatarDiv);
+    rowDiv.appendChild(bubbleDiv);
+
+    chatBody.appendChild(rowDiv);
     chatBody.scrollTop = chatBody.scrollHeight;
 
-    return messageDiv;
+    return rowDiv;
 }
 
 // Event listeners for Chat
