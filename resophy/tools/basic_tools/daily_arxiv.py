@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 import shutil
 import threading
 import time
@@ -50,9 +51,35 @@ The summary entered now is:
 """
 
 
+def _normalize_keyword_match_text(text: str) -> str:
+    if not text:
+        return ""
+    text = text.casefold()
+    text = re.sub(r"[^0-9a-z]+", " ", text)
+    return re.sub(r"\s+", " ", text).strip()
+
+
+def match_any_keyword_in_title_or_abstract(
+    title: str, abstract: str, keyword_list: List[str]
+) -> List[str]:
+    if not keyword_list:
+        return []
+    haystack = _normalize_keyword_match_text(f"{title or ''} {abstract or ''}")
+    if not haystack:
+        return []
+    matched = []
+    for kw in keyword_list:
+        kw_norm = _normalize_keyword_match_text(kw)
+        if not kw_norm:
+            continue
+        if kw_norm in haystack:
+            matched.append(kw)
+    return matched
+
+
+
 def get_arxiv_announce_date(submitted: datetime = None) -> datetime:
     """
-    get arXiv Announcement date (based on Beijing time logic)
 
     arXiv Publication time rules:
     - Eastern Time 14:00(Monday to Friday) One day before announcement 14:00 UTC Previously submitted papers
@@ -187,6 +214,8 @@ class ArxivPaper:
     keywords: List[str] = field(default_factory=list)  # English keywords
     summary_extracted: bool = False
 
+    matched_keywords: List[str] = field(default_factory=list)
+
     # Grab information
     fetch_category: Optional[str] = None  # Which partition was grabbed from?
     fetch_date: Optional[str] = None  # Fetch date (YYYY-MM-DD)
@@ -218,6 +247,7 @@ class ArxivPaper:
             "summary": self.summary,
             "keywords": self.keywords,
             "summary_extracted": self.summary_extracted,
+            "matched_keywords": self.matched_keywords,
             "fetch_category": self.fetch_category,
             "fetch_date": self.fetch_date,
             "pdf_downloaded": self.pdf_downloaded,
@@ -260,6 +290,7 @@ class ArxivPaper:
             summary=data.get("summary"),
             keywords=data.get("keywords", []),
             summary_extracted=data.get("summary_extracted", False),
+            matched_keywords=data.get("matched_keywords", []),
             fetch_category=data.get("fetch_category"),
             fetch_date=data.get("fetch_date"),
             pdf_downloaded=data.get("pdf_downloaded", False),
@@ -652,6 +683,9 @@ class DailyArxivManager:
         """
         papers = []
         date_dir = self.get_date_dir(date_str)
+        settings = self.get_settings()
+        keyword_list = settings.get("keywordList", []) or []
+        keyword_list = [k for k in keyword_list if isinstance(k, str) and k.strip()]
 
         if not os.path.exists(date_dir):
             return papers
@@ -709,6 +743,16 @@ class DailyArxivManager:
                                     # No PDF File, skipped (possibly an incomplete download)
                                     continue
 
+                            if keyword_list:
+                                matched = match_any_keyword_in_title_or_abstract(
+                                    paper_data.get("title", ""),
+                                    paper_data.get("abstract", ""),
+                                    keyword_list,
+                                )
+                                if not matched:
+                                    continue
+                                paper_data["matched_keywords"] = matched
+
                             papers.append(paper_data)
                     except Exception as e:
                         print(f"[DailyArxiv] Failed to read the paper {json_path}: {e}")
@@ -753,6 +797,10 @@ class DailyArxivManager:
                 f"[DailyArxiv] Getting {category} Partition {date_str} All papers of..."
             )
 
+            settings = self.get_settings()
+            keyword_list = settings.get("keywordList", []) or []
+            keyword_list = [k for k in keyword_list if isinstance(k, str) and k.strip()]
+
             # Get enough papers at once (up to500articles) and then filter for papers with target date
             max_fetch = 500
             target_date = datetime.strptime(date_str, "%Y-%m-%d").date()
@@ -771,6 +819,7 @@ class DailyArxivManager:
             )
             min_check_count = 100  # Minimum number of papers examined
             max_consecutive_older = 20  # Maximum number of older papers found consecutively, stopping if exceeded
+            matched_keywords_by_arxiv_id: Dict[str, List[str]] = {}
 
             for result in self.client.results(search):
                 checked_count += 1
@@ -782,8 +831,18 @@ class DailyArxivManager:
                 paper_date = paper_tmp.announced.date() if paper_tmp.announced else None
 
                 if paper_date and paper_date == target_date:
-                    # is the target date paper, added to the results
+                    matched_keywords = (
+                        match_any_keyword_in_title_or_abstract(
+                            paper_tmp.title, paper_tmp.abstract, keyword_list
+                        )
+                        if keyword_list
+                        else []
+                    )
+                    if keyword_list and not matched_keywords:
+                        continue
                     all_results.append(result)
+                    if matched_keywords:
+                        matched_keywords_by_arxiv_id[paper_tmp.arxiv_id] = matched_keywords
                     consecutive_older_count = 0  # Reset consecutive earlier date count
                 elif paper_date and paper_date < target_date:
                     # Papers older than target date found
@@ -811,7 +870,7 @@ class DailyArxivManager:
             )
 
             if not results:
-                progress.set_done("No paper found")
+                progress.set_done("No matching papers found")
                 return []
 
             # First, count the actual publication date distribution of papers.
@@ -863,9 +922,7 @@ class DailyArxivManager:
                 llm_config = self._get_llm_config()
 
             # Get custom prompt
-            settings = self.get_settings()
             affiliation_prompt = settings.get("affiliationPrompt")
-            keyword_list = settings.get("keywordList", [])
             max_keywords = settings.get("maxKeywords", 1)
 
             # Get user language preference (default to Chinese for backward compatibility)
@@ -956,6 +1013,12 @@ Now the input abstract is:
                     paper = ArxivPaper.from_arxiv_result(
                         result, fetch_category=category
                     )
+                    if paper.arxiv_id in matched_keywords_by_arxiv_id:
+                        paper.matched_keywords = matched_keywords_by_arxiv_id[paper.arxiv_id]
+                    elif keyword_list:
+                        paper.matched_keywords = match_any_keyword_in_title_or_abstract(
+                            paper.title, paper.abstract, keyword_list
+                        )
 
                     # Use the actual publication date of the paper as the storage directory
                     paper_announce_date = (

@@ -4532,11 +4532,51 @@ mark {
     /* Limit the maximum card width to avoid overstretching */
     justify-self: start;
     /* Align left in grid instead of stretching to fill */
+    position: relative;
 }
 
 .daily-arxiv-card:hover {
     transform: translateY(-4px);
     box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+}
+
+.daily-arxiv-card.read {
+    background: #e2e8f0;
+    border: 1px solid #94a3b8;
+    box-shadow: 0 2px 10px rgba(15, 23, 42, 0.06);
+}
+
+.daily-arxiv-card.read .daily-arxiv-card-title {
+    color: #334155;
+}
+
+.daily-arxiv-card.read .daily-arxiv-card-authors {
+    color: #64748b;
+}
+
+.daily-arxiv-card.read .daily-arxiv-card-thumbnail {
+    filter: grayscale(0.85) saturate(0.75) contrast(0.95);
+    opacity: 0.9;
+}
+
+.daily-arxiv-card.read::after {
+    content: '已读';
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    padding: 4px 10px;
+    border: 2px dashed rgba(185, 28, 28, 0.85);
+    color: rgba(185, 28, 28, 0.9);
+    background: rgba(255, 255, 255, 0.65);
+    border-radius: 8px;
+    font-size: 12px;
+    font-weight: 800;
+    letter-spacing: 2px;
+    transform: rotate(12deg);
+    z-index: 6;
+    pointer-events: none;
+    text-shadow: 0 1px 0 rgba(255, 255, 255, 0.8);
+    box-shadow: 0 2px 8px rgba(15, 23, 42, 0.12);
 }
 
 .daily-arxiv-card-thumbnail {

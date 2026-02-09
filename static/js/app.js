@@ -9330,6 +9330,44 @@ let dailyArxivKnownInstitutions = new Set(); // All known institutions（System 
 let dailyArxivFilterFirstAffiliation = false; // Whether to filter the first unit
 let dailyArxivFilterKnownInstitutions = false; // Whether to show only common institutions
 let dailyArxivHideUnknownFirstAffiliation = false; // Whether to hide the first unit belongs to"Other institutions"thesis
+let dailyArxivReadStatus = {};
+let dailyArxivReadPaperIds = new Set();
+let dailyArxivRerenderAfterDetailClose = false;
+
+function loadDailyArxivReadStatus() {
+    try {
+        const raw = localStorage.getItem('dailyArxivReadStatus');
+        const parsed = raw ? JSON.parse(raw) : {};
+        if (parsed && typeof parsed === 'object') {
+            dailyArxivReadStatus = parsed;
+        } else {
+            dailyArxivReadStatus = {};
+        }
+    } catch (e) {
+        dailyArxivReadStatus = {};
+    }
+    dailyArxivReadPaperIds = new Set(Object.keys(dailyArxivReadStatus || {}));
+}
+
+function saveDailyArxivReadStatus() {
+    try {
+        localStorage.setItem('dailyArxivReadStatus', JSON.stringify(dailyArxivReadStatus || {}));
+    } catch (e) {
+    }
+}
+
+function isDailyArxivPaperRead(arxivId) {
+    return !!arxivId && dailyArxivReadPaperIds.has(arxivId);
+}
+
+function markDailyArxivPaperRead(arxivId) {
+    if (!arxivId) return false;
+    const wasRead = isDailyArxivPaperRead(arxivId);
+    dailyArxivReadStatus[arxivId] = Date.now();
+    dailyArxivReadPaperIds.add(arxivId);
+    saveDailyArxivReadStatus();
+    return !wasRead;
+}
 
 function isDailyArxivEnabled() {
     return dailyArxivSettings && dailyArxivSettings.enabled === true;
@@ -9749,6 +9787,7 @@ async function checkDailyArxivLLMConfig() {
 
 // initialization Daily arXiv
 async function initDailyArxiv() {
+    loadDailyArxivReadStatus();
     // examine LLM Configuration
     await checkDailyArxivLLMConfig();
 
@@ -10824,9 +10863,12 @@ function startProgressPolling(category) {
     }
 
     let idleCount = 0;
+    let inFlight = false;
 
     // Start polling
     dailyArxivProgressIntervals[category] = setInterval(async () => {
+        if (inFlight) return;
+        inFlight = true;
         try {
             const res = await fetch(`/api/daily-arxiv/progress/${category}`);
             if (res.ok) {
@@ -10940,8 +10982,10 @@ function startProgressPolling(category) {
             }
         } catch (err) {
             console.error(`get ${category} Progress failed:`, err);
+        } finally {
+            inFlight = false;
         }
-    }, 1000);
+    }, 2500);
 }
 
 // Stop progress polling（Can stop specific partitions or all partitions）
@@ -11350,11 +11394,13 @@ function getCurrentDailyArxivPapers(applyFilters = true) {
         });
     }
 
-    // according to published Time sorting（The newer the front, and arXiv Pages in the same order）
     return [...papers].sort((a, b) => {
+        const readA = isDailyArxivPaperRead(a.arxiv_id) ? 1 : 0;
+        const readB = isDailyArxivPaperRead(b.arxiv_id) ? 1 : 0;
+        if (readA !== readB) return readA - readB;
         const timeA = a.published ? new Date(a.published).getTime() : 0;
         const timeB = b.published ? new Date(b.published).getTime() : 0;
-        return timeB - timeA;  // Descending order, the newer comes first
+        return timeB - timeA;
     });
 }
 
@@ -11548,6 +11594,7 @@ function renderDailyArxivGrid() {
     if (emptyEl) emptyEl.style.display = 'none';
 
     gridEl.innerHTML = papers.map((paper, index) => {
+        const isRead = isDailyArxivPaperRead(paper.arxiv_id);
         // use announced date（Announcement date）instead of published（Submission date）
         const date = paper.announced
             ? new Date(paper.announced).toLocaleDateString('en-US')
@@ -11637,7 +11684,7 @@ function renderDailyArxivGrid() {
         const highlight = (text) => highlightDailyArxiv(text);
 
         return `
-            <div class="daily-arxiv-card" data-index="${index}" onclick="showDailyArxivDetail(${index})">
+            <div class="daily-arxiv-card ${isRead ? 'read' : ''}" data-index="${index}" onclick="showDailyArxivDetail(${index})">
                 <div class="daily-arxiv-card-thumbnail">
                     ${thumbnailHtml}
                     <div class="daily-arxiv-card-thumbnail-badges">
@@ -12171,6 +12218,9 @@ function showDailyArxivDetail(index) {
     const papers = getCurrentDailyArxivPapers();
     const paper = papers[index];
     if (!paper) return;
+    if (markDailyArxivPaperRead(paper.arxiv_id)) {
+        dailyArxivRerenderAfterDetailClose = true;
+    }
 
     // use announced date（Announcement date）
     const announcedDate = paper.announced
@@ -12325,6 +12375,10 @@ function closeDailyArxivDetail() {
     const modal = document.querySelector('.daily-arxiv-detail-modal');
     if (modal) {
         modal.remove();
+    }
+    if (dailyArxivRerenderAfterDetailClose) {
+        dailyArxivRerenderAfterDetailClose = false;
+        renderDailyArxivGrid();
     }
 }
 
