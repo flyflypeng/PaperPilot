@@ -16,6 +16,9 @@ from resophy.core.search_index import SearchIndex
 from resophy.routes.agent_routes.agent_summary_route import (
     register_agent_summary_routes,
 )
+from resophy.routes.agent_routes.agent_chat_route import (
+    register_agent_chat_routes,
+)
 from resophy.routes.agent_routes.agent_translate_route import (
     register_agent_translate_routes,
 )
@@ -588,6 +591,14 @@ def register_routes():
         get_category_path=get_category_path,
         get_papers_in_category=get_papers_in_category,
         save_paper_metadata=save_paper_metadata,
+        agentic_settings_file=AGENTIC_SETTINGS_FILE,
+    )
+
+    register_agent_chat_routes(
+        app,
+        get_categories=get_categories,
+        get_category_path=get_category_path,
+        get_papers_in_category=get_papers_in_category,
         agentic_settings_file=AGENTIC_SETTINGS_FILE,
     )
 

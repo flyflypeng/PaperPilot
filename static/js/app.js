@@ -1270,6 +1270,14 @@ function generatePaperItemHTML(paper, showCheckbox = false) {
         analyzeCol = `<div class="paper-col-action"><button class="paper-col-btn analyze icon-only" onclick="requestAnalysis('${paper.id}', event)" title="AI Interpretation"><i class="fas fa-brain"></i></button></div>`;
     }
 
+    // AI Interaction column
+    let chatCol = '';
+    if (paper.has_analysis_result) {
+        chatCol = `<div class="paper-col-action"><button class="paper-col-btn view analysis" onclick="openChat('${paper.id}', event)" style="background-color: #20c997; border-color: #20c997; color: white;"><i class="fas fa-comments"></i> Chat</button></div>`;
+    } else {
+        chatCol = `<div class="paper-col-action"><button class="paper-col-btn analyze icon-only" disabled title="Please interpret first" style="opacity: 0.5; cursor: not-allowed;"><i class="fas fa-comments"></i></button></div>`;
+    }
+
     // Column to be read
     const isInReadingList = readingListPaperIds.has(paper.id);
     let readingCol = '';
@@ -1279,7 +1287,7 @@ function generatePaperItemHTML(paper, showCheckbox = false) {
         readingCol = `<div class="paper-col-action"><button class="paper-col-btn reading icon-only" onclick="addToReadingList('${paper.id}', event)" title="Add to Readling List"><i class="fas fa-book-open"></i></button></div>`;
     }
 
-    return iconCol + titleCol + dateCol + translateCol + analyzeCol + readingCol;
+    return iconCol + titleCol + dateCol + translateCol + analyzeCol + chatCol + readingCol;
 }
 
 // Render paper list
@@ -1317,6 +1325,7 @@ function renderPapersList() {
             <div class="paper-header-col">date<div class="paper-header-resizer" data-col="2"></div></div>
             <div class="paper-header-col">AI translate<div class="paper-header-resizer" data-col="3"></div></div>
             <div class="paper-header-col">AI Interpretation<div class="paper-header-resizer" data-col="4"></div></div>
+            <div class="paper-header-col">AI Interaction<div class="paper-header-resizer" data-col="5"></div></div>
             <div class="paper-header-col">To be read</div>
         </div>
     `;
@@ -13550,3 +13559,190 @@ async function checkAndShowOnboarding() {
         initSidebarToggle();
     }
 })();
+
+// Chat Interaction Logic
+let currentChatPaperId = null;
+let chatHistory = [];
+
+function openChat(paperId, event) {
+    if (event) event.stopPropagation();
+    currentChatPaperId = paperId;
+    chatHistory = [];
+
+    const paper = papers.find(p => p.id === paperId);
+    if (!paper) return;
+
+    // Update modal title
+    const modalTitle = document.getElementById('chat-modal-title');
+    if (modalTitle) {
+        modalTitle.innerHTML = `<i class="fas fa-comments"></i> Chat with: ${paper.title || paper.filename}`;
+    }
+
+    // Clear chat body
+    const chatBody = document.getElementById('chat-messages');
+    if (chatBody) {
+        chatBody.innerHTML = `
+            <div class="chat-message ai-message">
+                <div class="message-content">
+                    Hello! I have read this paper. You can ask me anything about it.
+                </div>
+            </div>
+        `;
+    }
+
+    // Show modal
+    const modal = document.getElementById('chat-modal');
+    if (modal) {
+        modal.classList.add('show');
+
+        // Focus on textarea
+        setTimeout(() => {
+            const textarea = document.getElementById('chat-input');
+            if (textarea) textarea.focus();
+        }, 100);
+    }
+}
+
+function closeChatModal() {
+    const modal = document.getElementById('chat-modal');
+    if (modal) {
+        modal.classList.remove('show');
+    }
+    currentChatPaperId = null;
+}
+
+async function sendChatMessage() {
+    if (!currentChatPaperId) return;
+
+    const textarea = document.getElementById('chat-input');
+    const message = textarea.value.trim();
+    if (!message) return;
+
+    // Clear input
+    textarea.value = '';
+
+    // Append user message
+    appendChatMessage('user', message);
+    chatHistory.push({ role: 'user', content: message });
+
+    // Create placeholder for AI response
+    const aiMessageDiv = appendChatMessage('ai', '');
+    const aiContentDiv = aiMessageDiv.querySelector('.message-content');
+    aiContentDiv.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Thinking...';
+
+    let fullResponse = '';
+
+    try {
+        const response = await fetch('/api/paper/chat', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                paper_id: currentChatPaperId,
+                messages: chatHistory
+            })
+        });
+
+        if (!response.ok) {
+            throw new Error('Network response was not ok');
+        }
+
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder();
+
+        // Remove spinner
+        aiContentDiv.innerHTML = '';
+
+        while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+
+            const chunk = decoder.decode(value, { stream: true });
+            fullResponse += chunk;
+
+            if (typeof marked !== 'undefined') {
+                aiContentDiv.innerHTML = marked.parse(fullResponse);
+            } else {
+                aiContentDiv.textContent = fullResponse;
+            }
+
+            // Scroll to bottom
+            const chatBody = document.getElementById('chat-messages');
+            chatBody.scrollTop = chatBody.scrollHeight;
+        }
+
+        // Add to history
+        chatHistory.push({ role: 'assistant', content: fullResponse });
+
+    } catch (error) {
+        console.error('Chat error:', error);
+        aiContentDiv.innerHTML += '<br><span style="color: red;">Error sending message.</span>';
+    }
+}
+
+function appendChatMessage(role, text) {
+    const chatBody = document.getElementById('chat-messages');
+    const messageDiv = document.createElement('div');
+    messageDiv.className = `chat-message ${role === 'user' ? 'user-message' : 'ai-message'}`;
+
+    const contentDiv = document.createElement('div');
+    contentDiv.className = 'message-content';
+
+    if (role === 'ai' && typeof marked !== 'undefined' && text) {
+        contentDiv.innerHTML = marked.parse(text);
+    } else {
+        contentDiv.textContent = text;
+    }
+
+    messageDiv.appendChild(contentDiv);
+    chatBody.appendChild(messageDiv);
+    chatBody.scrollTop = chatBody.scrollHeight;
+
+    return messageDiv;
+}
+
+// Event listeners for Chat
+document.addEventListener('DOMContentLoaded', () => {
+    // Send button
+    const sendBtn = document.getElementById('chat-send-btn');
+    if (sendBtn) {
+        sendBtn.addEventListener('click', sendChatMessage);
+    }
+
+    // Textarea enter key
+    const textarea = document.getElementById('chat-input');
+    if (textarea) {
+        textarea.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                sendChatMessage();
+            }
+        });
+
+        // Auto-resize textarea
+        textarea.addEventListener('input', function () {
+            this.style.height = 'auto';
+            this.style.height = (this.scrollHeight) + 'px';
+            if (this.value === '') {
+                this.style.height = '';
+            }
+        });
+    }
+
+    // Close button
+    const closeBtn = document.getElementById('chat-modal-close');
+    if (closeBtn) {
+        closeBtn.addEventListener('click', closeChatModal);
+    }
+
+    // Close on click outside
+    const modal = document.getElementById('chat-modal');
+    if (modal) {
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) {
+                closeChatModal();
+            }
+        });
+    }
+});
