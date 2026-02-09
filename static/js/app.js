@@ -120,6 +120,8 @@ function showInfoPanel() {
     const panel = document.getElementById('info-panel');
     if (!panel) return;
     panel.style.display = 'flex';
+    const btn = document.getElementById('toggle-right-sidebar');
+    if (btn) btn.classList.add('active');
 }
 
 function hideInfoPanel() {
@@ -127,6 +129,8 @@ function hideInfoPanel() {
     if (!panel) return;
     panel.classList.remove('wide');
     panel.style.display = 'none';
+    const btn = document.getElementById('toggle-right-sidebar');
+    if (btn) btn.classList.remove('active');
 }
 
 // Save current view state
@@ -13508,5 +13512,41 @@ async function checkAndShowOnboarding() {
     } else {
         // DOM Already loaded, execute directly（Supports lazy loading of scripts）
         initOnboarding();
+    }
+})();
+
+// Sidebar Toggle Logic
+(function () {
+    function initSidebarToggle() {
+        const leftSidebar = document.querySelector('.sidebar');
+        const rightSidebar = document.querySelector('.info-panel');
+        const leftToggleBtn = document.getElementById('toggle-left-sidebar');
+        const rightToggleBtn = document.getElementById('toggle-right-sidebar');
+
+        // Toggle Left Sidebar
+        if (leftToggleBtn && leftSidebar) {
+            leftToggleBtn.addEventListener('click', () => {
+                const isVisible = leftSidebar.style.display !== 'none';
+                leftSidebar.style.display = isVisible ? 'none' : 'flex';
+                leftToggleBtn.classList.toggle('active', !isVisible);
+                window.dispatchEvent(new Event('resize'));
+            });
+        }
+
+        // Toggle Right Sidebar
+        if (rightToggleBtn && rightSidebar) {
+            rightToggleBtn.addEventListener('click', () => {
+                const isVisible = rightSidebar.style.display !== 'none';
+                rightSidebar.style.display = isVisible ? 'none' : 'flex';
+                rightToggleBtn.classList.toggle('active', !isVisible);
+                window.dispatchEvent(new Event('resize'));
+            });
+        }
+    }
+
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', initSidebarToggle);
+    } else {
+        initSidebarToggle();
     }
 })();

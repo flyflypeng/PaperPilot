@@ -6430,3 +6430,39 @@ input:checked+.slider:before {
 .slider.round:before {
     border-radius: 50%;
 }
+
+/* Sidebar Toggles */
+.sidebar-toggle-bar {
+    display: flex;
+    justify-content: space-between;
+    padding: 8px 12px 0 12px;
+    background: white;
+    z-index: 99;
+}
+
+.btn-toggle-sidebar {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    border: 1px solid #e0e0e0;
+    background: white;
+    color: #666;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+}
+
+.btn-toggle-sidebar:hover {
+    background: #f5f5f5;
+    color: #333;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+}
+
+.btn-toggle-sidebar.active {
+    background: #e3f2fd;
+    color: #2196f3;
+    border-color: #90caf9;
+}

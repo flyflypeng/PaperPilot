@@ -89,7 +89,7 @@
     <!-- Paper View -->
     <div class="container" id="paper-view">
         <!-- Left Sidebar: Categories -->
-        <div class="sidebar">
+        <div class="sidebar" style="display: none;">
             <div class="sidebar-resizer" id="sidebar-resizer"></div>
             <div class="sidebar-header">
                 <h3><i class="fas fa-folder-tree"></i> My Library</h3>
@@ -158,6 +158,17 @@
                             class="fas fa-times"></i> Cancel</button>
                 </div>
             </div>
+
+            <!-- Sidebar Toggles -->
+            <div class="sidebar-toggle-bar">
+                <button id="toggle-left-sidebar" class="btn-toggle-sidebar" title="Toggle Library">
+                    <i class="fas fa-folder-tree"></i>
+                </button>
+                <button id="toggle-right-sidebar" class="btn-toggle-sidebar" title="Toggle Paper Info">
+                    <i class="fas fa-file-alt"></i>
+                </button>
+            </div>
+
             <div class="papers-list" id="papers-list">
                 <div class="empty-state">
                     <i class="fas fa-file-pdf"></i>
@@ -167,7 +178,7 @@
         </div>
 
         <!-- Right: Info Panel -->
-        <div class="info-panel" id="info-panel">
+        <div class="info-panel" id="info-panel" style="display: none;">
             <div class="info-panel-resizer" id="info-panel-resizer"></div>
             <div class="info-header">
                 <h3><i class="fas fa-info-circle"></i> Paper Info</h3>
@@ -1465,6 +1476,9 @@
             }, 1000);
         })();
     </script>
+
+    <!-- Main App Logic -->
+    <script src="{{ url_for('static', filename='js/app.js') }}?v=1.1"></script>
 
     <!-- Supabase JS Client -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
