@@ -328,6 +328,44 @@
         ::-webkit-scrollbar-thumb:hover {
             background: linear-gradient(135deg, #5568d3 0%, #653a8b 100%);
         }
+
+        @media (max-width: 768px) {
+            .header {
+                padding: 0 16px;
+            }
+
+            .container {
+                padding: 24px 16px;
+            }
+
+            .content {
+                padding: 28px 20px;
+                border-radius: 12px;
+            }
+
+            .title {
+                font-size: 18px;
+            }
+        }
+
+        @media (max-width: 420px) {
+            .header .btn {
+                padding: 8px 12px;
+                font-size: 13px;
+            }
+
+            .content {
+                padding: 22px 16px;
+            }
+
+            .markdown-viewer h1 {
+                font-size: 2em;
+            }
+
+            .markdown-viewer h2 {
+                font-size: 1.6em;
+            }
+        }
     </style>
 </head>
 <body>
@@ -426,7 +464,7 @@
                 const md = rewriteImages(json.content || '');
                 renderMarkdown(md);
                 document.getElementById('loading').style.display = 'none';
-                document.getElementById('container').style.display = 'block';
+                document.getElementById('container').style.display = 'flex';
             } catch (e) {
                 document.getElementById('loading').textContent = `Failed to load: ${e.message}`;
             }
@@ -687,4 +725,3 @@
     </script>
 </body>
 </html>
-
