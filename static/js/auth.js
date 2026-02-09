@@ -111,7 +111,7 @@ function ensureAppLoaded() {
     appLoading = true;
     const script = document.createElement('script');
     script.id = 'resophy-app-script';
-    script.src = '/static/js/app.js';
+    script.src = '/static/js/app.js?v=1.2';
     script.onload = () => {
         appLoaded = true;
         appLoading = false;

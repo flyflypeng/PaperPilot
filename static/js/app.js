@@ -12,6 +12,15 @@ let currentViewMode = 'category'; // 'category' | 'translating' | 'analyzing' | 
 let readingListCount = 0; // reading list size
 let readingListPaperIds = new Set(); // ids in reading list
 
+// Helper: Run callback when DOM is ready (or immediately if already ready)
+function onAppReady(callback) {
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', callback);
+    } else {
+        callback();
+    }
+}
+
 // Translation-related
 let translationQueue = []; // translation queue
 let isTranslating = false; // whether translating now
@@ -354,11 +363,7 @@ async function bootstrapApp() {
     updateTaskIndicator();
 }
 
-if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', bootstrapApp);
-} else {
-    bootstrapApp();
-}
+onAppReady(bootstrapApp);
 
 // Wire up DOM event listeners
 function setupEventListeners() {
@@ -13137,7 +13142,7 @@ function initCustomInstitutionManagement() {
 }
 
 // After switching to Daily arXiv Load custom institutions when setting up the panel
-document.addEventListener('DOMContentLoaded', () => {
+onAppReady(() => {
     // Initialize custom organization management
     initCustomInstitutionManagement();
 
@@ -13409,7 +13414,7 @@ function resetExportUI() {
 }
 
 // Initialized when page loads
-document.addEventListener('DOMContentLoaded', () => {
+onAppReady(() => {
     initExportFeature();
 });
 
@@ -13516,12 +13521,7 @@ async function checkAndShowOnboarding() {
     }
 
     // if DOM Loading is complete, execute immediately
-    if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', initOnboarding);
-    } else {
-        // DOM Already loaded, execute directly（Supports lazy loading of scripts）
-        initOnboarding();
-    }
+    onAppReady(initOnboarding);
 })();
 
 // Sidebar Toggle Logic
@@ -13553,11 +13553,7 @@ async function checkAndShowOnboarding() {
         }
     }
 
-    if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', initSidebarToggle);
-    } else {
-        initSidebarToggle();
-    }
+    onAppReady(initSidebarToggle);
 })();
 
 // Chat Interaction Logic
@@ -13703,7 +13699,7 @@ function appendChatMessage(role, text) {
 }
 
 // Event listeners for Chat
-document.addEventListener('DOMContentLoaded', () => {
+onAppReady(() => {
     // Send button
     const sendBtn = document.getElementById('chat-send-btn');
     if (sendBtn) {
