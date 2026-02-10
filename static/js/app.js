@@ -9285,6 +9285,52 @@ function saveDailyArxivReadStatus() {
     }
 }
 
+async function syncDailyArxivReadStatusFromServer(arxivIds) {
+    try {
+        if (!Array.isArray(arxivIds) || arxivIds.length === 0) return;
+        const uniqueIds = [...new Set(arxivIds.filter(x => typeof x === 'string' && x.trim()).map(x => x.trim()))];
+        if (uniqueIds.length === 0) return;
+
+        const res = await fetch('/api/daily-arxiv/read-status', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ arxiv_ids: uniqueIds })
+        });
+        if (!res.ok) return;
+        const data = await res.json();
+        if (!data || !data.success) return;
+
+        const readIds = Array.isArray(data.read_ids) ? data.read_ids : [];
+        if (readIds.length === 0) return;
+
+        let changed = false;
+        readIds.forEach(id => {
+            if (!id) return;
+            if (!dailyArxivReadStatus[id]) {
+                dailyArxivReadStatus[id] = Date.now();
+                changed = true;
+            }
+        });
+        if (changed) {
+            dailyArxivReadPaperIds = new Set(Object.keys(dailyArxivReadStatus || {}));
+            saveDailyArxivReadStatus();
+        }
+    } catch (e) {
+    }
+}
+
+function markDailyArxivPaperReadOnServer(arxivId) {
+    try {
+        if (!arxivId) return;
+        fetch('/api/daily-arxiv/read/mark', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ arxiv_id: arxivId })
+        }).catch(() => { });
+    } catch (e) {
+    }
+}
+
 function isDailyArxivPaperRead(arxivId) {
     return !!arxivId && dailyArxivReadPaperIds.has(arxivId);
 }
@@ -9295,6 +9341,7 @@ function markDailyArxivPaperRead(arxivId) {
     dailyArxivReadStatus[arxivId] = Date.now();
     dailyArxivReadPaperIds.add(arxivId);
     saveDailyArxivReadStatus();
+    markDailyArxivPaperReadOnServer(arxivId);
     return !wasRead;
 }
 
@@ -10163,6 +10210,21 @@ async function loadPapersForCurrentDate() {
         } finally {
             if (loadingEl) loadingEl.style.display = 'none';
         }
+    }
+
+    try {
+        const arxivIds = [];
+        categoriesToLoad.forEach(cat => {
+            const cacheKey = `${dailyArxivCurrentDate}_${cat}`;
+            const ps = dailyArxivPapers[cacheKey] || [];
+            ps.forEach(p => {
+                if (p && typeof p.arxiv_id === 'string' && p.arxiv_id.trim()) {
+                    arxivIds.push(p.arxiv_id.trim());
+                }
+            });
+        });
+        await syncDailyArxivReadStatusFromServer(arxivIds);
+    } catch (e) {
     }
 
     // After the paper data is loaded, first refresh the filter options and then render the grid.

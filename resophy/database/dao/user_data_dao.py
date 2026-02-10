@@ -43,3 +43,33 @@ class ReadingListDAO:
         db = get_db()
         db.execute('DELETE FROM reading_list WHERE paper_id = ?', (paper_id,))
         db.commit()
+
+
+class DailyArxivReadDAO:
+    @staticmethod
+    def mark_read(arxiv_id: str, read_at: int) -> None:
+        if not arxiv_id:
+            return
+        db = get_db()
+        db.execute(
+            "INSERT OR REPLACE INTO daily_arxiv_reads (arxiv_id, read_at) VALUES (?, ?)",
+            (arxiv_id, int(read_at)),
+        )
+        db.commit()
+
+    @staticmethod
+    def get_read_ids(arxiv_ids):
+        if not arxiv_ids:
+            return []
+
+        cleaned = [x for x in arxiv_ids if isinstance(x, str) and x.strip()]
+        if not cleaned:
+            return []
+
+        placeholders = ",".join(["?"] * len(cleaned))
+        db = get_db()
+        rows = db.execute(
+            f"SELECT arxiv_id FROM daily_arxiv_reads WHERE arxiv_id IN ({placeholders})",
+            tuple(cleaned),
+        ).fetchall()
+        return [dict(r).get("arxiv_id") for r in rows if dict(r).get("arxiv_id")]

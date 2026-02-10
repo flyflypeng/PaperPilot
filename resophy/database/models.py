@@ -79,4 +79,10 @@ CREATE TABLE IF NOT EXISTS institution_map (
     original_name TEXT PRIMARY KEY,
     normalized_name TEXT
 );
+
+-- Daily arXiv Read Status
+CREATE TABLE IF NOT EXISTS daily_arxiv_reads (
+    arxiv_id TEXT PRIMARY KEY,
+    read_at INTEGER
+);
 """

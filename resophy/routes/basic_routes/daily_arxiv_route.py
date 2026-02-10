@@ -16,7 +16,7 @@ from flask import Flask, jsonify, request, send_file
 
 from resophy.core.base_paper import Paper
 from resophy.core.paper_store import paper_store
-from resophy.database.dao.user_data_dao import ReadingListDAO
+from resophy.database.dao.user_data_dao import DailyArxivReadDAO, ReadingListDAO
 from resophy.database.dao.settings_dao import SettingsDAO
 from resophy.tools.basic_tools.daily_arxiv import (
     DailyArxivManager,
@@ -236,6 +236,50 @@ def register_daily_arxiv_routes(
             with open(daily_arxiv_settings_file, "w", encoding="utf-8") as fp:
                 json.dump(data, fp, ensure_ascii=False, indent=2)
             return jsonify({"success": True})
+        except Exception as exc:
+            return jsonify({"success": False, "error": str(exc)}), 500
+
+    # ========================================
+    # Daily arXiv Read Status (Persistent)
+    # ========================================
+    @app.route("/api/daily-arxiv/read-status", methods=["POST"])
+    def api_daily_arxiv_read_status():
+        """
+        Batch query Daily arXiv "read" state by arxiv_id.
+        Body: { "arxiv_ids": ["2401.00001", ...] }
+        """
+        try:
+            data = request.json or {}
+            arxiv_ids = data.get("arxiv_ids") or []
+            if not isinstance(arxiv_ids, list):
+                arxiv_ids = []
+            read_ids = DailyArxivReadDAO.get_read_ids(arxiv_ids)
+            return jsonify({"success": True, "read_ids": read_ids})
+        except Exception as exc:
+            return jsonify({"success": False, "error": str(exc)}), 500
+
+    @app.route("/api/daily-arxiv/read/mark", methods=["POST"])
+    def api_daily_arxiv_mark_read():
+        """
+        Mark Daily arXiv paper(s) as read.
+        Body: { "arxiv_id": "2401.00001" } or { "arxiv_ids": ["...", ...] }
+        """
+        try:
+            data = request.json or {}
+            arxiv_ids = []
+            if isinstance(data.get("arxiv_id"), str) and data.get("arxiv_id").strip():
+                arxiv_ids = [data["arxiv_id"].strip()]
+            elif isinstance(data.get("arxiv_ids"), list):
+                arxiv_ids = [
+                    x.strip()
+                    for x in data.get("arxiv_ids")
+                    if isinstance(x, str) and x.strip()
+                ]
+
+            now_ts = int(datetime.now().timestamp())
+            for arxiv_id in arxiv_ids:
+                DailyArxivReadDAO.mark_read(arxiv_id, now_ts)
+            return jsonify({"success": True, "count": len(arxiv_ids)})
         except Exception as exc:
             return jsonify({"success": False, "error": str(exc)}), 500
 
