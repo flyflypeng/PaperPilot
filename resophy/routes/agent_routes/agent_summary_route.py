@@ -13,6 +13,7 @@ from flask import jsonify, request, send_file
 
 from resophy.core.base_paper import Paper
 from resophy.core.paper_store import paper_store
+from resophy.database.dao.settings_dao import SettingsDAO
 from resophy.tools.agent_tools.summary_pdf import (
     AnalysisDependencies,
     analyze_paper_task,
@@ -53,9 +54,18 @@ def register_agent_summary_routes(
                     400,
                 )
 
-            # Read full config from settings file
-            with open(agentic_settings_file, "r", encoding="utf-8") as f:
-                agentic_settings = json.load(f)
+            agentic_settings: Dict[str, Any] = {}
+            try:
+                agentic_settings = SettingsDAO.get_setting("agentic_settings", {}) or {}
+            except Exception:
+                agentic_settings = {}
+
+            if not agentic_settings and os.path.exists(agentic_settings_file):
+                try:
+                    with open(agentic_settings_file, "r", encoding="utf-8") as f:
+                        agentic_settings = json.load(f) or {}
+                except Exception:
+                    agentic_settings = {}
 
             use_api = agentic_settings.get("mineruUseApi", False)
             mineru_config = {

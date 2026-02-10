@@ -1868,6 +1868,17 @@ body {
     border-color: #6bb3ff;
 }
 
+.paper-col-btn.chat {
+    background: #20c997;
+    color: #ffffff;
+    border: 1px solid #20c997;
+}
+
+.paper-col-btn.chat:hover {
+    background: #1bb786;
+    border-color: #1bb786;
+}
+
 .paper-col-btn.icon-only {
     padding: 4px 8px;
     min-width: 28px;

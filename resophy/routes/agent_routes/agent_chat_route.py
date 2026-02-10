@@ -11,6 +11,7 @@ from openai import OpenAI
 
 from resophy.core.base_paper import Paper
 from resophy.core.paper_store import paper_store
+from resophy.database.dao.settings_dao import SettingsDAO
 from resophy.tools.basic_tools.chat_history_manager import ChatHistoryManager
 
 CategoryPath = List[str]
@@ -83,6 +84,10 @@ def register_agent_chat_routes(
             
             if not paper_id or not session_id:
                 return jsonify({"success": False, "error": "Missing parameters"}), 400
+
+            session = chat_history_manager.get_session(paper_id, session_id)
+            if not session:
+                return jsonify({"success": False, "error": "Session not found"}), 404
                 
             success = chat_history_manager.delete_session(paper_id, session_id)
             return jsonify({"success": success})
@@ -99,10 +104,28 @@ def register_agent_chat_routes(
             session_id = data.get("session_id")
             
             if not paper_id or not messages:
-                return jsonify({"success": False, "error": "Missing required parameters"}), 400
+                missing: List[str] = []
+                if not paper_id:
+                    missing.append("paper_id")
+                if not messages:
+                    missing.append("messages")
+                return (
+                    jsonify(
+                        {
+                            "success": False,
+                            "error": f"Missing required parameters: {', '.join(missing)}",
+                        }
+                    ),
+                    400,
+                )
 
-            # Auto-create session if not provided
-            if not session_id:
+            # Ensure session belongs to this paper
+            if session_id:
+                existing_session = chat_history_manager.get_session(paper_id, session_id)
+                if not existing_session:
+                    session = chat_history_manager.create_session(paper_id)
+                    session_id = session['id']
+            else:
                 session = chat_history_manager.create_session(paper_id)
                 session_id = session['id']
             
@@ -112,18 +135,33 @@ def register_agent_chat_routes(
                  chat_history_manager.save_message(paper_id, session_id, 'user', last_msg['content'])
 
             # 1. Load LLM Settings
-            if not os.path.exists(agentic_settings_file):
-                return jsonify({"success": False, "error": "Agentic settings not found"}), 500
-                
-            with open(agentic_settings_file, "r", encoding="utf-8") as f:
-                agentic_settings = json.load(f)
+            agentic_settings: Dict[str, Any] = {}
+            try:
+                agentic_settings = SettingsDAO.get_setting("agentic_settings", {}) or {}
+            except Exception:
+                agentic_settings = {}
 
-            openai_base_url = agentic_settings.get("llmBaseUrl")
-            openai_api_key = agentic_settings.get("llmApiKey")
-            llm_model = agentic_settings.get("llmModel")
+            if not agentic_settings and os.path.exists(agentic_settings_file):
+                try:
+                    with open(agentic_settings_file, "r", encoding="utf-8") as f:
+                        agentic_settings = json.load(f) or {}
+                except Exception:
+                    agentic_settings = {}
+
+            openai_base_url = (agentic_settings.get("llmBaseUrl") or "").strip()
+            openai_api_key = (agentic_settings.get("llmApiKey") or "").strip()
+            llm_model = (agentic_settings.get("llmModel") or "").strip()
 
             if not openai_base_url or not openai_api_key or not llm_model:
-                 return jsonify({"success": False, "error": "LLM settings not configured"}), 400
+                return (
+                    jsonify(
+                        {
+                            "success": False,
+                            "error": "LLM settings not configured. Please fill in Agentic Settings (Model/Base URL/API Key).",
+                        }
+                    ),
+                    400,
+                )
 
             # 2. Find Paper
             entry = paper_store.get_entry(paper_id)
@@ -176,41 +214,92 @@ def register_agent_chat_routes(
                             md_file = os.path.join(vlm_dir, item)
                             break
                 
-                # If not found, look in other dirs
+                # If not found, look in other dirs that still match this paper's basename.
                 if not md_file:
+                    candidate_dirs: List[str] = []
                     for item in os.listdir(outputs_dir):
                         item_path = os.path.join(outputs_dir, item)
-                        if os.path.isdir(item_path):
-                            vlm_dir = os.path.join(item_path, "vlm")
-                            if os.path.exists(vlm_dir):
-                                for f in os.listdir(vlm_dir):
-                                    if f.endswith(".md") and f != "result.md":
-                                        md_file = os.path.join(vlm_dir, f)
-                                        break
-                        if md_file: break
+                        if not os.path.isdir(item_path):
+                            continue
+                        if item == base_name or item.startswith(base_name + "_") or item.startswith(base_name + "-"):
+                            candidate_dirs.append(item_path)
 
-            if not md_file:
-                 return jsonify({"success": False, "error": "Parsed content not found. Please run AI Interpretation first."}), 404
+                    candidate_dirs.sort(key=lambda p: os.path.getmtime(p), reverse=True)
+                    for item_path in candidate_dirs:
+                        vlm_dir = os.path.join(item_path, "vlm")
+                        if not os.path.exists(vlm_dir):
+                            continue
+                        for f in os.listdir(vlm_dir):
+                            if f.endswith(".md") and f != "result.md":
+                                md_file = os.path.join(vlm_dir, f)
+                                break
+                        if md_file:
+                            break
+            markdown_content = ""
+            if md_file and os.path.exists(md_file):
+                with open(md_file, "r", encoding="utf-8") as f:
+                    markdown_content = f.read()
 
-            with open(md_file, "r", encoding="utf-8") as f:
-                markdown_content = f.read()
+                # Remove references if possible to save tokens
+                references_pattern = re.compile(r"^#\s+references?\s*$", re.IGNORECASE | re.MULTILINE)
+                match = references_pattern.search(markdown_content)
+                if match:
+                    markdown_content = markdown_content[: match.start()]
 
-            # Remove references if possible to save tokens
-            references_pattern = re.compile(r"^#\s+references?\s*$", re.IGNORECASE | re.MULTILINE)
-            match = references_pattern.search(markdown_content)
-            if match:
-                markdown_content = markdown_content[: match.start()]
+            def _meta_line(label: str, value: Any) -> str | None:
+                if value is None:
+                    return None
+                text = str(value).strip()
+                if not text:
+                    return None
+                return f"{label}: {text}"
+
+            paper_metadata_lines: List[str] = []
+            paper_metadata_lines.append(_meta_line("Title", paper.title or paper.filename) or "Title: (unknown)")
+            for line in (
+                _meta_line("Authors", paper.authors),
+                _meta_line("Affiliation", paper.affiliation),
+                _meta_line("Year", paper.year),
+                _meta_line("Journal", paper.journal),
+                _meta_line("Abstract", paper.abstract),
+                _meta_line("Keywords", paper.keywords),
+                _meta_line("Subject", paper.subject),
+                _meta_line("arXiv", paper.arxiv_id),
+                _meta_line("arXiv URL", paper.arxiv_url),
+                _meta_line("Homepage", paper.homepage),
+                _meta_line("GitHub", paper.github),
+            ):
+                if line:
+                    paper_metadata_lines.append(line)
+
+            paper_metadata = "\n".join(paper_metadata_lines)
 
             # 4. Construct Prompt
-            # System prompt with context
-            system_prompt = f"""You are a helpful AI research assistant. You are chatting with a user about a paper.
-Here is the content of the paper in Markdown format:
+            if markdown_content.strip():
+                system_prompt = f"""You are a helpful AI research assistant. You are chatting with a user about a paper.
 
+Paper metadata:
+<PAPER_METADATA>
+{paper_metadata}
+</PAPER_METADATA>
+
+Here is the content of the paper in Markdown format:
 <PAPER_CONTENT>
 {markdown_content}
 </PAPER_CONTENT>
 
 Answer the user's questions based on the paper content. If the answer is not in the paper, say so.
+"""
+            else:
+                system_prompt = f"""You are a helpful AI research assistant. You are chatting with a user about a paper.
+
+Paper metadata:
+<PAPER_METADATA>
+{paper_metadata}
+</PAPER_METADATA>
+
+The full paper content is not available yet (no parsed Markdown found). Answer the user's questions using the metadata and your general knowledge.
+If the user asks for details that require the paper text, say you don't know and suggest running AI Interpretation first.
 """
             
             # Prepare messages for OpenAI

@@ -100,6 +100,10 @@ class ChatHistoryManager:
         # Try DB
         data = ChatDAO.get_chat(session_id)
         if data:
+            if data.get('paper_id') != paper_id:
+                return None
+            if 'id' not in data:
+                data['id'] = data.get('session_id')
             data['messages'] = data.pop('history', [])
             return data
 

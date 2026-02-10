@@ -1276,12 +1276,7 @@ function generatePaperItemHTML(paper, showCheckbox = false) {
     }
 
     // AI Interaction column
-    let chatCol = '';
-    if (paper.has_analysis_result) {
-        chatCol = `<div class="paper-col-action"><button class="paper-col-btn view analysis" onclick="openChat('${paper.id}', event)" style="background-color: #20c997; border-color: #20c997; color: white;"><i class="fas fa-comments"></i> Chat</button></div>`;
-    } else {
-        chatCol = `<div class="paper-col-action"><button class="paper-col-btn analyze icon-only" disabled title="Please interpret first" style="opacity: 0.5; cursor: not-allowed;"><i class="fas fa-comments"></i></button></div>`;
-    }
+    const chatCol = `<div class="paper-col-action"><button class="paper-col-btn chat" onclick="openChat('${paper.id}', event)"><i class="fas fa-comments"></i> Chat</button></div>`;
 
     // Column to be read
     const isInReadingList = readingListPaperIds.has(paper.id);
@@ -13639,18 +13634,30 @@ async function openChat(paperId, event) {
         chatBody.innerHTML = '';
     }
 
+    const inputEl = document.getElementById('chat-input');
+    if (inputEl) {
+        inputEl.value = '';
+        inputEl.style.height = 'auto';
+    }
+
+    const sessionListEl = document.getElementById('chat-session-list');
+    if (sessionListEl) {
+        sessionListEl.innerHTML = '<div style="text-align:center; padding:16px; color:#999;"><i class="fas fa-spinner fa-spin"></i> Loading...</div>';
+    }
+
     // Load sessions
     await loadChatSessions(paperId);
 }
 
 async function loadChatSessions(paperId) {
+    const expectedPaperId = paperId;
+    const sessionListEl = document.getElementById('chat-session-list');
+    if (!sessionListEl) return;
+    sessionListEl.innerHTML = '<div style="text-align:center; padding:16px; color:#999;"><i class="fas fa-spinner fa-spin"></i> Loading...</div>';
     try {
         const response = await fetch(`/api/paper/chat/sessions?paper_id=${paperId}`);
         const data = await response.json();
-
-        const sessionListEl = document.getElementById('chat-session-list');
-        if (!sessionListEl) return;
-
+        if (currentChatPaperId !== expectedPaperId) return;
         sessionListEl.innerHTML = '';
 
         if (data.success && data.sessions.length > 0) {
@@ -13669,6 +13676,9 @@ async function loadChatSessions(paperId) {
 
     } catch (e) {
         console.error("Failed to load sessions:", e);
+        if (currentChatPaperId !== expectedPaperId) return;
+        sessionListEl.innerHTML = '';
+        await createNewSession(true);
     }
 }
 
@@ -13770,6 +13780,8 @@ async function switchSession(sessionId) {
             setTimeout(() => {
                 chatBody.scrollTop = chatBody.scrollHeight;
             }, 50);
+        } else {
+            await createNewSession(true);
         }
     } catch (e) {
         chatBody.innerHTML = '<div style="text-align:center; color:red;">Failed to load chat history.</div>';
@@ -13813,6 +13825,18 @@ function closeChatModal() {
         modal.classList.remove('show');
     }
     currentChatPaperId = null;
+    currentSessionId = null;
+    chatHistory = [];
+
+    const chatBody = document.getElementById('chat-messages');
+    if (chatBody) {
+        chatBody.innerHTML = '';
+    }
+
+    const sessionListEl = document.getElementById('chat-session-list');
+    if (sessionListEl) {
+        sessionListEl.innerHTML = '';
+    }
 }
 
 async function sendChatMessage() {
@@ -13857,7 +13881,24 @@ async function sendChatMessage() {
         });
 
         if (!response.ok) {
-            throw new Error('Network response was not ok');
+            let serverMessage = `Request failed (${response.status})`;
+            try {
+                const contentType = response.headers.get('content-type') || '';
+                if (contentType.includes('application/json')) {
+                    const errData = await response.json();
+                    if (errData && errData.error) {
+                        serverMessage = errData.error;
+                    } else if (errData && errData.message) {
+                        serverMessage = errData.message;
+                    }
+                } else {
+                    const errText = await response.text();
+                    if (errText) serverMessage = errText;
+                }
+            } catch (e) {
+                // ignore parse errors
+            }
+            throw new Error(serverMessage);
         }
 
         const reader = response.body.getReader();
@@ -13879,6 +13920,9 @@ async function sendChatMessage() {
                 try {
                     const meta = JSON.parse(lines[0]);
                     if (meta.session_id) {
+                        if (currentSessionId !== meta.session_id) {
+                            currentSessionId = meta.session_id;
+                        }
                         // Remove first line from content
                         contentToDisplay = lines.slice(1).join('\n');
                     }
@@ -13921,7 +13965,8 @@ async function sendChatMessage() {
 
     } catch (error) {
         console.error('Chat error:', error);
-        aiBubble.innerHTML += '<br><span style="color: #fa5252;">Error sending message.</span>';
+        const msg = (error && error.message) ? error.message : 'Error sending message.';
+        aiBubble.innerHTML = `<span style="color: #fa5252;">${msg}</span>`;
     }
 }
 

@@ -16,6 +16,7 @@ from flask import Flask, jsonify, request, send_file
 
 from resophy.core.base_paper import Paper
 from resophy.core.paper_store import paper_store
+from resophy.database.dao.settings_dao import SettingsDAO
 from resophy.tools.basic_tools.daily_arxiv import (
     DailyArxivManager,
     extract_affiliations_with_llm,
@@ -89,12 +90,21 @@ def register_daily_arxiv_routes(
 
     # set up LLM Configure callbacks (if not set up already)
     def get_llm_config():
-        if agentic_settings_file:
+        try:
+            settings = SettingsDAO.get_setting("agentic_settings", {}) or {}
+        except Exception:
+            settings = {}
+
+        if settings:
+            return settings
+
+        if agentic_settings_file and os.path.exists(agentic_settings_file):
             try:
                 with open(agentic_settings_file, "r", encoding="utf-8") as f:
-                    return json.load(f)
-            except:
-                pass
+                    return json.load(f) or {}
+            except Exception:
+                return {}
+
         return {}
 
     # Only set if the callback is not already set (avoids overriding app.py settings in)
