@@ -8,6 +8,98 @@
   <img src="assets/screenshots/resophy-frontend.png" width="900px" />
 </div>
 
+## 快速运行与配置（增强版）
+
+下面给出“从零开始能跑起来”的最短路径，包含需要提前准备的信息清单与对应命令。
+
+### 0）启动前请先准备这些信息
+
+- **Python**：3.10+（见 `pyproject.toml`）
+- **Git**：用于拉取代码
+- **uv**：依赖/虚拟环境管理工具
+- **Supabase 鉴权（必需）**
+  - `SUPABASE_URL`
+  - `SUPABASE_ANON_KEY`
+  - 在 Supabase 控制台开启邮箱/密码登录（Auth → Providers）
+- **LLM API（用于 AI 功能）**
+  - OpenAI 兼容的 Base URL（例如：`http://127.0.0.1:6002/v1` 或远程 API）
+  - API Key
+  - 3 个场景分别使用的模型名：Translate / Interpret / Daily arXiv
+- **MinerU（用于 AI 解读 / PDF 解析）**
+  - 方式 A：MinerU 云端 API Token
+  - 方式 B：自建 MinerU 服务地址（例如：`http://127.0.0.1:6001`）
+- （可选）**Zotero 导入**：提前在 Zotero 导出 `.rdf` 文件，方便快速导入论文
+
+### 1）安装 uv
+
+Linux/macOS：
+
+```bash
+curl -LsSf https://astral.sh/uv/install.sh | sh
+```
+
+Windows（PowerShell）：
+
+```powershell
+powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"
+```
+
+### 2）拉取代码并安装依赖
+
+```bash
+git clone <YOUR_REPO_URL>
+cd Resophy
+uv venv
+source .venv/bin/activate
+uv pip install -e .
+```
+
+### 3）配置后端环境变量（.env）
+
+在仓库根目录创建 `.env`（该文件已被 git 忽略，不要提交任何密钥）：
+
+```bash
+SUPABASE_URL="https://<your-project-ref>.supabase.co"
+SUPABASE_ANON_KEY="<your-anon-key>"
+```
+
+### 4）启动 Resophy
+
+```bash
+python app.py --papers-dir ./papers --host 0.0.0.0 --port 7191
+```
+
+参数说明：
+
+- `--papers-dir`：PDF 存储目录（默认 `./papers`）
+- `--host`：监听地址（默认 `0.0.0.0`）
+- `--port`：端口（默认 `7191`）
+
+启动后访问：
+
+- `http://localhost:7191`
+
+### 5）首次登录（Supabase）
+
+- 页面会出现登录遮罩层
+- 点击 **Sign Up** 注册，再用 **Log In** 登录
+- 登录后前端会自动为 `/api/*` 请求添加 `Authorization: Bearer <token>`
+
+### 6）配置 AI 功能（建议）
+
+进入：设置 → Agentic
+
+- **LLM 配置（llmConfigs）**：分别填写 Translate / Interpret / Daily arXiv 三组（Model / Base URL / API Key）
+- **MinerU**：
+  - 云端 API：填写 `mineruApiToken`
+  - 本地部署：填写 `mineruServerUrl`（如 `http://127.0.0.1:6001`）
+  - 点击 **Test** 测试连通性，再保存设置
+
+补充说明：
+
+- AI Chat 默认使用 **Interpret** 场景的模型配置。
+- SQLite 数据库会在首次运行时自动生成：`./db/resophy.db`。
+
 ## 1）后端持久化统一为 SQLite DB
 
 - 统一数据库文件：`./db/resophy.db`（启动时自动创建/初始化表结构）

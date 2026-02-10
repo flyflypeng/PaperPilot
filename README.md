@@ -43,46 +43,39 @@
 
 </div>
 
-----
+# Key Enhancements (This Fork)
 
+This section highlights the major enhancements and how to configure them, placed at the top for quick onboarding.
 
-[![Video Name](https://github.com/user-attachments/assets/bced2c0f-0d4c-4c5d-a264-47bfc533ca31)](https://github.com/user-attachments/assets/13bfb7ab-a9b6-4f09-86c2-c513a6a8f221)
+## UI Preview (Modified Frontend)
 
-----
+<div align="center">
+  <img src="docs/assets/screenshots/resophy-frontend.png" width="900px" />
+</div>
 
-# Resophy
+## 1) Unified SQLite Persistence (Backend)
 
-## 🆕 News
+- Single database file: `./db/resophy.db` (created automatically on startup; schema initialized automatically).
+- Covered data (examples): papers/categories, user settings, reading history, reading list, Daily arXiv tasks, AI Chat sessions/history, etc.
+- Backup/migration: stop the service and copy `db/resophy.db`; for full asset migration, also back up the `papers/` directory.
 
-**2025-12-27：MinerU Official API Support**: Resophy now supports MinerU's official cloud API! You can use MinerU's cloud service for PDF parsing without deploying your own MinerU server. Simply configure your API token in Settings → Agentic → MinerU Mode (select "Cloud API") and enter your token from [https://mineru.net/](https://mineru.net/). This makes it easier to get started with AI interpretation features without GPU requirements.
+## 2) AI Chat: Conversational Deep Paper Reading
 
----
+- Multi-turn conversations scoped to each paper; sessions and history are stored in SQLite.
+- Built-in common prompts for interpretation / deep reading, designed for “read while you ask”.
+- Model selection: uses the **Interpret** scenario model config by default (see section 3).
 
-## ⭐ Key Enhancements (This Fork)
+## 3) Fine-grained LLM Config per Feature (llmConfigs)
 
-### 1) Unified SQLite Persistence (no more scattered JSON files)
+Configure different models/APIs for different workflows to reduce cost and improve quality:
 
-- All core persistent data is consolidated into a single SQLite database: `./db/resophy.db` (created automatically on startup).
-- Covers (but not limited to): papers, categories, user settings, reading history, reading list, Daily arXiv tasks, chat sessions/history.
-- Backup/restore: stop the service and copy `db/resophy.db` (and your `papers/` directory if you want full PDF assets).
+- **Translate**: AI Translation
+- **Interpret**: AI Interpretation + AI Chat
+- **Daily arXiv**: Daily arXiv summarization/analysis
 
-### 2) AI Chat: Conversational Deep Paper Reading
+Where to set: Settings → Agentic → LLM Configs (fill in three groups: Translate / Interpret / Daily arXiv).
 
-- Built-in paper-reading scenarios (e.g., paper interpretation / deep reading questions) with multi-turn conversation.
-- Chat sessions are stored in SQLite, and scoped by paper.
-- Model selection: Chat uses the **Interpret** LLM config by default (see below).
-
-### 3) Fine-grained LLM Config per Feature (cost-effective)
-
-Configure different models for different workflows to reduce cost and improve quality:
-
-- **Translate**: used by AI Translation
-- **Interpret**: used by AI Interpretation and AI Chat
-- **Daily arXiv**: used by Daily arXiv summarization/classification
-
-Where to set: Settings → Agentic → LLM Configs.
-
-**Agentic settings schema (stored in DB as JSON)**:
+Core Agentic settings schema (stored as JSON in DB):
 
 ```json
 {
@@ -97,30 +90,129 @@ Where to set: Settings → Agentic → LLM Configs.
 }
 ```
 
-Backward compatibility: existing `llmModel/llmBaseUrl/llmApiKey` will be auto-migrated to the new `llmConfigs.*` schema on first run.
+Backward compatibility: legacy `llmModel/llmBaseUrl/llmApiKey` will be auto-migrated/filled into `llmConfigs.*` on first run or when saving settings.
 
-### 4) Supabase Auth Integration (deployable to public Internet)
+## 4) Supabase Auth Integration (Public Deployment Ready)
 
-The backend can integrate with Supabase Auth to provide login and API authentication, enabling safer public deployment.
+The backend integrates Supabase Auth for login verification and API access control, enabling safer public deployment.
 
-**Required environment variables** (recommended to set via `.env`, do not commit secrets):
+Required environment variables (recommended to set via `.env`; never commit secrets to the repo):
 
 ```bash
 SUPABASE_URL="https://<your-project-ref>.supabase.co"
 SUPABASE_ANON_KEY="<your-anon-key>"
 ```
 
-When configured, most `/api/*` endpoints require a valid Supabase access token (`Authorization: Bearer <token>`).
+When configured, most `/api/*` endpoints require `Authorization: Bearer <token>` (the frontend attaches it automatically after Supabase login).
 
-### 5) UI/UX Improvements
+## 5) UI/UX Improvements: Sidebar Toggle Buttons
 
-- Sidebar show/hide with floating toggle buttons (left/right), making the layout more ergonomic on small screens.
+- Floating toggle buttons for left/right sidebars allow quick collapse/expand, improving small-screen usability.
 
-### UI Preview (Modified Frontend)
+## Run & Configuration (Enhanced Quick Start)
 
-<div align="center">
-  <img src="docs/assets/screenshots/resophy-frontend.png" width="900px" />
-</div>
+### Before You Start (Prepare These)
+
+- **Python**: 3.10+ (see `pyproject.toml`)
+- **Git**: for cloning the repo
+- **uv**: dependency/venv manager
+- **Supabase Auth (Required)**:
+  - `SUPABASE_URL`
+  - `SUPABASE_ANON_KEY`
+  - In Supabase Console, enable Email/Password sign-in (Auth → Providers)
+- **LLM API (for AI features)**:
+  - OpenAI-compatible Base URL (e.g., `http://127.0.0.1:6002/v1` or a remote API)
+  - API Key
+  - Model name(s) for: Translate / Interpret / Daily arXiv
+- **MinerU (for AI Interpretation / PDF parsing)**:
+  - Either MinerU Cloud API token, or a self-hosted MinerU server URL
+
+### 1) Install uv
+
+Linux/macOS:
+
+```bash
+curl -LsSf https://astral.sh/uv/install.sh | sh
+```
+
+Windows (PowerShell):
+
+```powershell
+powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"
+```
+
+### 2) Clone & Install Dependencies
+
+```bash
+git clone <YOUR_REPO_URL>
+cd Resophy
+uv venv
+source .venv/bin/activate
+uv pip install -e .
+```
+
+### 3) Configure Environment Variables (.env)
+
+Create a `.env` file in the repo root (it is already ignored by git):
+
+```bash
+SUPABASE_URL="https://<your-project-ref>.supabase.co"
+SUPABASE_ANON_KEY="<your-anon-key>"
+```
+
+### 4) Start Resophy
+
+```bash
+python app.py --papers-dir ./papers --host 0.0.0.0 --port 7191
+```
+
+Key parameters:
+
+- `--papers-dir`: PDF storage folder (default: `./papers`)
+- `--host`: bind address (default: `0.0.0.0`)
+- `--port`: web port (default: `7191`)
+
+After startup, open:
+
+- `http://localhost:7191`
+
+### 5) First Login (Supabase)
+
+- You will see a login overlay.
+- Use **Sign Up** to create an account, then **Log In**.
+- After login, the app will start calling `/api/*` with `Authorization: Bearer <token>` automatically.
+
+### 6) Configure AI Features (Recommended)
+
+In the UI: Settings → Agentic
+
+- **LLM Configs**:
+  - Fill in Translate / Interpret / Daily arXiv separately (Model / Base URL / API Key)
+  - Tip: if you run your own OpenAI-compatible server, Base URL usually ends with `/v1`
+- **MinerU**:
+  - Cloud API mode: enter `mineruApiToken`
+  - Local mode: set `mineruServerUrl` (e.g., `http://127.0.0.1:6001`)
+  - Click **Test** and then save
+
+Notes:
+
+- AI Chat uses the **Interpret** LLM config by default.
+- The SQLite DB is created at `./db/resophy.db` automatically on first run.
+
+----
+
+
+[![Video Name](https://github.com/user-attachments/assets/bced2c0f-0d4c-4c5d-a264-47bfc533ca31)](https://github.com/user-attachments/assets/13bfb7ab-a9b6-4f09-86c2-c513a6a8f221)
+
+----
+
+# Resophy
+
+## 🆕 News
+
+**2025-12-27：MinerU Official API Support**: Resophy now supports MinerU's official cloud API! You can use MinerU's cloud service for PDF parsing without deploying your own MinerU server. Simply configure your API token in Settings → Agentic → MinerU Mode (select "Cloud API") and enter your token from [https://mineru.net/](https://mineru.net/). This makes it easier to get started with AI interpretation features without GPU requirements.
+
+---
 
 In this era of information explosion, researchers often feel overwhelmed when facing massive amounts of papers. How to quickly extract the essence and understand cutting-edge achievements has become a pain point for every researcher. Resophy was born with the intention of helping you bid farewell to inefficient paper reading, empowering researchers, and making paper reading more efficient and intelligent 📚⚡.
 
