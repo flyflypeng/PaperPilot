@@ -886,20 +886,27 @@ Now the input abstract is:
                             and llm_config.get("llmApiKey")
                             and llm_config.get("llmModel")
                         ):
-                            extraction_result = self._extract_affiliations(
-                                pdf_path,
-                                llm_config["llmBaseUrl"],
-                                llm_config["llmApiKey"],
-                                llm_config["llmModel"],
-                                prompt=affiliation_prompt,
-                            )
-                            paper.affiliations = extraction_result.get(
-                                "affiliations", []
-                            )
-                            paper.countries = extraction_result.get("countries", [])
-                            paper.homepage = extraction_result.get("homepage")
-                            paper.github = extraction_result.get("github")
-                            paper.affiliations_extracted = True
+                            try:
+                                extraction_result = self._extract_affiliations(
+                                    pdf_path,
+                                    llm_config["llmBaseUrl"],
+                                    llm_config["llmApiKey"],
+                                    llm_config["llmModel"],
+                                    prompt=affiliation_prompt,
+                                )
+                                paper.affiliations = extraction_result.get(
+                                    "affiliations", []
+                                )
+                                paper.countries = extraction_result.get(
+                                    "countries", []
+                                )
+                                paper.homepage = extraction_result.get("homepage")
+                                paper.github = extraction_result.get("github")
+                                paper.affiliations_extracted = True
+                            except Exception as e:
+                                print(
+                                    f"[DailyArxiv] Failed to extract affiliations for {paper.arxiv_id}: {e}"
+                                )
                     else:
                         # PDF Download failed
                         paper.pdf_downloaded = False
@@ -915,16 +922,21 @@ Now the input abstract is:
                         and llm_config.get("llmModel")
                         and paper.abstract
                     ):
-                        summary_result = extract_summary_and_keywords_with_llm(
-                            paper.abstract,
-                            llm_config["llmBaseUrl"],
-                            llm_config["llmApiKey"],
-                            llm_config["llmModel"],
-                            prompt=summary_prompt,
-                        )
-                        paper.summary = summary_result.get("summary")
-                        paper.keywords = summary_result.get("keywords", [])
-                        paper.summary_extracted = True
+                        try:
+                            summary_result = extract_summary_and_keywords_with_llm(
+                                paper.abstract,
+                                llm_config["llmBaseUrl"],
+                                llm_config["llmApiKey"],
+                                llm_config["llmModel"],
+                                prompt=summary_prompt,
+                            )
+                            paper.summary = summary_result.get("summary")
+                            paper.keywords = summary_result.get("keywords", [])
+                            paper.summary_extracted = True
+                        except Exception as e:
+                            print(
+                                f"[DailyArxiv] Failed to extract summary/keywords for {paper.arxiv_id}: {e}"
+                            )
 
                     # Save paper metadata to DB
                     # even though PDF If the download fails, the metadata is also saved so that you can try again next time.
@@ -1451,51 +1463,44 @@ Now the input abstract is:
             print("[DailyArxiv] No partition configured")
             return
 
-        # Test before crawling LLM API
         llm_config = {}
         if self._get_llm_config:
             llm_config = self._get_llm_config()
 
-        llm_model = llm_config.get("llmModel", "").strip()
-        llm_base_url = llm_config.get("llmBaseUrl", "").strip()
-        llm_api_key = llm_config.get("llmApiKey", "").strip()
+        llm_model = (llm_config.get("llmModel") or "").strip()
+        llm_base_url = (llm_config.get("llmBaseUrl") or "").strip()
+        llm_api_key = (llm_config.get("llmApiKey") or "").strip()
 
-        if not llm_model or not llm_base_url or not llm_api_key:
-            print(
-                "[DailyArxiv] LLM API Not configured, skip this crawl. Please configure in settings LLM API Try again later."
-            )
-            return
+        if llm_model and llm_base_url and llm_api_key:
+            try:
+                from resophy.tools.api_test_utils import test_llm_api
 
-        # test LLM API Is it available
-        try:
-            from resophy.tools.api_test_utils import test_llm_api
-
-            print("[DailyArxiv] Testing LLM API connect...")
-            success, error_msg = test_llm_api(llm_model, llm_base_url, llm_api_key)
-
-            if not success:
-                # Update status and record failure information
+                print("[DailyArxiv] Testing LLM API connect...")
+                success, error_msg = test_llm_api(llm_model, llm_base_url, llm_api_key)
+                if not success:
+                    self._llm_api_failed = True
+                    self._llm_api_error_message = error_msg
+                    print(
+                        f"[DailyArxiv] LLM API test failed: {error_msg}, continue fetching papers without LLM."
+                    )
+                else:
+                    self._llm_api_failed = False
+                    self._llm_api_error_message = ""
+                    print(
+                        "[DailyArxiv] LLM API The test is successful, start fetching papers..."
+                    )
+            except Exception as e:
                 self._llm_api_failed = True
-                self._llm_api_error_message = error_msg
+                self._llm_api_error_message = str(e)
                 print(
-                    f"[DailyArxiv] LLM API test failed: {error_msg}, skip this crawl. Wait for the next inspection cycle."
+                    f"[DailyArxiv] LLM API Test exception: {e}, continue fetching papers without LLM."
                 )
-                return
-
-            # Test successful, clear failure status
+        else:
             self._llm_api_failed = False
             self._llm_api_error_message = ""
             print(
-                "[DailyArxiv] LLM API The test is successful, start fetching papers..."
+                "[DailyArxiv] LLM API Not configured, continue fetching papers without LLM."
             )
-        except Exception as e:
-            # Update status and record exception information
-            self._llm_api_failed = True
-            self._llm_api_error_message = str(e)
-            print(
-                f"[DailyArxiv] LLM API Test exception: {e}, skip this crawl. Wait for the next inspection cycle."
-            )
-            return
 
         print(f"[DailyArxiv] Start scheduled crawling: {categories}")
 

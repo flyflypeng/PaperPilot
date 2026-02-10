@@ -874,21 +874,32 @@ def register_daily_arxiv_routes(
     # ========================================
     # Scheduler Control
     # ========================================
+    @app.route("/api/daily-arxiv/scheduler/status", methods=["GET"])
+    def api_scheduler_status():
+        try:
+            last_fetch_time = {}
+            for k, v in getattr(manager, "_last_fetch_time", {}).items():
+                last_fetch_time[k] = v.isoformat() if v else None
+            return jsonify(
+                {
+                    "success": True,
+                    "is_running": bool(getattr(manager, "_scheduler_running", False)),
+                    "llm_configured": bool(is_llm_configured()),
+                    "llm_api_failed": bool(getattr(manager, "_llm_api_failed", False)),
+                    "llm_api_error_message": getattr(
+                        manager, "_llm_api_error_message", ""
+                    )
+                    or "",
+                    "last_fetch_time": last_fetch_time,
+                }
+            )
+        except Exception as exc:
+            return jsonify({"success": False, "error": str(exc)}), 500
+
     @app.route("/api/daily-arxiv/scheduler/start", methods=["POST"])
     def api_start_scheduler():
         """Manually start the scheduler"""
         try:
-            if not is_llm_configured():
-                return (
-                    jsonify(
-                        {
-                            "success": False,
-                            "error": "LLM The configuration is incomplete, please configure it in the settings first LLM API（Model、Base URL、API Key）",
-                        }
-                    ),
-                    400,
-                )
-
             if manager._scheduler_running:
                 return jsonify(
                     {

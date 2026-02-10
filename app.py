@@ -480,7 +480,22 @@ def register_routes():
     # Set LLM configuration callback
     def get_llm_config():
         try:
-            return SettingsDAO.get_setting("agentic_settings", {}) or {}
+            cfg = SettingsDAO.get_setting("agentic_settings", {}) or {}
+            llm_configs = cfg.get("llmConfigs")
+            if isinstance(llm_configs, dict) and isinstance(
+                llm_configs.get("dailyArxiv"), dict
+            ):
+                picked = llm_configs.get("dailyArxiv") or {}
+                return {
+                    "llmModel": (picked.get("llmModel") or "").strip(),
+                    "llmBaseUrl": (picked.get("llmBaseUrl") or "").strip(),
+                    "llmApiKey": (picked.get("llmApiKey") or "").strip(),
+                }
+            return {
+                "llmModel": (cfg.get("llmModel") or "").strip(),
+                "llmBaseUrl": (cfg.get("llmBaseUrl") or "").strip(),
+                "llmApiKey": (cfg.get("llmApiKey") or "").strip(),
+            }
         except Exception:
             return {}
 
