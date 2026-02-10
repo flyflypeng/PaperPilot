@@ -97,6 +97,12 @@
     </style>
 </head>
 <body data-use-chinese="{{ 'true' if use_chinese else 'false' }}">
+    <script>
+        window.__SUPABASE_URL = {{ supabase_url | tojson }};
+        window.__SUPABASE_ANON_KEY = {{ supabase_anon_key | tojson }};
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" onerror="this.onerror=null;this.src='https://unpkg.com/@supabase/supabase-js@2';"></script>
+    <script src="{{ url_for('static', filename='js/api_auth_patch.js') }}?v=1"></script>
     <div class="header">
         <div>
             <button id="back-btn" class="btn btn-secondary" title="Close current tab (Ctrl+W)">

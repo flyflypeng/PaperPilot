@@ -666,13 +666,20 @@ def pdf_viewer(paper_id):
         paper_id=paper_id,
         use_chinese=use_chinese,
         paper_title=paper_title,
+        supabase_url=os.getenv("SUPABASE_URL", ""),
+        supabase_anon_key=os.getenv("SUPABASE_ANON_KEY", ""),
     )
 
 
 @app.route("/viewer/analysis/<paper_id>")
 def analysis_viewer(paper_id):
     """AI interpretation Markdown full-screen view page"""
-    return render_template("analysis_viewer.html", paper_id=paper_id)
+    return render_template(
+        "analysis_viewer.html",
+        paper_id=paper_id,
+        supabase_url=os.getenv("SUPABASE_URL", ""),
+        supabase_anon_key=os.getenv("SUPABASE_ANON_KEY", ""),
+    )
 
 
 if __name__ == "__main__":

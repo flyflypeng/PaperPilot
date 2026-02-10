@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -8,8 +9,16 @@
     <link rel="alternate icon" type="image/png" href="{{ url_for('static', filename='images/website_logo.png') }}">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github.min.css">
-    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/marked@15.0.12/marked.min.js"
+        onerror="this.onerror=null;this.src='https://unpkg.com/marked@15.0.12/marked.min.js';"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+    <script>
+        window.__SUPABASE_URL = {{ supabase_url | tojson }};
+        window.__SUPABASE_ANON_KEY = {{ supabase_anon_key | tojson }};
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"
+        onerror="this.onerror=null;this.src='https://unpkg.com/@supabase/supabase-js@2';"></script>
+    <script src="{{ url_for('static', filename='js/api_auth_patch.js') }}?v=1"></script>
     <script>
         window.MathJax = {
             tex: {
@@ -22,71 +31,72 @@
             }
         };
     </script>
-    <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js"
+        onerror="this.onerror=null;this.src='https://cdnjs.cloudflare.com/ajax/libs/mathjax/3.2.2/es5/tex-chtml.min.js';"></script>
     <style>
-        * { 
-            box-sizing: border-box; 
+        * {
+            box-sizing: border-box;
             margin: 0;
             padding: 0;
         }
-        
-        body { 
-            margin: 0; 
+
+        body {
+            margin: 0;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: #333; 
+            color: #333;
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, 'Noto Sans', sans-serif;
             min-height: 100vh;
         }
-        
-        .header { 
-            height: 64px; 
+
+        .header {
+            height: 64px;
             backdrop-filter: blur(10px);
             background: rgba(255, 255, 255, 0.95);
             border-bottom: 1px solid rgba(0, 0, 0, 0.08);
-            display: flex; 
-            align-items: center; 
-            justify-content: center; 
-            padding: 0 32px; 
-            position: sticky; 
-            top: 0; 
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0 32px;
+            position: sticky;
+            top: 0;
             z-index: 100;
             box-shadow: 0 4px 24px rgba(0, 0, 0, 0.06);
         }
-        
+
         .header-content {
             width: min(900px, 100%);
             display: flex;
             align-items: center;
             justify-content: space-between;
         }
-        
-        .header .btn { 
-            padding: 10px 20px; 
-            border: none; 
+
+        .header .btn {
+            padding: 10px 20px;
+            border: none;
             background: rgba(103, 126, 234, 0.1);
-            border-radius: 8px; 
-            cursor: pointer; 
-            display: inline-flex; 
-            align-items: center; 
+            border-radius: 8px;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
             gap: 8px;
             font-size: 14px;
             font-weight: 500;
             color: #667eea;
             transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         }
-        
-        .header .btn:hover { 
+
+        .header .btn:hover {
             background: rgba(103, 126, 234, 0.2);
             transform: translateY(-1px);
             box-shadow: 0 4px 12px rgba(103, 126, 234, 0.2);
         }
-        
+
         .header .btn i {
             font-size: 16px;
         }
-        
-        .title { 
-            font-size: 20px; 
+
+        .title {
+            font-size: 20px;
             font-weight: 700;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             -webkit-background-clip: text;
@@ -96,43 +106,44 @@
             align-items: center;
             gap: 10px;
         }
-        
+
         .title::before {
             content: '✨';
             font-size: 24px;
         }
-        
-        .container { 
-            min-height: calc(100vh - 64px); 
-            overflow-y: auto; 
-            padding: 48px 32px; 
-            display: flex; 
+
+        .container {
+            min-height: calc(100vh - 64px);
+            overflow-y: auto;
+            padding: 48px 32px;
+            display: flex;
             justify-content: center;
         }
-        
-        .content { 
-            width: min(900px, 100%); 
+
+        .content {
+            width: min(900px, 100%);
             background: white;
             border-radius: 16px;
             padding: 48px 56px;
             box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
             animation: fadeIn 0.5s ease-out;
         }
-        
+
         @keyframes fadeIn {
             from {
                 opacity: 0;
                 transform: translateY(20px);
             }
+
             to {
                 opacity: 1;
                 transform: translateY(0);
             }
         }
-        
+
         /* Markdown Style optimization */
-        .markdown-viewer h1 { 
-            font-size: 2.5em; 
+        .markdown-viewer h1 {
+            font-size: 2.5em;
             margin-bottom: 0.5em;
             margin-top: 0;
             color: #1a202c;
@@ -141,9 +152,9 @@
             border-bottom: 3px solid #667eea;
             padding-bottom: 0.3em;
         }
-        
-        .markdown-viewer h2 { 
-            font-size: 2em; 
+
+        .markdown-viewer h2 {
+            font-size: 2em;
             margin-top: 1.5em;
             margin-bottom: 0.5em;
             color: #2d3748;
@@ -152,15 +163,15 @@
             border-bottom: 2px solid #e2e8f0;
             padding-bottom: 0.3em;
         }
-        
-        .markdown-viewer h3 { 
-            font-size: 1.5em; 
+
+        .markdown-viewer h3 {
+            font-size: 1.5em;
             margin-top: 1.2em;
             margin-bottom: 0.5em;
             color: #4a5568;
             font-weight: 600;
         }
-        
+
         .markdown-viewer h4 {
             font-size: 1.25em;
             margin-top: 1em;
@@ -168,27 +179,28 @@
             color: #718096;
             font-weight: 600;
         }
-        
-        .markdown-viewer p { 
-            line-height: 1.8; 
+
+        .markdown-viewer p {
+            line-height: 1.8;
             margin-bottom: 1.2em;
             color: #2d3748;
             font-size: 16px;
         }
-        
-        .markdown-viewer ul, .markdown-viewer ol {
+
+        .markdown-viewer ul,
+        .markdown-viewer ol {
             margin-left: 1.5em;
             margin-bottom: 1.2em;
             line-height: 1.8;
         }
-        
+
         .markdown-viewer li {
             margin-bottom: 0.5em;
             color: #2d3748;
         }
-        
-        .markdown-viewer code { 
-            padding: 0.2em 0.5em; 
+
+        .markdown-viewer code {
+            padding: 0.2em 0.5em;
             background: linear-gradient(135deg, rgba(103, 126, 234, 0.1), rgba(118, 75, 162, 0.1));
             border: 1px solid rgba(103, 126, 234, 0.2);
             border-radius: 4px;
@@ -197,17 +209,17 @@
             color: #667eea;
             font-weight: 500;
         }
-        
-        .markdown-viewer pre { 
-            padding: 20px; 
+
+        .markdown-viewer pre {
+            padding: 20px;
             background: #1a202c;
-            border-radius: 12px; 
+            border-radius: 12px;
             overflow: auto;
             margin-bottom: 1.5em;
             box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
             border: 1px solid #2d3748;
         }
-        
+
         .markdown-viewer pre code {
             background: none;
             border: none;
@@ -215,21 +227,21 @@
             padding: 0;
             font-size: 14px;
         }
-        
-        .markdown-viewer img { 
-            max-width: 100%; 
-            height: auto; 
-            border-radius: 12px; 
+
+        .markdown-viewer img {
+            max-width: 100%;
+            height: auto;
+            border-radius: 12px;
             box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
             margin: 1.5em 0;
             transition: transform 0.3s ease;
         }
-        
+
         .markdown-viewer img:hover {
             transform: scale(1.02);
             box-shadow: 0 12px 32px rgba(0, 0, 0, 0.15);
         }
-        
+
         .markdown-viewer blockquote {
             margin: 1.5em 0;
             padding: 1em 1.5em;
@@ -239,7 +251,7 @@
             color: #4a5568;
             font-style: italic;
         }
-        
+
         .markdown-viewer table {
             width: 100%;
             border-collapse: collapse;
@@ -248,7 +260,7 @@
             border-radius: 8px;
             overflow: hidden;
         }
-        
+
         .markdown-viewer th {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
@@ -256,16 +268,16 @@
             text-align: left;
             font-weight: 600;
         }
-        
+
         .markdown-viewer td {
             padding: 12px;
             border-bottom: 1px solid #e2e8f0;
         }
-        
+
         .markdown-viewer tr:hover {
             background: rgba(103, 126, 234, 0.05);
         }
-        
+
         .markdown-viewer a {
             color: #667eea;
             text-decoration: none;
@@ -273,28 +285,28 @@
             border-bottom: 2px solid transparent;
             transition: border-color 0.3s ease;
         }
-        
+
         .markdown-viewer a:hover {
             border-bottom-color: #667eea;
         }
-        
+
         .markdown-viewer hr {
             border: none;
             height: 2px;
             background: linear-gradient(90deg, transparent, #e2e8f0, transparent);
             margin: 2em 0;
         }
-        
-        .loading { 
-            height: 100vh; 
-            display: flex; 
+
+        .loading {
+            height: 100vh;
+            display: flex;
             flex-direction: column;
-            align-items: center; 
-            justify-content: center; 
+            align-items: center;
+            justify-content: center;
             color: white;
             font-size: 18px;
         }
-        
+
         .loading::before {
             content: '';
             width: 50px;
@@ -305,26 +317,28 @@
             animation: spin 1s linear infinite;
             margin-bottom: 20px;
         }
-        
+
         @keyframes spin {
-            to { transform: rotate(360deg); }
+            to {
+                transform: rotate(360deg);
+            }
         }
-        
+
         /* Scrollbar styling */
         ::-webkit-scrollbar {
             width: 10px;
             height: 10px;
         }
-        
+
         ::-webkit-scrollbar-track {
             background: rgba(0, 0, 0, 0.05);
         }
-        
+
         ::-webkit-scrollbar-thumb {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             border-radius: 5px;
         }
-        
+
         ::-webkit-scrollbar-thumb:hover {
             background: linear-gradient(135deg, #5568d3 0%, #653a8b 100%);
         }
@@ -368,6 +382,7 @@
         }
     </style>
 </head>
+
 <body>
     <div class="header">
         <div class="header-content">
@@ -385,7 +400,7 @@
         </div>
     </div>
     <script>
-        const paperId = {{ paper_id|tojson }};
+        const paperId = {{ paper_id| tojson }};
 
         function rewriteImages(markdown) {
             const imageRegex = /!\[([^\]]*)\]\(([^)]+)\)/g;
@@ -403,7 +418,7 @@
                 marked.setOptions({
                     breaks: true,
                     gfm: true,
-                    highlight: function(code, lang) {
+                    highlight: function (code, lang) {
                         if (typeof hljs !== 'undefined' && lang) {
                             try { return hljs.highlight(code, { language: lang }).value; }
                             catch (e) { return hljs.highlightAuto(code).value; }
@@ -412,17 +427,17 @@
                     }
                 });
                 const preserved = [];
-                const mdPreserved = mdText.replace(/\$\$([\s\S]*?)\$\$/g, function(match) {
+                const mdPreserved = mdText.replace(/\$\$([\s\S]*?)\$\$/g, function (match) {
                     const id = preserved.length;
                     preserved.push(match);
                     return `@@MJX_BLOCK_${id}@@`;
-                }).replace(/(?<!\\)\$([^\n$]+)\$/g, function(match) {
+                }).replace(/(?<!\\)\$([^\n$]+)\$/g, function (match) {
                     const id = preserved.length;
                     preserved.push(match);
                     return `@@MJX_INLINE_${id}@@`;
                 });
                 let html = marked.parse(mdPreserved);
-                html = html.replace(/@@MJX_(BLOCK|INLINE)_(\d+)@@/g, function(_, __, idx) {
+                html = html.replace(/@@MJX_(BLOCK|INLINE)_(\d+)@@/g, function (_, __, idx) {
                     return preserved[Number(idx)];
                 });
                 const el = document.getElementById('md');
@@ -490,7 +505,7 @@
         let isTimerActive = true; // Whether the timer is activated (used to distinguish user inactivity)
         let activityCheckInterval = null; // Activity detection timer
         const INACTIVITY_THRESHOLD = 60000; // No activity threshold:1Minutes (milliseconds)
-        
+
         // Format the date as YYYY-MM-DD(Use local time to avoid time zone issues)
         function formatDateLocal(date) {
             const d = date || new Date();
@@ -499,13 +514,13 @@
             const day = String(d.getDate()).padStart(2, '0');
             return `${year}-${month}-${day}`;
         }
-        
+
         // Log user activity
         function recordUserActivity() {
             const now = Date.now();
             const wasInactive = !isTimerActive;
             lastActivityTime = now;
-            
+
             // If it was inactive before and is now active, the timing needs to be restarted.
             if (wasInactive) {
                 console.log('User activity detected, timer resumed');
@@ -514,16 +529,16 @@
                 readStartTime = now;
             }
         }
-        
+
         // Detect if the user has been inactive for a long time
         function checkUserActivity() {
             if (!lastActivityTime || !isTimerActive) {
                 return;
             }
-            
+
             const now = Date.now();
             const timeSinceLastActivity = now - lastActivityTime;
-            
+
             // If the threshold is exceeded and the timer is still active, the timing is paused
             if (timeSinceLastActivity > INACTIVITY_THRESHOLD && isTimerActive) {
                 console.log('Detected user inactivity for more than1minutes, pause timing');
@@ -532,7 +547,7 @@
                 if (readStartTime) {
                     const elapsed = Math.floor((lastActivityTime - readStartTime) / 1000); // Use last active time
                     const incrementSeconds = elapsed - lastRecordedSeconds;
-                    
+
                     if (incrementSeconds > 0) {
                         console.log('Save reading time before inactivity:', incrementSeconds, 'Second');
                         // Send delta to backend
@@ -545,7 +560,7 @@
                                 increment: incrementSeconds
                             })
                         }).catch(err => console.error('Failed to record reading time:', err));
-                        
+
                         // Record daily reading data
                         recordDailyReadingTime(incrementSeconds);
                         lastRecordedSeconds += incrementSeconds;
@@ -553,26 +568,26 @@
                 }
             }
         }
-        
+
         // Start user activity monitoring
         function startActivityMonitoring() {
             // Monitor various user activity events
             const activityEvents = ['mousemove', 'mousedown', 'keydown', 'scroll', 'touchstart', 'click'];
-            
+
             activityEvents.forEach(eventType => {
                 document.addEventListener(eventType, recordUserActivity, { passive: true });
             });
-            
+
             // Initialize last activity time
             lastActivityTime = Date.now();
             isTimerActive = true;
-            
+
             // Every10Check user activity status once every second
             activityCheckInterval = setInterval(checkUserActivity, 10000);
-            
+
             console.log('User activity monitoring is started');
         }
-        
+
         // Stop user activity monitoring
         function stopActivityMonitoring() {
             if (activityCheckInterval) {
@@ -581,14 +596,14 @@
             }
             console.log('User activity monitoring has stopped');
         }
-        
+
         // Record daily reading time to the server (also save to localStorage as backup)
         function recordDailyReadingTime(seconds) {
             if (seconds <= 0) return;
-            
+
             const today = formatDateLocal(new Date());
             const minutes = Math.ceil(seconds / 60); // Seconds to minutes, rounded up
-            
+
             // Send to server
             fetch('/api/settings/reading-history/record', {
                 method: 'POST',
@@ -603,7 +618,7 @@
             }).catch(err => {
                 console.error('Failed to record daily reading time:', err);
             });
-            
+
             // Also save to localStorage as backup
             try {
                 const key = 'dailyReadingData';
@@ -613,7 +628,7 @@
                     data = JSON.parse(saved);
                 }
                 data[today] = (data[today] || 0) + minutes;
-                
+
                 // only keep the past 400 days of data
                 const cutoffDate = new Date();
                 cutoffDate.setDate(cutoffDate.getDate() - 400);
@@ -628,24 +643,24 @@
                 console.error('save to localStorage fail:', e);
             }
         }
-        
+
         function startReadingTimer() {
             readStartTime = Date.now();
             lastRecordedSeconds = 0;
             isTimerActive = true;
             console.log('Start recording reading time');
-            
+
             // Enable user activity monitoring
             startActivityMonitoring();
-            
+
             // Every30Record reading time every second (send increment)
-            readTimeInterval = setInterval(function() {
+            readTimeInterval = setInterval(function () {
                 // Only record time when user is active
                 if (readStartTime && isTimerActive) {
                     const now = Date.now();
                     const elapsed = Math.floor((now - readStartTime) / 1000); // Second
                     const incrementSeconds = elapsed - lastRecordedSeconds;
-                    
+
                     if (incrementSeconds > 0) {
                         // Send delta to backend record
                         fetch(`/api/paper/${paperId}/analysis-view-time`, {
@@ -657,7 +672,7 @@
                                 increment: incrementSeconds  // Send delta instead of cumulative
                             })
                         }).catch(err => console.error('Failed to record reading time:', err));
-                        
+
                         // Record increments to daily reading data
                         recordDailyReadingTime(incrementSeconds);
                         lastRecordedSeconds = elapsed;
@@ -665,18 +680,18 @@
                 }
             }, 30000); // Every30Record once every second
         }
-        
+
         function stopReadingTimer() {
             // Stop user activity monitoring
             stopActivityMonitoring();
-            
+
             if (readStartTime && isTimerActive) {
                 // Calculate and save time only when active
                 const now = Date.now();
                 const elapsed = Math.floor((now - readStartTime) / 1000); // Second
                 const incrementSeconds = elapsed - lastRecordedSeconds;
                 console.log('Stop recording reading time, This increment:', incrementSeconds, 'Second');
-                
+
                 if (incrementSeconds > 0) {
                     // Send the final increment to the backend
                     fetch(`/api/paper/${paperId}/analysis-view-time`, {
@@ -688,34 +703,34 @@
                             increment: incrementSeconds  // Send delta
                         })
                     }).catch(err => console.error('Failed to record reading time:', err));
-                    
+
                     // Record increments to daily reading data
                     recordDailyReadingTime(incrementSeconds);
                 }
             }
-            
+
             readStartTime = null;
             lastRecordedSeconds = 0;
             isTimerActive = false;
             lastActivityTime = null;
-            
+
             if (readTimeInterval) {
                 clearInterval(readTimeInterval);
                 readTimeInterval = null;
             }
         }
-        
+
         setupClose();
         loadContent();
         startReadingTimer();
-        
+
         // Stop timing when page is closed or navigated away
-        window.addEventListener('beforeunload', function() {
+        window.addEventListener('beforeunload', function () {
             stopReadingTimer();
         });
-        
+
         // Stop timing when page is hidden (switching tabs, etc.)
-        document.addEventListener('visibilitychange', function() {
+        document.addEventListener('visibilitychange', function () {
             if (document.hidden) {
                 stopReadingTimer();
             } else {
@@ -724,4 +739,5 @@
         });
     </script>
 </body>
+
 </html>
