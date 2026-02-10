@@ -1,14 +1,71 @@
+/* Chat Modal & Interface Styles - LobeHub Inspired */
 
-/* Layout */
-.chat-container {
+:root {
+    --chat-bg-primary: #ffffff;
+    --chat-bg-secondary: #f8f9fa;
+    --chat-border: #e9ecef;
+    --chat-accent: #007bff; /* Primary blue */
+    --chat-accent-hover: #0069d9;
+    --chat-text-primary: #343a40;
+    --chat-text-secondary: #868e96;
+    --chat-bubble-user: #007bff;
+    --chat-bubble-ai: #f1f3f5;
+    --chat-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+}
+
+/* Modal Content - Sized to ~68% of screen as requested */
+#chat-modal .chat-modal-content {
+    width: 68vw;
+    height: 80vh; /* Adjust height to maintain a good aspect ratio while keeping ~68% total area feel */
+    max-width: none; /* Override default max-width */
+    max-height: none;
+    border-radius: 16px;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+    overflow: hidden;
     display: flex;
-    height: 100%;
+    flex-direction: column;
+    padding: 0;
+    background-color: var(--chat-bg-primary);
+}
+
+/* Header inside Modal */
+#chat-modal .modal-header {
+    display: none; /* Hide default modal header to use custom layout if needed, or style it minimally */
+}
+/* Actually, we keep the modal header for the close button, but make it minimal */
+#chat-modal .modal-header {
+    display: flex;
+    padding: 12px 20px;
+    border-bottom: 1px solid var(--chat-border);
+    background-color: var(--chat-bg-primary);
+    z-index: 10;
+}
+
+#chat-modal-title {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--chat-text-primary);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+/* Modal Body - The Flex Container */
+.chat-modal-body {
+    flex: 1;
+    padding: 0 !important; /* Override default padding */
     overflow: hidden;
 }
 
-/* Left Sidebar */
+.chat-container {
+    display: flex;
+    width: 100%;
+    height: 100%;
+}
+
+/* --- Left Sidebar --- */
 .chat-sidebar {
-    width: 260px;
+    width: 280px;
     background-color: var(--chat-bg-secondary);
     border-right: 1px solid var(--chat-border);
     display: flex;
@@ -18,85 +75,105 @@
 
 .chat-sidebar-header {
     padding: 16px;
-    border-bottom: 1px solid var(--chat-border);
     display: flex;
-    align-items: center;
-    justify-content: space-between;
-}
-
-.chat-sidebar-title {
-    font-weight: 600;
-    color: var(--chat-ai-text);
-    font-size: 14px;
+    flex-direction: column;
+    gap: 12px;
 }
 
 .new-chat-btn {
-    background-color: var(--chat-bg-primary);
+    width: 100%;
+    padding: 10px 16px;
+    background-color: white;
     border: 1px solid var(--chat-border);
-    border-radius: 6px;
-    padding: 6px 12px;
-    font-size: 13px;
-    color: var(--chat-ai-text);
+    border-radius: 8px;
+    color: var(--chat-text-primary);
+    font-weight: 500;
+    font-size: 14px;
     cursor: pointer;
-    transition: all 0.2s;
     display: flex;
     align-items: center;
-    gap: 6px;
+    justify-content: center;
+    gap: 8px;
+    transition: all 0.2s ease;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.05);
 }
 
 .new-chat-btn:hover {
-    background-color: #e9ecef;
-    border-color: #ced4da;
+    background-color: white;
+    border-color: var(--chat-accent);
+    color: var(--chat-accent);
+    box-shadow: 0 2px 4px rgba(0,123,255,0.1);
+}
+
+.chat-sidebar-title {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--chat-text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-top: 8px;
+    padding-left: 4px;
 }
 
 .chat-session-list {
-    flex-grow: 1;
+    flex: 1;
     overflow-y: auto;
-    padding: 10px;
+    padding: 0 12px 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
 }
 
 .chat-session-item {
     padding: 10px 12px;
     border-radius: 8px;
     cursor: pointer;
-    margin-bottom: 4px;
     transition: background-color 0.2s;
     position: relative;
-    group: session-item;
+    border: 1px solid transparent;
 }
 
 .chat-session-item:hover {
-    background-color: #e9ecef;
+    background-color: rgba(0,0,0,0.03);
 }
 
 .chat-session-item.active {
-    background-color: #e7f5ff;
-    color: #1971c2;
+    background-color: white;
+    border-color: var(--chat-border);
+    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
 }
 
 .session-title {
     font-size: 14px;
     font-weight: 500;
-    margin-bottom: 4px;
+    color: var(--chat-text-primary);
+    margin-bottom: 2px;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
     display: block;
+    padding-right: 20px; /* Prevent overlap with delete button */
+}
+
+.chat-session-item.active .session-title {
+    color: var(--chat-accent);
 }
 
 .session-preview {
     font-size: 12px;
-    color: #868e96;
+    color: var(--chat-text-secondary);
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
     display: block;
+    margin-right: 24px; /* Space for delete button */
 }
 
 .session-date {
-    font-size: 11px;
-    color: #adb5bd;
+    font-size: 12px;
+    color: var(--chat-text-secondary);
     margin-top: 4px;
+    opacity: 0.8;
 }
 
 .session-delete-btn {
@@ -104,72 +181,185 @@
     right: 8px;
     top: 50%;
     transform: translateY(-50%);
-    background: none;
+    background: transparent;
     border: none;
-    color: #fa5252;
+    color: #999;
+    opacity: 0;
+    transition: all 0.2s;
+    padding: 6px;
     cursor: pointer;
-    padding: 4px;
-    display: none;
     border-radius: 4px;
+    font-size: 14px;
 }
 
 .chat-session-item:hover .session-delete-btn {
-    display: block;
+    opacity: 1;
 }
 
 .session-delete-btn:hover {
-    background-color: #fff5f5;
+    background-color: #fee2e2;
+    color: #dc2626;
 }
 
-/* Main Chat Area Adjustment */
+/* --- Right Main Chat Area --- */
 .chat-main-area {
-    flex-grow: 1;
+    flex: 1;
     display: flex;
     flex-direction: column;
-    min-width: 0; /* Prevent flex overflow */
-}
-
-/* Modal Enhancements */
-/* Replaces previous generic modal content style if any */
-.chat-modal-content {
-    border-radius: 12px;
-    box-shadow: 0 10px 30px rgba(0,0,0,0.2);
-    display: flex;
-    flex-direction: column;
-    max-height: 90vh;
-    height: 85vh; /* Fixed height */
-    width: 95%; /* Wider on small screens */
-    max-width: 1400px; /* Max width increased */
-    margin: 20px auto;
-}
-
-.chat-modal-body {
-    background-color: transparent;
-    padding: 0;
-    overflow: hidden;
-    flex-grow: 1;
-    display: flex;
-    flex-direction: column;
-}
-
-.chat-modal-footer {
-    border-top: 1px solid var(--chat-border);
-    background-color: var(--chat-bg-secondary);
-    padding: 20px;
-    border-bottom-left-radius: 12px;
-    border-bottom-right-radius: 12px;
+    background-color: var(--chat-bg-primary);
+    position: relative;
+    min-width: 0;
 }
 
 .chat-messages-container {
-    flex-grow: 1;
+    flex: 1;
     overflow-y: auto;
-    padding: 20px;
-    background-color: var(--chat-bg-primary);
+    padding: 24px 40px;
     display: flex;
     flex-direction: column;
-    gap: 16px;
+    gap: 24px;
+    scroll-behavior: smooth;
 }
 
-/* Hide modal header since we have sidebar header or adjust */
-/* Keep modal header for close button, but maybe style it differently */
+/* Message Bubbles - Mapped to JS classes .message-row and .message-bubble */
+.message-row {
+    max-width: 85%;
+    padding: 0;
+    font-size: 15px;
+    line-height: 1.6;
+    display: flex;
+    gap: 12px;
+}
 
+.message-row.user {
+    align-self: flex-end;
+    flex-direction: row-reverse;
+}
+
+.message-row.ai {
+    align-self: flex-start;
+}
+
+/* Avatars */
+.message-avatar {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+}
+
+.message-row.user .message-avatar {
+    background-color: var(--chat-accent);
+    color: white;
+}
+
+.message-row.ai .message-avatar {
+    background-color: #10a37f; /* ChatGPT Green or similar */
+    color: white;
+}
+
+/* Content Box */
+.message-bubble {
+    padding: 12px 16px;
+    border-radius: 12px;
+    position: relative;
+    word-wrap: break-word;
+    min-width: 0; /* Text overflow fix */
+}
+
+.message-row.user .message-bubble {
+    background-color: var(--chat-bubble-user);
+    color: white;
+    border-top-right-radius: 2px;
+}
+
+.message-row.ai .message-bubble {
+    background-color: var(--chat-bubble-ai);
+    color: var(--chat-text-primary);
+    border-top-left-radius: 2px;
+}
+
+/* Markdown Styles in AI Message */
+.message-row.ai .message-bubble p {
+    margin: 0 0 10px 0;
+}
+.message-row.ai .message-bubble p:last-child {
+    margin-bottom: 0;
+}
+.message-row.ai .message-bubble pre {
+    background: #2d2d2d;
+    color: #ccc;
+    padding: 12px;
+    border-radius: 6px;
+    overflow-x: auto;
+    margin: 10px 0;
+}
+.message-row.ai .message-bubble code {
+    font-family: 'Menlo', 'Monaco', monospace;
+    font-size: 0.9em;
+}
+
+/* --- Input Area --- */
+.chat-modal-footer {
+    padding: 24px 40px;
+    background-color: var(--chat-bg-primary); /* Transparent/White to blend */
+    border-top: none; /* Remove border for cleaner look */
+    position: relative;
+}
+
+.chat-input-container {
+    background-color: white;
+    border: 1px solid var(--chat-border);
+    border-radius: 12px;
+    padding: 8px 12px;
+    display: flex;
+    align-items: flex-end;
+    gap: 8px;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.05);
+    transition: all 0.2s ease;
+}
+
+.chat-input-container:focus-within {
+    border-color: var(--chat-accent);
+    box-shadow: 0 4px 16px rgba(0,123,255,0.15);
+}
+
+#chat-input {
+    flex: 1;
+    border: none;
+    outline: none;
+    padding: 8px;
+    resize: none;
+    font-size: 15px;
+    line-height: 1.5;
+    max-height: 150px;
+    background: transparent;
+}
+
+#chat-send-btn {
+    width: 36px;
+    height: 36px;
+    border-radius: 8px;
+    background-color: var(--chat-accent);
+    color: white;
+    border: none;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background-color 0.2s;
+    margin-bottom: 2px; /* Align with text bottom */
+}
+
+#chat-send-btn:hover {
+    background-color: var(--chat-accent-hover);
+}
+
+#chat-send-btn:disabled {
+    background-color: var(--chat-border);
+    cursor: not-allowed;
+}

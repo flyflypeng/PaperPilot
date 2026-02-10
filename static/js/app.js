@@ -13969,6 +13969,12 @@ onAppReady(() => {
         sendBtn.addEventListener('click', sendChatMessage);
     }
 
+    // New Session button
+    const newSessionBtn = document.getElementById('chat-new-session-btn');
+    if (newSessionBtn) {
+        newSessionBtn.addEventListener('click', () => createNewSession(true));
+    }
+
     // Textarea enter key
     const textarea = document.getElementById('chat-input');
     if (textarea) {
