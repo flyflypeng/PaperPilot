@@ -1170,8 +1170,17 @@
                         </div>
                         <div class="modal-footer chat-modal-footer">
                             <div class="chat-input-container">
-                                <textarea id="chat-input" placeholder="Ask a question about the paper..." rows="1"></textarea>
-                                <button id="chat-send-btn" class="btn btn-primary"><i class="fas fa-paper-plane"></i></button>
+                                <div class="chat-input-toolbar">
+                                    <button id="chat-common-prompts-btn" type="button" class="chat-common-prompts-btn">
+                                        <i class="fas fa-list"></i> 常用问题
+                                    </button>
+                                    <div class="chat-slash-hint">输入 <span class="chat-slash-key">/</span> 选择常用问题</div>
+                                </div>
+                                <div class="chat-input-row">
+                                    <textarea id="chat-input" placeholder="Ask a question about the paper..." rows="1"></textarea>
+                                    <button id="chat-send-btn" class="btn btn-primary"><i class="fas fa-paper-plane"></i></button>
+                                </div>
+                                <div id="chat-prompt-dropdown" class="chat-prompt-dropdown"></div>
                             </div>
                         </div>
                     </div>

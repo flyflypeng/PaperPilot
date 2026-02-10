@@ -13554,6 +13554,347 @@ async function checkAndShowOnboarding() {
 // Chat Interaction Logic
 let currentChatPaperId = null;
 let chatHistory = [];
+const CHAT_COMMON_PROMPTS_STORAGE_KEY = 'chatCommonPrompts';
+const DEFAULT_CHAT_COMMON_PROMPTS = [
+    '总结一下论文的主要内容',
+    '请用一句话概括整个工作？',
+    '这篇论文试图解决什么痛点问题？',
+    '这个痛点在真实应用场景中有多严重？ 是否有具体案例支撑？',
+    '论文如何解决这个问题？',
+    '这篇论文的主要贡献/创新点是什么？',
+    '这篇论文有哪些相关研究？',
+    '论文的实验设置（数据集、指标、对比方法）分别是什么？',
+    '论文做了哪些实验？',
+    '有什么可以进一步探索的点？',
+    '有没有开源代码？GitHub链接在哪里？'
+];
+
+function loadChatCustomPrompts() {
+    try {
+        const raw = localStorage.getItem(CHAT_COMMON_PROMPTS_STORAGE_KEY);
+        if (!raw) return [];
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed)) return parsed.filter(x => typeof x === 'string');
+        if (parsed && Array.isArray(parsed.prompts)) return parsed.prompts.filter(x => typeof x === 'string');
+        return [];
+    } catch (e) {
+        return [];
+    }
+}
+
+function saveChatCustomPrompts(prompts) {
+    const cleaned = Array.from(new Set((prompts || [])
+        .filter(x => typeof x === 'string')
+        .map(x => x.trim())
+        .filter(Boolean))).slice(0, 200);
+    try {
+        localStorage.setItem(CHAT_COMMON_PROMPTS_STORAGE_KEY, JSON.stringify({ prompts: cleaned }));
+    } catch (e) { }
+    return cleaned;
+}
+
+function getAllChatPromptsWithSource() {
+    const builtIn = (DEFAULT_CHAT_COMMON_PROMPTS || []).map(text => ({ text, source: '内置' }));
+    const custom = loadChatCustomPrompts().map(text => ({ text, source: '自定义' }));
+    const seen = new Set();
+    const merged = [];
+    [...custom, ...builtIn].forEach(item => {
+        const key = (item.text || '').trim();
+        if (!key) return;
+        if (seen.has(key)) return;
+        seen.add(key);
+        merged.push(item);
+    });
+    return merged;
+}
+
+function setChatInputValue(value, { focus = true } = {}) {
+    const textarea = document.getElementById('chat-input');
+    if (!textarea) return;
+    textarea.value = value || '';
+    textarea.style.height = 'auto';
+    textarea.style.height = (textarea.scrollHeight) + 'px';
+    if (focus) {
+        textarea.focus();
+        const pos = textarea.value.length;
+        textarea.setSelectionRange(pos, pos);
+    }
+}
+
+function showChatCommonPromptsManager() {
+    const modalEl = document.getElementById('modal');
+    if (!modalEl) return;
+    const prevZ = modalEl.style.zIndex;
+    modalEl.style.zIndex = '1100';
+    let closeManager = () => {
+        modalEl.style.zIndex = prevZ;
+        hideModal();
+    };
+
+    const modalTitle = document.getElementById('modal-title');
+    const modalBody = document.getElementById('modal-body');
+    let confirmBtn = document.getElementById('modal-confirm');
+    let cancelBtn = document.getElementById('modal-cancel');
+    if (!modalTitle || !modalBody || !confirmBtn || !cancelBtn) return;
+
+    modalTitle.textContent = '常用问题';
+    modalBody.innerHTML = `
+        <div style="display:flex; flex-direction:column; gap:14px;">
+            <div style="color:#6b7280; font-size:12px; line-height:1.5;">
+                在输入框里输入 <b>/</b> 可唤醒常用问题下拉框；也可以在这里维护你的自定义问题。
+            </div>
+            <div>
+                <div style="font-weight:600; margin-bottom:8px;">内置问题</div>
+                <div id="chat-built-in-prompts" style="display:flex; flex-wrap:wrap; gap:8px;"></div>
+            </div>
+            <div>
+                <div style="font-weight:600; margin-bottom:8px;">自定义问题</div>
+                <div style="display:flex; gap:8px; margin-bottom:10px;">
+                    <input id="chat-custom-prompt-input" type="text" placeholder="输入一条常用问题…" style="flex:1; padding:8px 10px; border:1px solid #d1d5db; border-radius:8px; font-size:14px;">
+                    <button id="chat-custom-prompt-add-btn" class="btn btn-primary" type="button" style="padding:8px 12px; border-radius:8px;">添加</button>
+                </div>
+                <div id="chat-custom-prompt-list" style="display:flex; flex-direction:column; gap:8px;"></div>
+            </div>
+        </div>
+    `;
+
+    const builtInContainer = document.getElementById('chat-built-in-prompts');
+    if (builtInContainer) {
+        builtInContainer.style.cssText = 'display:flex; flex-direction:column; gap:8px;';
+        DEFAULT_CHAT_COMMON_PROMPTS.forEach(text => {
+            const btn = document.createElement('button');
+            btn.type = 'button';
+            btn.className = 'btn btn-secondary';
+            btn.style.cssText = 'padding:10px 12px; border-radius:10px; font-size:13px; border:1px solid #e5e7eb; background:#f9fafb; color:#111827; cursor:pointer; width:100%; text-align:left; white-space:normal; line-height:1.45; display:flex; justify-content:flex-start;';
+            btn.textContent = text;
+            btn.addEventListener('click', () => {
+                setChatInputValue(text, { focus: true });
+                closeManager();
+            });
+            builtInContainer.appendChild(btn);
+        });
+    }
+
+    let customPrompts = loadChatCustomPrompts();
+
+    function renderCustomPrompts() {
+        const listEl = document.getElementById('chat-custom-prompt-list');
+        if (!listEl) return;
+        listEl.innerHTML = '';
+        if (!customPrompts.length) {
+            const empty = document.createElement('div');
+            empty.style.cssText = 'color:#6b7280; font-size:13px;';
+            empty.textContent = '暂无自定义问题。';
+            listEl.appendChild(empty);
+            return;
+        }
+        customPrompts.forEach((text, index) => {
+            const row = document.createElement('div');
+            row.style.cssText = 'display:flex; gap:8px; align-items:center;';
+            const input = document.createElement('input');
+            input.type = 'text';
+            input.value = text;
+            input.style.cssText = 'flex:1; padding:8px 10px; border:1px solid #d1d5db; border-radius:8px; font-size:14px;';
+            input.addEventListener('input', () => {
+                customPrompts[index] = input.value;
+            });
+            const useBtn = document.createElement('button');
+            useBtn.type = 'button';
+            useBtn.className = 'btn btn-secondary';
+            useBtn.style.cssText = 'padding:8px 10px; border-radius:8px;';
+            useBtn.textContent = '填充';
+            useBtn.addEventListener('click', () => {
+                const v = (customPrompts[index] || '').trim();
+                if (!v) return;
+                setChatInputValue(v, { focus: true });
+                closeManager();
+            });
+            const delBtn = document.createElement('button');
+            delBtn.type = 'button';
+            delBtn.className = 'btn btn-secondary';
+            delBtn.style.cssText = 'padding:8px 10px; border-radius:8px; color:#dc2626; border-color:#fee2e2; background:#fff;';
+            delBtn.textContent = '删除';
+            delBtn.addEventListener('click', () => {
+                customPrompts.splice(index, 1);
+                renderCustomPrompts();
+            });
+            row.appendChild(input);
+            row.appendChild(useBtn);
+            row.appendChild(delBtn);
+            listEl.appendChild(row);
+        });
+    }
+
+    renderCustomPrompts();
+
+    const addBtn = document.getElementById('chat-custom-prompt-add-btn');
+    const addInput = document.getElementById('chat-custom-prompt-input');
+    if (addBtn && addInput) {
+        const add = () => {
+            const value = (addInput.value || '').trim();
+            if (!value) return;
+            customPrompts.unshift(value);
+            addInput.value = '';
+            renderCustomPrompts();
+        };
+        addBtn.addEventListener('click', add);
+        addInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && !e.shiftKey && !e.isComposing && e.keyCode !== 229) {
+                e.preventDefault();
+                add();
+            }
+        });
+    }
+
+    const confirmClone = confirmBtn.cloneNode(true);
+    const cancelClone = cancelBtn.cloneNode(true);
+    confirmBtn.parentNode.replaceChild(confirmClone, confirmBtn);
+    cancelBtn.parentNode.replaceChild(cancelClone, cancelBtn);
+    confirmBtn = document.getElementById('modal-confirm');
+    cancelBtn = document.getElementById('modal-cancel');
+
+    confirmBtn.style.display = 'inline-block';
+    confirmBtn.textContent = '保存并关闭';
+    cancelBtn.textContent = '取消';
+
+    const restoreZ = () => {
+        modalEl.style.zIndex = prevZ;
+        modalEl.removeEventListener('click', outsideClickRestore, true);
+        closeBtn?.removeEventListener('click', closeRestore);
+        cancelBtn?.removeEventListener('click', cancelRestore);
+    };
+
+    const outsideClickRestore = (e) => {
+        if (e.target === modalEl) restoreZ();
+    };
+    const closeBtn = modalEl.querySelector('.close');
+    const closeRestore = () => restoreZ();
+    const cancelRestore = () => restoreZ();
+
+    modalEl.addEventListener('click', outsideClickRestore, true);
+    closeBtn?.addEventListener('click', closeRestore);
+    cancelBtn?.addEventListener('click', cancelRestore);
+    closeManager = () => {
+        restoreZ();
+        hideModal();
+    };
+
+    confirmBtn.onclick = () => {
+        customPrompts = saveChatCustomPrompts(customPrompts);
+        restoreZ();
+        hideModal();
+    };
+    cancelBtn.onclick = () => {
+        restoreZ();
+        hideModal();
+    };
+
+    showModal();
+    setTimeout(() => addInput?.focus(), 50);
+}
+
+let chatPromptDropdownState = {
+    open: false,
+    items: [],
+    activeIndex: 0,
+    startIndex: -1,
+    query: ''
+};
+
+function getChatSlashContext(text, cursorPos) {
+    if (cursorPos == null) cursorPos = text.length;
+    const upto = text.slice(0, cursorPos);
+    for (let i = upto.length - 1; i >= 0; i--) {
+        if (upto[i] !== '/') continue;
+        const prev = i === 0 ? '' : upto[i - 1];
+        if (i !== 0 && prev && !/\s/.test(prev)) continue;
+        const query = upto.slice(i + 1);
+        return { startIndex: i, query };
+    }
+    return { startIndex: -1, query: '' };
+}
+
+function filterChatPrompts(items, query) {
+    const q = (query || '').trim().toLowerCase();
+    if (!q) return items.slice(0, 12);
+    const ranked = items
+        .map(item => {
+            const t = (item.text || '').toLowerCase();
+            const idx = t.indexOf(q);
+            return { item, idx };
+        })
+        .filter(x => x.idx >= 0)
+        .sort((a, b) => a.idx - b.idx)
+        .map(x => x.item);
+    return ranked.slice(0, 12);
+}
+
+function renderChatPromptDropdown() {
+    const dropdown = document.getElementById('chat-prompt-dropdown');
+    if (!dropdown) return;
+    if (!chatPromptDropdownState.open) {
+        dropdown.classList.remove('show');
+        dropdown.innerHTML = '';
+        return;
+    }
+    const items = chatPromptDropdownState.items || [];
+    if (!items.length) {
+        dropdown.innerHTML = `<div class="chat-prompt-empty">没有匹配的常用问题</div>`;
+        dropdown.classList.add('show');
+        return;
+    }
+    dropdown.innerHTML = items.map((it, idx) => {
+        const active = idx === chatPromptDropdownState.activeIndex ? 'active' : '';
+        return `
+            <div class="chat-prompt-item ${active}" data-index="${idx}">
+                <div class="chat-prompt-text">${escapeHtml(it.text)}</div>
+                <div class="chat-prompt-badge">${escapeHtml(it.source || '')}</div>
+            </div>
+        `;
+    }).join('');
+    dropdown.classList.add('show');
+}
+
+function closeChatPromptDropdown() {
+    chatPromptDropdownState.open = false;
+    chatPromptDropdownState.items = [];
+    chatPromptDropdownState.activeIndex = 0;
+    chatPromptDropdownState.startIndex = -1;
+    chatPromptDropdownState.query = '';
+    renderChatPromptDropdown();
+}
+
+function openChatPromptDropdown({ startIndex, query }) {
+    const textarea = document.getElementById('chat-input');
+    if (!textarea) return;
+    const all = getAllChatPromptsWithSource();
+    const filtered = filterChatPrompts(all, query);
+    chatPromptDropdownState.open = true;
+    chatPromptDropdownState.items = filtered;
+    chatPromptDropdownState.activeIndex = 0;
+    chatPromptDropdownState.startIndex = startIndex;
+    chatPromptDropdownState.query = query || '';
+    renderChatPromptDropdown();
+}
+
+function selectChatPromptByIndex(index) {
+    const textarea = document.getElementById('chat-input');
+    if (!textarea) return;
+    const item = (chatPromptDropdownState.items || [])[index];
+    if (!item) return;
+    const cursorPos = textarea.selectionStart ?? textarea.value.length;
+    const startIndex = chatPromptDropdownState.startIndex;
+    if (startIndex < 0 || startIndex > cursorPos) return;
+    const before = textarea.value.slice(0, startIndex);
+    const after = textarea.value.slice(cursorPos);
+    const inserted = item.text;
+    textarea.value = before + inserted + after;
+    const newPos = (before + inserted).length;
+    textarea.setSelectionRange(newPos, newPos);
+    textarea.dispatchEvent(new Event('input', { bubbles: true }));
+    closeChatPromptDropdown();
+    textarea.focus();
+}
 
 // Configure Marked.js with custom renderer
 function configureMarked() {
@@ -13610,6 +13951,7 @@ async function openChat(paperId, event) {
     currentChatPaperId = paperId;
     currentSessionId = null;
     chatHistory = [];
+    closeChatPromptDropdown();
 
     configureMarked();
 
@@ -13824,6 +14166,7 @@ function closeChatModal() {
     if (modal) {
         modal.classList.remove('show');
     }
+    closeChatPromptDropdown();
     currentChatPaperId = null;
     currentSessionId = null;
     chatHistory = [];
@@ -13843,6 +14186,8 @@ async function sendChatMessage() {
     if (!currentChatPaperId || !currentSessionId) return;
 
     const textarea = document.getElementById('chat-input');
+    if (!textarea) return;
+    closeChatPromptDropdown();
     const message = textarea.value.trim();
     if (!message) return;
 
@@ -14008,6 +14353,31 @@ function appendChatMessage(role, text, isThinking = false) {
 
 // Event listeners for Chat
 onAppReady(() => {
+    const commonPromptsBtn = document.getElementById('chat-common-prompts-btn');
+    if (commonPromptsBtn) {
+        commonPromptsBtn.addEventListener('click', showChatCommonPromptsManager);
+    }
+
+    const dropdown = document.getElementById('chat-prompt-dropdown');
+    if (dropdown) {
+        dropdown.addEventListener('mousedown', (e) => e.preventDefault());
+        dropdown.addEventListener('mousemove', (e) => {
+            const item = e.target.closest('.chat-prompt-item');
+            if (!item) return;
+            const idx = parseInt(item.dataset.index, 10);
+            if (!isNaN(idx) && idx !== chatPromptDropdownState.activeIndex) {
+                chatPromptDropdownState.activeIndex = idx;
+                renderChatPromptDropdown();
+            }
+        });
+        dropdown.addEventListener('click', (e) => {
+            const item = e.target.closest('.chat-prompt-item');
+            if (!item) return;
+            const idx = parseInt(item.dataset.index, 10);
+            if (!isNaN(idx)) selectChatPromptByIndex(idx);
+        });
+    }
+
     // Send button
     const sendBtn = document.getElementById('chat-send-btn');
     if (sendBtn) {
@@ -14023,10 +14393,53 @@ onAppReady(() => {
     // Textarea enter key
     const textarea = document.getElementById('chat-input');
     if (textarea) {
-        textarea.addEventListener('keypress', (e) => {
+        const updateDropdownFromCursor = () => {
+            const ctx = getChatSlashContext(textarea.value || '', textarea.selectionStart ?? (textarea.value || '').length);
+            if (ctx.startIndex >= 0) openChatPromptDropdown(ctx);
+            else closeChatPromptDropdown();
+        };
+
+        textarea.addEventListener('keydown', (e) => {
+            if (e.isComposing || e.keyCode === 229) return;
+
+            if (chatPromptDropdownState.open) {
+                if (e.key === 'ArrowDown') {
+                    e.preventDefault();
+                    const max = (chatPromptDropdownState.items || []).length;
+                    if (max) {
+                        chatPromptDropdownState.activeIndex = (chatPromptDropdownState.activeIndex + 1) % max;
+                        renderChatPromptDropdown();
+                    }
+                    return;
+                }
+                if (e.key === 'ArrowUp') {
+                    e.preventDefault();
+                    const max = (chatPromptDropdownState.items || []).length;
+                    if (max) {
+                        chatPromptDropdownState.activeIndex = (chatPromptDropdownState.activeIndex - 1 + max) % max;
+                        renderChatPromptDropdown();
+                    }
+                    return;
+                }
+                if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    selectChatPromptByIndex(chatPromptDropdownState.activeIndex);
+                    return;
+                }
+                if (e.key === 'Escape') {
+                    e.preventDefault();
+                    closeChatPromptDropdown();
+                    return;
+                }
+            }
+
             if (e.key === 'Enter' && !e.shiftKey) {
                 e.preventDefault();
                 sendChatMessage();
+                return;
+            }
+            if (e.key === 'Escape') {
+                closeChatPromptDropdown();
             }
         });
 
@@ -14037,6 +14450,19 @@ onAppReady(() => {
             if (this.value === '') {
                 this.style.height = '';
             }
+            updateDropdownFromCursor();
+        });
+
+        textarea.addEventListener('click', updateDropdownFromCursor);
+        textarea.addEventListener('keyup', (e) => {
+            if (e.isComposing || e.keyCode === 229) return;
+            if (e.key === 'ArrowLeft' || e.key === 'ArrowRight' || e.key === 'Home' || e.key === 'End') {
+                updateDropdownFromCursor();
+            }
+        });
+
+        textarea.addEventListener('blur', () => {
+            setTimeout(() => closeChatPromptDropdown(), 120);
         });
     }
 
