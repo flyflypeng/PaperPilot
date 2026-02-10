@@ -485,40 +485,113 @@
                     <div class="setting-card-body">
                         <p style="color: #666; margin-bottom: 20px; font-size: 14px;">
                             <i class="fas fa-info-circle"></i>
-                            Unified LLM API configuration used for AI translation, AI interpretation, Daily arXiv and
-                            all other AI features.
+                            Configure different OpenAI-compatible inference services for different AI feature scenarios.
                         </p>
-                        <div class="setting-row">
-                            <div class="setting-info">
-                                <label for="llm-model">Model Name</label>
-                                <small>LLM model name</small>
+
+                        <div style="margin-top: 8px;">
+                            <h4 style="margin: 0 0 10px; font-size: 15px;">AI Translate</h4>
+                            <div class="setting-row">
+                                <div class="setting-info">
+                                    <label for="llm-translate-model">Model Name</label>
+                                    <small>LLM model name for paper translation</small>
+                                </div>
+                                <input type="text" id="llm-translate-model" placeholder="ai_server/Qwen3-4B-Instruct-2507"
+                                    class="setting-input" />
                             </div>
-                            <input type="text" id="llm-model" placeholder="ai_server/Qwen3-4B-Instruct-2507"
-                                class="setting-input" />
+                            <div class="setting-row">
+                                <div class="setting-info">
+                                    <label for="llm-translate-base-url">Base URL</label>
+                                    <small>OpenAI-compatible API base URL</small>
+                                </div>
+                                <input type="text" id="llm-translate-base-url" placeholder="http://0.0.0.0:6002/v1"
+                                    class="setting-input" />
+                            </div>
+                            <div class="setting-row">
+                                <div class="setting-info">
+                                    <label for="llm-translate-api-key">API Key</label>
+                                    <small>API access key</small>
+                                </div>
+                                <div style="display: flex; gap: 8px; align-items: center;">
+                                    <input type="password" id="llm-translate-api-key" placeholder="token-abc123" class="setting-input"
+                                        style="width: 300px; max-width: 300px;" />
+                                    <button id="test-llm-api-translate" class="btn btn-secondary" style="white-space: nowrap;"
+                                        title="Test LLM API connection (AI Translate)">
+                                        <i class="fas fa-vial"></i> Test
+                                    </button>
+                                </div>
+                            </div>
+                            <div id="llm-test-result-translate" style="margin-top: 8px; display: none;"></div>
                         </div>
-                        <div class="setting-row">
-                            <div class="setting-info">
-                                <label for="llm-base-url">Base URL</label>
-                                <small>OpenAI-compatible API base URL</small>
+
+                        <div style="margin-top: 18px; padding-top: 16px; border-top: 1px solid #eee;">
+                            <h4 style="margin: 0 0 10px; font-size: 15px;">AI Interpret</h4>
+                            <div class="setting-row">
+                                <div class="setting-info">
+                                    <label for="llm-interpret-model">Model Name</label>
+                                    <small>LLM model name for paper summary & chat</small>
+                                </div>
+                                <input type="text" id="llm-interpret-model" placeholder="ai_server/Qwen3-4B-Instruct-2507"
+                                    class="setting-input" />
                             </div>
-                            <input type="text" id="llm-base-url" placeholder="http://0.0.0.0:6002/v1"
-                                class="setting-input" />
+                            <div class="setting-row">
+                                <div class="setting-info">
+                                    <label for="llm-interpret-base-url">Base URL</label>
+                                    <small>OpenAI-compatible API base URL</small>
+                                </div>
+                                <input type="text" id="llm-interpret-base-url" placeholder="http://0.0.0.0:6002/v1"
+                                    class="setting-input" />
+                            </div>
+                            <div class="setting-row">
+                                <div class="setting-info">
+                                    <label for="llm-interpret-api-key">API Key</label>
+                                    <small>API access key</small>
+                                </div>
+                                <div style="display: flex; gap: 8px; align-items: center;">
+                                    <input type="password" id="llm-interpret-api-key" placeholder="token-abc123" class="setting-input"
+                                        style="width: 300px; max-width: 300px;" />
+                                    <button id="test-llm-api-interpret" class="btn btn-secondary" style="white-space: nowrap;"
+                                        title="Test LLM API connection (AI Interpret)">
+                                        <i class="fas fa-vial"></i> Test
+                                    </button>
+                                </div>
+                            </div>
+                            <div id="llm-test-result-interpret" style="margin-top: 8px; display: none;"></div>
                         </div>
-                        <div class="setting-row">
-                            <div class="setting-info">
-                                <label for="llm-api-key">API Key</label>
-                                <small>API access key</small>
+
+                        <div style="margin-top: 18px; padding-top: 16px; border-top: 1px solid #eee;">
+                            <h4 style="margin: 0 0 10px; font-size: 15px;">Daily arXiv</h4>
+                            <div class="setting-row">
+                                <div class="setting-info">
+                                    <label for="llm-dailyArxiv-model">Model Name</label>
+                                    <small>LLM model name for Daily arXiv abstract summary</small>
+                                </div>
+                                <input type="text" id="llm-dailyArxiv-model" placeholder="ai_server/Qwen3-4B-Instruct-2507"
+                                    class="setting-input" />
                             </div>
-                            <div style="display: flex; gap: 8px; align-items: center;">
-                                <input type="password" id="llm-api-key" placeholder="token-abc123" class="setting-input"
-                                    style="width: 300px; max-width: 300px;" />
-                                <button id="test-llm-api" class="btn btn-secondary" style="white-space: nowrap;"
-                                    title="Test LLM API connection">
-                                    <i class="fas fa-vial"></i> Test
-                                </button>
+                            <div class="setting-row">
+                                <div class="setting-info">
+                                    <label for="llm-dailyArxiv-base-url">Base URL</label>
+                                    <small>OpenAI-compatible API base URL</small>
+                                </div>
+                                <input type="text" id="llm-dailyArxiv-base-url" placeholder="http://0.0.0.0:6002/v1"
+                                    class="setting-input" />
                             </div>
+                            <div class="setting-row">
+                                <div class="setting-info">
+                                    <label for="llm-dailyArxiv-api-key">API Key</label>
+                                    <small>API access key</small>
+                                </div>
+                                <div style="display: flex; gap: 8px; align-items: center;">
+                                    <input type="password" id="llm-dailyArxiv-api-key" placeholder="token-abc123" class="setting-input"
+                                        style="width: 300px; max-width: 300px;" />
+                                    <button id="test-llm-api-dailyArxiv" class="btn btn-secondary" style="white-space: nowrap;"
+                                        title="Test LLM API connection (Daily arXiv)">
+                                        <i class="fas fa-vial"></i> Test
+                                    </button>
+                                </div>
+                            </div>
+                            <div id="llm-test-result-dailyArxiv" style="margin-top: 8px; display: none;"></div>
                         </div>
-                        <div id="llm-test-result" style="margin-top: 8px; display: none;"></div>
                     </div>
                 </div>
 

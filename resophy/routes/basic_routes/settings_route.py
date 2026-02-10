@@ -9,6 +9,53 @@ from typing import Any, Dict
 from flask import Flask, jsonify, request, send_from_directory
 from resophy.database.dao.settings_dao import SettingsDAO
 
+
+def _normalize_agentic_settings(
+    settings: Dict[str, Any] | None,
+    default_agentic_settings: Dict[str, Any],
+) -> Dict[str, Any]:
+    current: Dict[str, Any] = {}
+    if isinstance(settings, dict):
+        current = settings
+
+    merged = default_agentic_settings.copy()
+    merged.update(current)
+
+    llm_configs = merged.get("llmConfigs")
+    legacy = {
+        "llmModel": (merged.get("llmModel") or "").strip(),
+        "llmBaseUrl": (merged.get("llmBaseUrl") or "").strip(),
+        "llmApiKey": (merged.get("llmApiKey") or "").strip(),
+    }
+
+    normalized_llm_configs: Dict[str, Dict[str, str]] = {}
+    if isinstance(llm_configs, dict):
+        for k, v in llm_configs.items():
+            if isinstance(v, dict):
+                normalized_llm_configs[k] = {
+                    "llmModel": (v.get("llmModel") or "").strip(),
+                    "llmBaseUrl": (v.get("llmBaseUrl") or "").strip(),
+                    "llmApiKey": (v.get("llmApiKey") or "").strip(),
+                }
+
+    for k in ("translate", "interpret", "dailyArxiv"):
+        if k not in normalized_llm_configs:
+            normalized_llm_configs[k] = legacy.copy()
+        else:
+            cfg = normalized_llm_configs[k]
+            if not cfg.get("llmModel"):
+                cfg["llmModel"] = legacy.get("llmModel", "")
+            if not cfg.get("llmBaseUrl"):
+                cfg["llmBaseUrl"] = legacy.get("llmBaseUrl", "")
+            if not cfg.get("llmApiKey"):
+                cfg["llmApiKey"] = legacy.get("llmApiKey", "")
+
+    merged["llmConfigs"] = normalized_llm_configs
+    merged.pop("llmModel", None)
+    merged.pop("llmBaseUrl", None)
+    merged.pop("llmApiKey", None)
+    return merged
+
 def register_settings_routes(
     app: Flask,
     *,
@@ -249,43 +296,107 @@ def register_settings_routes(
             except Exception as exc:
                 print(f"readAIFunction setting failed: {exc}")
                 settings = {}
-            merged = default_agentic_settings.copy()
-            merged.update(settings)
+            merged = _normalize_agentic_settings(settings, default_agentic_settings)
 
             # Remove prompt fields as they are no longer customizable
             merged.pop("analysisSystemPrompt", None)
             merged.pop("analysisSystemPromptZh", None)
             merged.pop("analysisSystemPromptEn", None)
 
+            try:
+                migrate_needed = False
+                if isinstance(settings, dict):
+                    if any(k in settings for k in ("llmModel", "llmBaseUrl", "llmApiKey")):
+                        migrate_needed = True
+                    llm_configs = settings.get("llmConfigs")
+                    if not isinstance(llm_configs, dict):
+                        migrate_needed = True
+                    else:
+                        for k in ("translate", "interpret", "dailyArxiv"):
+                            if not isinstance(llm_configs.get(k), dict):
+                                migrate_needed = True
+                                break
+                if migrate_needed:
+                    SettingsDAO.save_setting("agentic_settings", merged)
+            except Exception:
+                pass
+
             return jsonify(merged)
 
         data = request.json or {}
         try:
-            # examine LLM Is the configuration complete?
-            llm_model = data.get("llmModel", "").strip()
-            llm_base_url = data.get("llmBaseUrl", "").strip()
-            llm_api_key = data.get("llmApiKey", "").strip()
-            is_llm_configured = bool(llm_model and llm_base_url and llm_api_key)
+            incoming = dict(data)
+            if (
+                "llmConfigs" not in incoming
+                and any(k in incoming for k in ("llmModel", "llmBaseUrl", "llmApiKey"))
+            ):
+                legacy_cfg = {
+                    "llmModel": (incoming.get("llmModel") or "").strip(),
+                    "llmBaseUrl": (incoming.get("llmBaseUrl") or "").strip(),
+                    "llmApiKey": (incoming.get("llmApiKey") or "").strip(),
+                }
+                incoming["llmConfigs"] = {
+                    "translate": legacy_cfg.copy(),
+                    "interpret": legacy_cfg.copy(),
+                    "dailyArxiv": legacy_cfg.copy(),
+                }
+                incoming.pop("llmModel", None)
+                incoming.pop("llmBaseUrl", None)
+                incoming.pop("llmApiKey", None)
 
             # Read the previous configuration and check whether the configuration was not complete before
             was_llm_configured = False
-            old_settings = {}
+            old_settings: Dict[str, Any] = {}
             try:
                 old_settings = SettingsDAO.get_setting('agentic_settings', {})
-                old_model = old_settings.get("llmModel", "").strip()
-                old_base_url = old_settings.get("llmBaseUrl", "").strip()
-                old_api_key = old_settings.get("llmApiKey", "").strip()
-                was_llm_configured = bool(
-                    old_model and old_base_url and old_api_key
+                old_settings = _normalize_agentic_settings(
+                    old_settings, default_agentic_settings
                 )
+                old_daily_cfg = (old_settings.get("llmConfigs") or {}).get(
+                    "dailyArxiv", {}
+                )
+                old_model = (old_daily_cfg.get("llmModel") or "").strip()
+                old_base_url = (old_daily_cfg.get("llmBaseUrl") or "").strip()
+                old_api_key = (old_daily_cfg.get("llmApiKey") or "").strip()
+                was_llm_configured = bool(old_model and old_base_url and old_api_key)
             except Exception as exc:
                 print(f"Failed to read old settings: {exc}")
                 old_settings = {}
 
-            # Merge old and new configurations (new configuration takes precedence, but fields not provided in the old configuration are retained)
-            merged_settings = default_agentic_settings.copy()
-            merged_settings.update(old_settings)  # Apply old settings first
-            merged_settings.update(data)  # Reapply new settings (overwrite)
+            merged_settings = _normalize_agentic_settings(
+                old_settings, default_agentic_settings
+            )
+
+            incoming_llm_configs = (
+                incoming.get("llmConfigs") if isinstance(incoming.get("llmConfigs"), dict) else {}
+            )
+            merged_llm_configs: Dict[str, Dict[str, str]] = dict(
+                merged_settings.get("llmConfigs") or {}
+            )
+
+            for scenario in ("translate", "interpret", "dailyArxiv"):
+                if not isinstance(merged_llm_configs.get(scenario), dict):
+                    merged_llm_configs[scenario] = {
+                        "llmModel": "",
+                        "llmBaseUrl": "",
+                        "llmApiKey": "",
+                    }
+                incoming_cfg = incoming_llm_configs.get(scenario)
+                if isinstance(incoming_cfg, dict):
+                    merged_llm_configs[scenario].update(
+                        {
+                            "llmModel": (incoming_cfg.get("llmModel") or "").strip(),
+                            "llmBaseUrl": (incoming_cfg.get("llmBaseUrl") or "").strip(),
+                            "llmApiKey": (incoming_cfg.get("llmApiKey") or "").strip(),
+                        }
+                    )
+
+            merged_settings["llmConfigs"] = merged_llm_configs
+
+            for k, v in incoming.items():
+                if k == "llmConfigs":
+                    continue
+                merged_settings[k] = v
 
             # Prompt customization is no longer supported - always use built-in prompts based on user language selection
             # Remove any existing prompt fields to ensure clean state
@@ -293,26 +404,28 @@ def register_settings_routes(
             merged_settings.pop("analysisSystemPromptZh", None)
             merged_settings.pop("analysisSystemPromptEn", None)
 
-            # examine LLM Has the configuration changed?
+            daily_cfg = (merged_settings.get("llmConfigs") or {}).get("dailyArxiv", {})
+            llm_model = (daily_cfg.get("llmModel") or "").strip()
+            llm_base_url = (daily_cfg.get("llmBaseUrl") or "").strip()
+            llm_api_key = (daily_cfg.get("llmApiKey") or "").strip()
+            is_llm_configured = bool(llm_model and llm_base_url and llm_api_key)
+
             llm_config_changed = False
             if was_llm_configured and is_llm_configured:
-                # Configuration is complete, check if changes have occurred
-                old_model = old_settings.get("llmModel", "").strip()
-                old_base_url = old_settings.get("llmBaseUrl", "").strip()
-                old_api_key = old_settings.get("llmApiKey", "").strip()
+                old_daily_cfg = (old_settings.get("llmConfigs") or {}).get(
+                    "dailyArxiv", {}
+                )
+                old_model = (old_daily_cfg.get("llmModel") or "").strip()
+                old_base_url = (old_daily_cfg.get("llmBaseUrl") or "").strip()
+                old_api_key = (old_daily_cfg.get("llmApiKey") or "").strip()
 
-                new_model = merged_settings.get("llmModel", "").strip()
-                new_base_url = merged_settings.get("llmBaseUrl", "").strip()
-                new_api_key = merged_settings.get("llmApiKey", "").strip()
-
-                # If any configuration item changes, the configuration is considered to have changed
                 if (
-                    old_model != new_model
-                    or old_base_url != new_base_url
-                    or old_api_key != new_api_key
+                    old_model != llm_model
+                    or old_base_url != llm_base_url
+                    or old_api_key != llm_api_key
                 ):
                     llm_config_changed = True
-                    print(f"[Settings] detected LLM Configuration has changed")
+                    print(f"[Settings] detected DailyArxiv LLM Configuration has changed")
 
             # Save the merged configuration
             SettingsDAO.save_setting('agentic_settings', merged_settings)
@@ -411,9 +524,22 @@ def register_settings_routes(
         """test LLM API connect"""
         try:
             data = request.json or {}
+            llm_config_type = (data.get("llmConfigType") or "").strip() or None
             llm_model = data.get("llmModel", "").strip()
             llm_base_url = data.get("llmBaseUrl", "").strip()
             llm_api_key = data.get("llmApiKey", "").strip()
+
+            if not llm_model or not llm_base_url or not llm_api_key:
+                try:
+                    stored = SettingsDAO.get_setting("agentic_settings", {}) or {}
+                    stored = _normalize_agentic_settings(stored, default_agentic_settings)
+                    cfg_type = llm_config_type or "dailyArxiv"
+                    cfg = (stored.get("llmConfigs") or {}).get(cfg_type, {}) or {}
+                    llm_model = llm_model or (cfg.get("llmModel") or "").strip()
+                    llm_base_url = llm_base_url or (cfg.get("llmBaseUrl") or "").strip()
+                    llm_api_key = llm_api_key or (cfg.get("llmApiKey") or "").strip()
+                except Exception:
+                    pass
 
             if not llm_model or not llm_base_url or not llm_api_key:
                 return (
@@ -463,67 +589,59 @@ def register_settings_routes(
                     reply = response.choices[0].message.content.strip()
                     # Check if it contains "Yes"(not case sensitive)
                     if "yes" in reply.lower():
-                        # Test successful, clear Daily arXiv failure status and trigger fetching
-                        try:
-                            import threading
+                        if llm_config_type in (None, "", "dailyArxiv"):
+                            try:
+                                import threading
 
-                            from resophy.tools.basic_tools.daily_arxiv import (
-                                get_manager,
-                            )
+                                from resophy.tools.basic_tools.daily_arxiv import (
+                                    get_manager,
+                                )
 
-                            # get Daily arXiv Set file path (from agentic_settings_file infer)
-                            # agentic_settings_file and daily_arxiv_settings_file in the same directory
-                            papers_dir = os.path.dirname(agentic_settings_file)
-                            daily_arxiv_settings_file = os.path.join(
-                                papers_dir, "daily_arxiv_settings.json"
-                            )
-                            temp_papers_dir = os.path.join(
-                                papers_dir, ".daily_arxiv_temp"
-                            )
-                            # get manager Instance (singleton mode, the same instance will be returned)
-                            manager = get_manager(
-                                temp_papers_dir, daily_arxiv_settings_file
-                            )
-                            # Clear failed status
-                            if hasattr(manager, "_llm_api_failed"):
-                                manager._llm_api_failed = False
-                                manager._llm_api_error_message = ""
+                                papers_dir = os.path.dirname(agentic_settings_file)
+                                daily_arxiv_settings_file = os.path.join(
+                                    papers_dir, "daily_arxiv_settings.json"
+                                )
+                                temp_papers_dir = os.path.join(
+                                    papers_dir, ".daily_arxiv_temp"
+                                )
+                                manager = get_manager(
+                                    temp_papers_dir, daily_arxiv_settings_file
+                                )
+                                if hasattr(manager, "_llm_api_failed"):
+                                    manager._llm_api_failed = False
+                                    manager._llm_api_error_message = ""
+                                    print(
+                                        "[Settings] LLM API Test successful, cleared Daily arXiv failure status"
+                                    )
+
+                                if not manager._scheduler_running:
+                                    manager.start_scheduler()
+                                    print(
+                                        "[Settings] LLM API Test successful, started Daily arXiv Scheduler (the scheduler will automatically trigger a crawl)"
+                                    )
+                                else:
+                                    def trigger_fetch():
+                                        try:
+                                            manager._do_scheduled_fetch()
+                                            print(
+                                                "[Settings] LLM API Test successful, triggered once Daily arXiv crawl"
+                                            )
+                                        except Exception as e:
+                                            print(
+                                                f"[Settings] trigger Daily arXiv Fetch failed: {e}"
+                                            )
+
+                                    thread = threading.Thread(
+                                        target=trigger_fetch, daemon=True
+                                    )
+                                    thread.start()
+                                    print(
+                                        "[Settings] LLM API The test is successful and has been triggered in the background Daily arXiv crawl"
+                                    )
+                            except Exception as e:
                                 print(
-                                    "[Settings] LLM API Test successful, cleared Daily arXiv failure status"
+                                    f"[Settings] deal with Daily arXiv An error occurred in the failed state (does not affect testing): {e}"
                                 )
-
-                            # Start the scheduler if not already running
-                            if not manager._scheduler_running:
-                                manager.start_scheduler()
-                                print(
-                                    "[Settings] LLM API Test successful, started Daily arXiv Scheduler (the scheduler will automatically trigger a crawl)"
-                                )
-                            else:
-                                # The scheduler is already running, trigger a crawl manually
-                                def trigger_fetch():
-                                    try:
-                                        manager._do_scheduled_fetch()
-                                        print(
-                                            "[Settings] LLM API Test successful, triggered once Daily arXiv crawl"
-                                        )
-                                    except Exception as e:
-                                        print(
-                                            f"[Settings] trigger Daily arXiv Fetch failed: {e}"
-                                        )
-
-                                # Trigger fetching in a background thread to avoid blocking test responses
-                                thread = threading.Thread(
-                                    target=trigger_fetch, daemon=True
-                                )
-                                thread.start()
-                                print(
-                                    "[Settings] LLM API The test is successful and has been triggered in the background Daily arXiv crawl"
-                                )
-                        except Exception as e:
-                            # If an error occurs when handling the failure status, it does not affect the test results.
-                            print(
-                                f"[Settings] deal with Daily arXiv An error occurred in the failed state (does not affect testing): {e}"
-                            )
 
                         return jsonify(
                             {

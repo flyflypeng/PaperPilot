@@ -91,18 +91,35 @@ def register_daily_arxiv_routes(
 
     # set up LLM Configure callbacks (if not set up already)
     def get_llm_config():
+        def pick(cfg: Dict[str, Any]) -> Dict[str, Any]:
+            if not isinstance(cfg, dict):
+                return {}
+            llm_configs = cfg.get("llmConfigs")
+            if isinstance(llm_configs, dict) and isinstance(
+                llm_configs.get("dailyArxiv"), dict
+            ):
+                return llm_configs.get("dailyArxiv") or {}
+            return {
+                "llmModel": (cfg.get("llmModel") or "").strip(),
+                "llmBaseUrl": (cfg.get("llmBaseUrl") or "").strip(),
+                "llmApiKey": (cfg.get("llmApiKey") or "").strip(),
+            }
+
         try:
             settings = SettingsDAO.get_setting("agentic_settings", {}) or {}
+            picked = pick(settings)
+            if picked:
+                return picked
         except Exception:
-            settings = {}
-
-        if settings:
-            return settings
+            pass
 
         if agentic_settings_file and os.path.exists(agentic_settings_file):
             try:
                 with open(agentic_settings_file, "r", encoding="utf-8") as f:
-                    return json.load(f) or {}
+                    file_cfg = json.load(f) or {}
+                picked = pick(file_cfg)
+                if picked:
+                    return picked
             except Exception:
                 return {}
 

@@ -107,7 +107,15 @@ def register_agent_summary_routes(
             llm_model = data.get("openai_model", "").strip()
             if not llm_model and agentic_settings_file:
                 try:
-                    llm_model = agentic_settings.get("llmModel", "").strip()
+                    llm_configs = agentic_settings.get("llmConfigs")
+                    if isinstance(llm_configs, dict) and isinstance(
+                        llm_configs.get("interpret"), dict
+                    ):
+                        llm_model = (llm_configs.get("interpret") or {}).get(
+                            "llmModel", ""
+                        ).strip()
+                    else:
+                        llm_model = (agentic_settings.get("llmModel") or "").strip()
                 except Exception:
                     pass
 

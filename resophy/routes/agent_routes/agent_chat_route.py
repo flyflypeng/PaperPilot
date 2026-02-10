@@ -148,9 +148,18 @@ def register_agent_chat_routes(
                 except Exception:
                     agentic_settings = {}
 
-            openai_base_url = (agentic_settings.get("llmBaseUrl") or "").strip()
-            openai_api_key = (agentic_settings.get("llmApiKey") or "").strip()
-            llm_model = (agentic_settings.get("llmModel") or "").strip()
+            llm_cfg: Dict[str, Any] = {}
+            llm_configs = agentic_settings.get("llmConfigs")
+            if isinstance(llm_configs, dict) and isinstance(
+                llm_configs.get("interpret"), dict
+            ):
+                llm_cfg = llm_configs.get("interpret") or {}
+            else:
+                llm_cfg = agentic_settings
+
+            openai_base_url = (llm_cfg.get("llmBaseUrl") or "").strip()
+            openai_api_key = (llm_cfg.get("llmApiKey") or "").strip()
+            llm_model = (llm_cfg.get("llmModel") or "").strip()
 
             if not openai_base_url or not openai_api_key or not llm_model:
                 return (

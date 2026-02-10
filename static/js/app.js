@@ -4894,14 +4894,28 @@ function switchTab(tabName) {
 // Save translation settings
 // ========== Agentic set up（unifiedAIFunction configuration）==========
 async function saveAgenticSettings(silent = false) {
-    const modelEl = document.getElementById('llm-model');
-    const baseUrlEl = document.getElementById('llm-base-url');
-    const apiKeyEl = document.getElementById('llm-api-key');
+    const translateModelEl = document.getElementById('llm-translate-model');
+    const translateBaseUrlEl = document.getElementById('llm-translate-base-url');
+    const translateApiKeyEl = document.getElementById('llm-translate-api-key');
+
+    const interpretModelEl = document.getElementById('llm-interpret-model');
+    const interpretBaseUrlEl = document.getElementById('llm-interpret-base-url');
+    const interpretApiKeyEl = document.getElementById('llm-interpret-api-key');
+
+    const dailyArxivModelEl = document.getElementById('llm-dailyArxiv-model');
+    const dailyArxivBaseUrlEl = document.getElementById('llm-dailyArxiv-base-url');
+    const dailyArxivApiKeyEl = document.getElementById('llm-dailyArxiv-api-key');
+
     const mineruEl = document.getElementById('mineru-server-url');
     const mineruApiTokenEl = document.getElementById('mineru-api-token');
 
     // Check if element exists
-    if (!modelEl || !baseUrlEl || !apiKeyEl || !mineruEl) {
+    if (
+        !translateModelEl || !translateBaseUrlEl || !translateApiKeyEl ||
+        !interpretModelEl || !interpretBaseUrlEl || !interpretApiKeyEl ||
+        !dailyArxivModelEl || !dailyArxivBaseUrlEl || !dailyArxivApiKeyEl ||
+        !mineruEl
+    ) {
         console.error('Failed to save settings: Settings input element not found');
         if (!silent) {
             showMessage('Save failed: Settings input element not found', 'error');
@@ -4914,18 +4928,32 @@ async function saveAgenticSettings(silent = false) {
     const mineruUseApi = mineruModeChecked ? mineruModeChecked.value === 'api' : false;
 
     const settings = {
-        llmModel: modelEl.value.trim(),
-        llmBaseUrl: baseUrlEl.value.trim(),
-        llmApiKey: apiKeyEl.value.trim(),
+        llmConfigs: {
+            translate: {
+                llmModel: translateModelEl.value.trim(),
+                llmBaseUrl: translateBaseUrlEl.value.trim(),
+                llmApiKey: translateApiKeyEl.value.trim(),
+            },
+            interpret: {
+                llmModel: interpretModelEl.value.trim(),
+                llmBaseUrl: interpretBaseUrlEl.value.trim(),
+                llmApiKey: interpretApiKeyEl.value.trim(),
+            },
+            dailyArxiv: {
+                llmModel: dailyArxivModelEl.value.trim(),
+                llmBaseUrl: dailyArxivBaseUrlEl.value.trim(),
+                llmApiKey: dailyArxivApiKeyEl.value.trim(),
+            }
+        },
         mineruServerUrl: mineruEl.value.trim(),
         mineruUseApi: mineruUseApi,
         mineruApiToken: mineruApiTokenEl ? mineruApiTokenEl.value.trim() : ''
     };
 
     console.log('[Save settings] ready to save:', {
-        llmModel: settings.llmModel ? '***' : '(null)',
-        llmBaseUrl: settings.llmBaseUrl ? '***' : '(null)',
-        llmApiKey: settings.llmApiKey ? '***' : '(null)',
+        translate: settings.llmConfigs.translate.llmModel ? '***' : '(null)',
+        interpret: settings.llmConfigs.interpret.llmModel ? '***' : '(null)',
+        dailyArxiv: settings.llmConfigs.dailyArxiv.llmModel ? '***' : '(null)',
         mineruServerUrl: settings.mineruServerUrl ? '***' : '(null)',
         mineruUseApi: settings.mineruUseApi,
         mineruApiToken: settings.mineruApiToken ? '***' : '(null)'
@@ -4993,24 +5021,69 @@ async function loadAgenticSettings() {
         const response = await fetch('/api/settings/agentic');
         if (response.ok) {
             const settings = await response.json();
-            const modelEl = document.getElementById('llm-model');
-            const baseUrlEl = document.getElementById('llm-base-url');
-            const apiKeyEl = document.getElementById('llm-api-key');
+            const translateModelEl = document.getElementById('llm-translate-model');
+            const translateBaseUrlEl = document.getElementById('llm-translate-base-url');
+            const translateApiKeyEl = document.getElementById('llm-translate-api-key');
+
+            const interpretModelEl = document.getElementById('llm-interpret-model');
+            const interpretBaseUrlEl = document.getElementById('llm-interpret-base-url');
+            const interpretApiKeyEl = document.getElementById('llm-interpret-api-key');
+
+            const dailyArxivModelEl = document.getElementById('llm-dailyArxiv-model');
+            const dailyArxivBaseUrlEl = document.getElementById('llm-dailyArxiv-base-url');
+            const dailyArxivApiKeyEl = document.getElementById('llm-dailyArxiv-api-key');
+
             const mineruEl = document.getElementById('mineru-server-url');
             const mineruApiTokenEl = document.getElementById('mineru-api-token');
             const promptEl = document.getElementById('analysis-system-prompt');
 
-            if (modelEl) {
-                modelEl.value = settings.llmModel || '';
-                modelEl.addEventListener('input', autoSaveAgenticSettings);
+            const legacyFallback = {
+                llmModel: settings.llmModel || '',
+                llmBaseUrl: settings.llmBaseUrl || '',
+                llmApiKey: settings.llmApiKey || ''
+            };
+            const llmConfigs = settings.llmConfigs || {};
+            const translateCfg = llmConfigs.translate || legacyFallback;
+            const interpretCfg = llmConfigs.interpret || legacyFallback;
+            const dailyArxivCfg = llmConfigs.dailyArxiv || legacyFallback;
+
+            if (translateModelEl) {
+                translateModelEl.value = translateCfg.llmModel || '';
+                translateModelEl.addEventListener('input', autoSaveAgenticSettings);
             }
-            if (baseUrlEl) {
-                baseUrlEl.value = settings.llmBaseUrl || '';
-                baseUrlEl.addEventListener('input', autoSaveAgenticSettings);
+            if (translateBaseUrlEl) {
+                translateBaseUrlEl.value = translateCfg.llmBaseUrl || '';
+                translateBaseUrlEl.addEventListener('input', autoSaveAgenticSettings);
             }
-            if (apiKeyEl) {
-                apiKeyEl.value = settings.llmApiKey || '';
-                apiKeyEl.addEventListener('input', autoSaveAgenticSettings);
+            if (translateApiKeyEl) {
+                translateApiKeyEl.value = translateCfg.llmApiKey || '';
+                translateApiKeyEl.addEventListener('input', autoSaveAgenticSettings);
+            }
+
+            if (interpretModelEl) {
+                interpretModelEl.value = interpretCfg.llmModel || '';
+                interpretModelEl.addEventListener('input', autoSaveAgenticSettings);
+            }
+            if (interpretBaseUrlEl) {
+                interpretBaseUrlEl.value = interpretCfg.llmBaseUrl || '';
+                interpretBaseUrlEl.addEventListener('input', autoSaveAgenticSettings);
+            }
+            if (interpretApiKeyEl) {
+                interpretApiKeyEl.value = interpretCfg.llmApiKey || '';
+                interpretApiKeyEl.addEventListener('input', autoSaveAgenticSettings);
+            }
+
+            if (dailyArxivModelEl) {
+                dailyArxivModelEl.value = dailyArxivCfg.llmModel || '';
+                dailyArxivModelEl.addEventListener('input', autoSaveAgenticSettings);
+            }
+            if (dailyArxivBaseUrlEl) {
+                dailyArxivBaseUrlEl.value = dailyArxivCfg.llmBaseUrl || '';
+                dailyArxivBaseUrlEl.addEventListener('input', autoSaveAgenticSettings);
+            }
+            if (dailyArxivApiKeyEl) {
+                dailyArxivApiKeyEl.value = dailyArxivCfg.llmApiKey || '';
+                dailyArxivApiKeyEl.addEventListener('input', autoSaveAgenticSettings);
             }
             if (mineruEl) {
                 mineruEl.value = settings.mineruServerUrl || '';
@@ -5048,11 +5121,19 @@ async function loadAgenticSettings() {
             }
 
             // Bind test button event
-            const testLlmBtn = document.getElementById('test-llm-api');
+            const testTranslateBtn = document.getElementById('test-llm-api-translate');
+            const testInterpretBtn = document.getElementById('test-llm-api-interpret');
+            const testDailyArxivBtn = document.getElementById('test-llm-api-dailyArxiv');
             const testMineruBtns = document.querySelectorAll('#test-mineru-btn');
 
-            if (testLlmBtn) {
-                testLlmBtn.addEventListener('click', testLLMAPI);
+            if (testTranslateBtn) {
+                testTranslateBtn.addEventListener('click', () => testLLMAPIByScenario('translate'));
+            }
+            if (testInterpretBtn) {
+                testInterpretBtn.addEventListener('click', () => testLLMAPIByScenario('interpret'));
+            }
+            if (testDailyArxivBtn) {
+                testDailyArxivBtn.addEventListener('click', () => testLLMAPIByScenario('dailyArxiv'));
             }
             // Both test buttons should use the same handler
             testMineruBtns.forEach(btn => {
@@ -5113,7 +5194,7 @@ async function loadAILanguageSetting() {
 }
 
 // test LLM API（Core logic, reusable）
-async function testLLMAPICore(llmModel, llmBaseUrl, llmApiKey) {
+async function testLLMAPICore(llmModel, llmBaseUrl, llmApiKey, llmConfigType = null) {
     if (!llmModel || !llmBaseUrl || !llmApiKey) {
         return {
             success: false,
@@ -5122,14 +5203,18 @@ async function testLLMAPICore(llmModel, llmBaseUrl, llmApiKey) {
     }
 
     try {
+        const payload = {
+            llmModel: llmModel,
+            llmBaseUrl: llmBaseUrl,
+            llmApiKey: llmApiKey
+        };
+        if (llmConfigType) {
+            payload.llmConfigType = llmConfigType;
+        }
         const response = await fetch('/api/settings/test/llm', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                llmModel: llmModel,
-                llmBaseUrl: llmBaseUrl,
-                llmApiKey: llmApiKey
-            })
+            body: JSON.stringify(payload)
         });
 
         const data = await response.json();
@@ -5142,17 +5227,21 @@ async function testLLMAPICore(llmModel, llmBaseUrl, llmApiKey) {
     }
 }
 
-// test LLM API（Settings Interface usage）
-async function testLLMAPI() {
-    const btn = document.getElementById('test-llm-api');
-    const resultDiv = document.getElementById('llm-test-result');
+async function testLLMAPIByScenario(scenarioKey) {
+    const btn = document.getElementById(`test-llm-api-${scenarioKey}`);
+    const resultDiv = document.getElementById(`llm-test-result-${scenarioKey}`);
 
     if (!btn || !resultDiv) return;
 
-    // Get current configuration
-    const llmModel = document.getElementById('llm-model').value.trim();
-    const llmBaseUrl = document.getElementById('llm-base-url').value.trim();
-    const llmApiKey = document.getElementById('llm-api-key').value.trim();
+    const modelEl = document.getElementById(`llm-${scenarioKey}-model`);
+    const baseUrlEl = document.getElementById(`llm-${scenarioKey}-base-url`);
+    const apiKeyEl = document.getElementById(`llm-${scenarioKey}-api-key`);
+
+    if (!modelEl || !baseUrlEl || !apiKeyEl) return;
+
+    const llmModel = modelEl.value.trim();
+    const llmBaseUrl = baseUrlEl.value.trim();
+    const llmApiKey = apiKeyEl.value.trim();
 
     if (!llmModel || !llmBaseUrl || !llmApiKey) {
         resultDiv.innerHTML = `
@@ -5164,7 +5253,6 @@ async function testLLMAPI() {
         return;
     }
 
-    // Update button state
     const originalHTML = btn.innerHTML;
     btn.disabled = true;
     btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Under test...';
@@ -5175,8 +5263,7 @@ async function testLLMAPI() {
         </div>
     `;
 
-    // Call core test function
-    const data = await testLLMAPICore(llmModel, llmBaseUrl, llmApiKey);
+    const data = await testLLMAPICore(llmModel, llmBaseUrl, llmApiKey, scenarioKey);
 
     if (data.success) {
         resultDiv.innerHTML = `
@@ -5196,6 +5283,10 @@ async function testLLMAPI() {
 
     btn.disabled = false;
     btn.innerHTML = originalHTML;
+}
+
+async function testLLMAPI() {
+    return testLLMAPIByScenario('interpret');
 }
 
 // test MinerU API
@@ -5344,6 +5435,33 @@ async function getAgenticSettings() {
         console.error('getAIFunction setting failed:', e);
     }
     return null;
+}
+
+function getAgenticLLMConfig(settings, scenarioKey) {
+    const empty = { llmModel: '', llmBaseUrl: '', llmApiKey: '' };
+    if (!settings) return empty;
+
+    const llmConfigs = settings.llmConfigs;
+    if (llmConfigs && typeof llmConfigs === 'object') {
+        const cfg = llmConfigs[scenarioKey];
+        if (cfg && typeof cfg === 'object') {
+            return {
+                llmModel: (cfg.llmModel || '').trim(),
+                llmBaseUrl: (cfg.llmBaseUrl || '').trim(),
+                llmApiKey: (cfg.llmApiKey || '').trim(),
+            };
+        }
+    }
+
+    return {
+        llmModel: (settings.llmModel || '').trim(),
+        llmBaseUrl: (settings.llmBaseUrl || '').trim(),
+        llmApiKey: (settings.llmApiKey || '').trim(),
+    };
+}
+
+function isAgenticLLMConfigured(cfg) {
+    return !!(cfg && cfg.llmModel && cfg.llmBaseUrl && cfg.llmApiKey);
 }
 
 // ========== Deprecated setup function（reserved for compatibility） ==========
@@ -6655,7 +6773,8 @@ async function requestTranslation(paperId, event) {
 
     // Check settings（use newAgenticUnified configuration）
     const settings = await getAgenticSettings();
-    if (!settings || !settings.llmModel || !settings.llmBaseUrl || !settings.llmApiKey) {
+    const llmCfg = getAgenticLLMConfig(settings, 'translate');
+    if (!settings || !isAgenticLLMConfigured(llmCfg)) {
         showMessage('Please configure it in settings firstAIFunction parameters（LLM API）', 'warning');
         switchTab('setting');
         return;
@@ -6699,6 +6818,7 @@ async function processTranslationQueue() {
         renderPapersList(); // Update display
 
         const settings = await getTranslationSettings();
+        const llmCfg = getAgenticLLMConfig(settings, 'translate');
         const response = await fetch('/api/paper/translate', {
             method: 'POST',
             headers: {
@@ -6706,9 +6826,9 @@ async function processTranslationQueue() {
             },
             body: JSON.stringify({
                 paper_id: paperId,
-                openai_model: settings.llmModel,
-                openai_base_url: settings.llmBaseUrl,
-                openai_api_key: settings.llmApiKey
+                openai_model: llmCfg.llmModel,
+                openai_base_url: llmCfg.llmBaseUrl,
+                openai_api_key: llmCfg.llmApiKey
             })
         });
 
@@ -8184,7 +8304,8 @@ async function requestAnalysis(paperId, event) {
         ? (settings.mineruApiToken && settings.mineruApiToken.trim() !== '')
         : (settings.mineruServerUrl && settings.mineruServerUrl.trim() !== '');
 
-    if (!mineruConfigured || !settings.llmBaseUrl || !settings.llmApiKey) {
+    const llmCfg = getAgenticLLMConfig(settings, 'interpret');
+    if (!mineruConfigured || !isAgenticLLMConfigured(llmCfg)) {
         showMessage('Please configure it in settings firstAIFunction parameters（LLM APIandMinerU）', 'warning');
         // Switch to settings page
         document.querySelector('.nav-tab[data-tab="setting"]').click();
@@ -8248,6 +8369,10 @@ async function processAnalysisQueue() {
         if (!settings) {
             throw new Error('Settings not configured');
         }
+        const llmCfg = getAgenticLLMConfig(settings, 'interpret');
+        if (!isAgenticLLMConfigured(llmCfg)) {
+            throw new Error('LLM settings not configured');
+        }
 
         // Get user AI language preference (default to English)
         const userSettings = await getUserSettings();
@@ -8261,8 +8386,9 @@ async function processAnalysisQueue() {
             },
             body: JSON.stringify({
                 paper_id: paperId,
-                openai_base_url: settings.llmBaseUrl,
-                openai_api_key: settings.llmApiKey,
+                openai_base_url: llmCfg.llmBaseUrl,
+                openai_api_key: llmCfg.llmApiKey,
+                openai_model: llmCfg.llmModel,
                 system_prompt: '',
                 ai_language: aiLanguage
             })
@@ -10578,12 +10704,10 @@ async function testLLMAPIForDailyArxiv() {
         const response = await fetch('/api/settings/agentic');
         const settings = await response.json();
 
-        const llmModel = settings.llmModel?.trim() || '';
-        const llmBaseUrl = settings.llmBaseUrl?.trim() || '';
-        const llmApiKey = settings.llmApiKey?.trim() || '';
+        const cfg = getAgenticLLMConfig(settings, 'dailyArxiv');
 
         // Direct reuse testLLMAPICore function
-        return await testLLMAPICore(llmModel, llmBaseUrl, llmApiKey);
+        return await testLLMAPICore(cfg.llmModel, cfg.llmBaseUrl, cfg.llmApiKey, 'dailyArxiv');
     } catch (error) {
         return {
             success: false,
