@@ -252,16 +252,7 @@ async function restoreViewState() {
             }
 
             switchTab('paper');
-
-            if (state.viewMode === 'translating') {
-                await showTranslatingPapers();
-                return;
-            }
-            if (state.viewMode === 'analyzing') {
-                await showAnalyzingPapers();
-                return;
-            }
-            if (state.viewMode === 'reading-list') {
+            if (state.viewMode === 'reading-list' || state.viewMode === 'translating' || state.viewMode === 'analyzing') {
                 await showReadingList();
                 return;
             }
@@ -881,78 +872,6 @@ async function loadPapers(categoryId, recursive = false) {
     }
 }
 
-// Show list of papers in translation
-async function showTranslatingPapers() {
-    try {
-        showInfoPanel();
-        currentViewMode = 'translating';
-        currentCategoryId = null; // Clear category selection
-        saveCurrentViewState();
-        // hide"to-read list"Label
-        const readingListLabel = document.getElementById('reading-list-label');
-        if (readingListLabel) {
-            readingListLabel.style.display = 'none';
-        }
-        // Clear selection in category tree
-        document.querySelectorAll('.category-item.selected').forEach(item => item.classList.remove('selected'));
-        // Update title
-        const currentCategoryTitle = document.getElementById('current-category');
-        if (currentCategoryTitle) {
-            const tCount = translationQueue.length + Object.values(translationStatus).filter(s => s.status === 'translating').length;
-            currentCategoryTitle.textContent = `Translating (${tCount} Chapter)`;
-        }
-        // Collect all papers in translationID（in queue + being translated）
-        const paperIds = new Set();
-        translationQueue.forEach(pid => paperIds.add(pid));
-        Object.keys(translationStatus).forEach(pid => {
-            const status = translationStatus[pid];
-            if (status && (status.status === 'translating' || status.status === 'queued')) {
-                paperIds.add(pid);
-            }
-        });
-        // If there is no paper, the empty status is displayed.
-        if (paperIds.size === 0) {
-            papers = [];
-            papersList.innerHTML = `
-                <div class="empty-state">
-                    <i class="fas fa-language"></i>
-                    <p>There are currently no papers in translation</p>
-                </div>
-            `;
-            document.getElementById('sort-controls').style.display = 'none';
-            return;
-        }
-        // Get the details of these papers from the backend
-        papersList.innerHTML = `
-            <div class="empty-state" style="opacity:.7">
-                <i class="fas fa-file-pdf"></i>
-                <p>loading...</p>
-            </div>
-        `;
-        const paperDetails = await Promise.all(
-            Array.from(paperIds).map(async (paperId) => {
-                try {
-                    const response = await fetch(`/api/paper/${paperId}`);
-                    if (response.ok) {
-                        return await response.json();
-                    }
-                    return null;
-                } catch (e) {
-                    console.error(`Load paper ${paperId} fail:`, e);
-                    return null;
-                }
-            })
-        );
-        papers = paperDetails.filter(p => p !== null);
-        // Make sure to read listIDCollection updated
-        await updateReadingListCount();
-        renderPapersList();
-    } catch (error) {
-        console.error('Failed to load translating papers:', error);
-        showMessage('Failed to load translating papers', 'error');
-    }
-}
-
 // Show to-read list
 async function showReadingList() {
     try {
@@ -1141,78 +1060,6 @@ async function removeFromReadingList(paperId, event) {
     } catch (error) {
         console.error('Failed to remove from reading list:', error);
         showMessage('Failed to remove from reading list', 'error');
-    }
-}
-
-// Show list of papers in interpretation
-async function showAnalyzingPapers() {
-    try {
-        showInfoPanel();
-        currentViewMode = 'analyzing';
-        currentCategoryId = null; // Clear category selection
-        saveCurrentViewState();
-        // hide"to-read list"Label
-        const readingListLabel = document.getElementById('reading-list-label');
-        if (readingListLabel) {
-            readingListLabel.style.display = 'none';
-        }
-        // Clear selection in category tree
-        document.querySelectorAll('.category-item.selected').forEach(item => item.classList.remove('selected'));
-        // Update title
-        const currentCategoryTitle = document.getElementById('current-category');
-        if (currentCategoryTitle) {
-            const aCount = analysisQueue.length + Object.values(analysisStatus).filter(s => s.status === 'analyzing').length;
-            currentCategoryTitle.textContent = `Interpreting (${aCount} Chapter)`;
-        }
-        // Collect all papers in interpretationID（in queue + being interpreted）
-        const paperIds = new Set();
-        analysisQueue.forEach(pid => paperIds.add(pid));
-        Object.keys(analysisStatus).forEach(pid => {
-            const status = analysisStatus[pid];
-            if (status && (status.status === 'analyzing' || status.status === 'queued')) {
-                paperIds.add(pid);
-            }
-        });
-        // If there is no paper, the empty status is displayed.
-        if (paperIds.size === 0) {
-            papers = [];
-            papersList.innerHTML = `
-                <div class="empty-state">
-                    <i class="fas fa-brain"></i>
-                    <p>There are currently no papers under interpretation</p>
-                </div>
-            `;
-            document.getElementById('sort-controls').style.display = 'none';
-            return;
-        }
-        // Get the details of these papers from the backend
-        papersList.innerHTML = `
-            <div class="empty-state" style="opacity:.7">
-                <i class="fas fa-file-pdf"></i>
-                <p>loading...</p>
-            </div>
-        `;
-        const paperDetails = await Promise.all(
-            Array.from(paperIds).map(async (paperId) => {
-                try {
-                    const response = await fetch(`/api/paper/${paperId}`);
-                    if (response.ok) {
-                        return await response.json();
-                    }
-                    return null;
-                } catch (e) {
-                    console.error(`Load paper ${paperId} fail:`, e);
-                    return null;
-                }
-            })
-        );
-        papers = paperDetails.filter(p => p !== null);
-        // Make sure to read listIDCollection updated
-        await updateReadingListCount();
-        renderPapersList();
-    } catch (error) {
-        console.error('Failed to load analyzing papers:', error);
-        showMessage('Failed to load analyzing papers', 'error');
     }
 }
 
@@ -4784,24 +4631,6 @@ function setupNavigation() {
         }
     });
 
-    // Translation task button
-    const btnShowTranslating = document.getElementById('btn-show-translating');
-    if (btnShowTranslating) {
-        btnShowTranslating.addEventListener('click', () => {
-            switchTab('paper');
-            showTranslatingPapers();
-        });
-    }
-
-    // Interpret task buttons
-    const btnShowAnalyzing = document.getElementById('btn-show-analyzing');
-    if (btnShowAnalyzing) {
-        btnShowAnalyzing.addEventListener('click', () => {
-            switchTab('paper');
-            showAnalyzingPapers();
-        });
-    }
-
     // To-read list button
     const btnShowReadingList = document.getElementById('btn-show-reading-list');
     if (btnShowReadingList) {
@@ -6632,36 +6461,7 @@ function markPaperViewed(paperId) {
 
 // top task indicator
 function updateTaskIndicator() {
-    const tiTCount = document.getElementById('ti-translate-count');
-    const tiACount = document.getElementById('ti-analyze-count');
-    if (!tiTCount || !tiACount) return;
-    // In statistics queue+Running quantity
-    const transQueued = translationQueue.length;
-    const transRunning = Object.values(translationStatus).filter(s => s.status === 'translating').length;
-    const analyzeQueued = analysisQueue.length;
-    const analyzeRunning = Object.values(analysisStatus).filter(s => s.status === 'analyzing').length;
-    const tCount = transQueued + transRunning;
-    const aCount = analyzeQueued + analyzeRunning;
-    tiTCount.textContent = tCount;
-    tiACount.textContent = aCount;
-
-    // Update button style（Highlight if there is a task）
-    const btnT = document.getElementById('btn-show-translating');
-    const btnA = document.getElementById('btn-show-analyzing');
-    if (btnT) {
-        if (tCount > 0) {
-            btnT.classList.add('has-tasks');
-        } else {
-            btnT.classList.remove('has-tasks');
-        }
-    }
-    if (btnA) {
-        if (aCount > 0) {
-            btnA.classList.add('has-tasks');
-        } else {
-            btnA.classList.remove('has-tasks');
-        }
-    }
+    return;
 }
 
 function renderTaskTooltip() {
@@ -6721,13 +6521,9 @@ async function renderRecentIfNoCategory() {
 // Refresh the list based on the current view mode（general function）
 async function refreshCurrentViewList() {
     switch (currentViewMode) {
-        case 'translating':
-            await showTranslatingPapers();
-            break;
-        case 'analyzing':
-            await showAnalyzingPapers();
-            break;
         case 'reading-list':
+        case 'translating':
+        case 'analyzing':
             await showReadingList();
             break;
         case 'category':
@@ -7204,10 +7000,7 @@ function updateTranslationStatus(paperId, status, queuePosition, taskId, progres
     }
 
     // Update display（According to the current view mode）
-    if (currentViewMode === 'translating') {
-        // If you are viewing a translation list, refresh the list
-        showTranslatingPapers();
-    } else if (currentViewMode === 'reading-list') {
+    if (currentViewMode === 'reading-list') {
         // If you are viewing a to-read list, only update the status of a single paper without reloading the entire list
         updatePaperStatusDisplay(paperId);
     } else if (currentCategoryId) {
@@ -8502,10 +8295,7 @@ function updateAnalysisStatus(paperId, status, queuePosition = null, taskId = nu
     }
 
     // Update status display（According to the current view mode）
-    if (currentViewMode === 'analyzing') {
-        // If you are viewing a list of interpretations, refresh the list
-        showAnalyzingPapers();
-    } else if (currentViewMode === 'reading-list') {
+    if (currentViewMode === 'reading-list') {
         // If you are viewing a to-read list, only update the status of a single paper without reloading the entire list
         updatePaperStatusDisplay(paperId);
     } else if (currentCategoryId) {
@@ -8907,7 +8697,7 @@ async function cancelAnalysisTask(taskId, paperId) {
                 saveQueuesToStorage();
                 updateTaskIndicator();
                 // Update display based on current view mode
-                if (currentViewMode === 'reading-list' || currentViewMode === 'analyzing') {
+                if (currentViewMode === 'reading-list') {
                     updatePaperStatusDisplay(paperId);
                 } else if (currentCategoryId) {
                     updatePaperStatusDisplay(paperId);
@@ -9379,7 +9169,7 @@ function cancelTranslation(paperId, event) {
     updateTaskIndicator();
 
     // refresh display（According to the current view mode）
-    if (currentViewMode === 'reading-list' || currentViewMode === 'translating') {
+    if (currentViewMode === 'reading-list') {
         updatePaperStatusDisplay(paperId);
     } else if (currentCategoryId) {
         updatePaperStatusDisplay(paperId);
@@ -9430,7 +9220,7 @@ function cancelAnalysis(paperId, event) {
     updateTaskIndicator();
 
     // refresh display（According to the current view mode）
-    if (currentViewMode === 'reading-list' || currentViewMode === 'analyzing') {
+    if (currentViewMode === 'reading-list') {
         updatePaperStatusDisplay(paperId);
     } else if (currentCategoryId) {
         updatePaperStatusDisplay(paperId);

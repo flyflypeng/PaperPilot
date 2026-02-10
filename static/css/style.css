@@ -2126,6 +2126,13 @@ body {
     color: #666;
 }
 
+.ti-item.ti-reading,
+.nav-tab.ti-daily-arxiv,
+#logout-btn.ti-item {
+    padding: 8px 16px;
+    min-height: 34px;
+}
+
 .ti-item:hover {
     background: #e8e8e8;
     transform: translateY(-1px);
@@ -2245,6 +2252,7 @@ body {
 
 .ti-item .ti-label {
     font-size: 13px;
+    white-space: nowrap;
 }
 
 .ti-item .ti-count {

@@ -51,23 +51,13 @@
             <div class="navbar-tabs" style="margin-left:auto; display:flex; align-items:center; gap:12px;">
                 <button id="btn-show-reading-list" class="ti-item ti-reading" title="View reading list">
                     <i class="fas fa-book-open"></i>
-                    <span class="ti-label">Reading</span>
+                    <span class="ti-label">Reading List</span>
                     <span class="ti-count" id="ti-reading-count">0</span>
                 </button>
                 <button class="nav-tab ti-item ti-daily-arxiv" data-tab="daily-arxiv" title="Daily arXiv">
                     <img src="{{ url_for('static', filename='images/arxiv-logo.svg') }}" alt="arXiv"
                         class="arxiv-logo-icon">
                     <span class="ti-label">Daily arXiv</span>
-                </button>
-                <button id="btn-show-translating" class="ti-item ti-translate" title="View papers being translated">
-                    <i class="fas fa-language"></i>
-                    <span class="ti-label">Translating</span>
-                    <span class="ti-count" id="ti-translate-count">0</span>
-                </button>
-                <button id="btn-show-analyzing" class="ti-item ti-analyze" title="View papers being analyzed">
-                    <i class="fas fa-brain"></i>
-                    <span class="ti-label">Interpreting</span>
-                    <span class="ti-count" id="ti-analyze-count">0</span>
                 </button>
                 <button class="nav-tab ti-item ti-paper active" data-tab="paper" title="Paper">
                     <i class="fas fa-file-pdf"></i> <span class="ti-label">Paper</span>
@@ -1235,7 +1225,7 @@
                             <!-- Sessions will be loaded here -->
                         </div>
                     </div>
-                    
+
                     <!-- Main Chat Area -->
                     <div class="chat-main-area">
                         <div id="chat-messages" class="chat-messages-container">
