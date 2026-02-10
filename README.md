@@ -58,6 +58,70 @@
 
 ---
 
+## ⭐ Key Enhancements (This Fork)
+
+### 1) Unified SQLite Persistence (no more scattered JSON files)
+
+- All core persistent data is consolidated into a single SQLite database: `./db/resophy.db` (created automatically on startup).
+- Covers (but not limited to): papers, categories, user settings, reading history, reading list, Daily arXiv tasks, chat sessions/history.
+- Backup/restore: stop the service and copy `db/resophy.db` (and your `papers/` directory if you want full PDF assets).
+
+### 2) AI Chat: Conversational Deep Paper Reading
+
+- Built-in paper-reading scenarios (e.g., paper interpretation / deep reading questions) with multi-turn conversation.
+- Chat sessions are stored in SQLite, and scoped by paper.
+- Model selection: Chat uses the **Interpret** LLM config by default (see below).
+
+### 3) Fine-grained LLM Config per Feature (cost-effective)
+
+Configure different models for different workflows to reduce cost and improve quality:
+
+- **Translate**: used by AI Translation
+- **Interpret**: used by AI Interpretation and AI Chat
+- **Daily arXiv**: used by Daily arXiv summarization/classification
+
+Where to set: Settings → Agentic → LLM Configs.
+
+**Agentic settings schema (stored in DB as JSON)**:
+
+```json
+{
+  "llmConfigs": {
+    "translate": { "llmModel": "xxx", "llmBaseUrl": "http://127.0.0.1:6002/v1", "llmApiKey": "sk-***" },
+    "interpret": { "llmModel": "xxx", "llmBaseUrl": "http://127.0.0.1:6002/v1", "llmApiKey": "sk-***" },
+    "dailyArxiv": { "llmModel": "xxx", "llmBaseUrl": "http://127.0.0.1:6002/v1", "llmApiKey": "sk-***" }
+  },
+  "mineruServerUrl": "http://127.0.0.1:6001",
+  "mineruUseApi": false,
+  "mineruApiToken": ""
+}
+```
+
+Backward compatibility: existing `llmModel/llmBaseUrl/llmApiKey` will be auto-migrated to the new `llmConfigs.*` schema on first run.
+
+### 4) Supabase Auth Integration (deployable to public Internet)
+
+The backend can integrate with Supabase Auth to provide login and API authentication, enabling safer public deployment.
+
+**Required environment variables** (recommended to set via `.env`, do not commit secrets):
+
+```bash
+SUPABASE_URL="https://<your-project-ref>.supabase.co"
+SUPABASE_ANON_KEY="<your-anon-key>"
+```
+
+When configured, most `/api/*` endpoints require a valid Supabase access token (`Authorization: Bearer <token>`).
+
+### 5) UI/UX Improvements
+
+- Sidebar show/hide with floating toggle buttons (left/right), making the layout more ergonomic on small screens.
+
+### UI Preview (Modified Frontend)
+
+<div align="center">
+  <img src="docs/assets/screenshots/resophy-frontend.png" width="900px" />
+</div>
+
 In this era of information explosion, researchers often feel overwhelmed when facing massive amounts of papers. How to quickly extract the essence and understand cutting-edge achievements has become a pain point for every researcher. Resophy was born with the intention of helping you bid farewell to inefficient paper reading, empowering researchers, and making paper reading more efficient and intelligent 📚⚡.
 
 Resophy is a fully open-source, Vibe Coding-oriented modern paper reader that helps you quickly understand the core content of papers through a simple tech stack (HTML + JavaScript + Python Flask) and AI features 🤖💡. From automatic translation to paper parsing, from intelligent recommendations to one-click Zotero import, Resophy provides a one-stop solution for your paper reading needs 📑✨. Most importantly, you can customize features at any time through **Vibe Coding**, creating a paper assistant tailored to you 🎨🛠️.

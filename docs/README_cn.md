@@ -1,3 +1,71 @@
+# 本项目新增的核心特性（增强版说明）
+
+下面内容为在 Resophy 基础上的增强优化要点与配置方法（放在文档最前，便于快速上手）。
+
+## 界面效果（修改后）
+
+<div align="center">
+  <img src="assets/screenshots/resophy-frontend.png" width="900px" />
+</div>
+
+## 1）后端持久化统一为 SQLite DB
+
+- 统一数据库文件：`./db/resophy.db`（启动时自动创建/初始化表结构）
+- 覆盖数据（示例）：论文/分类、用户设置、阅读历史、阅读清单、Daily arXiv 任务、AI Chat 会话与历史等
+- 备份与迁移：停止服务后复制 `db/resophy.db`；如需完整迁移论文资产，请同时备份 `papers/` 目录
+
+## 2）新增 AI Chat 对话：对话式深度论文阅读
+
+- 以“论文”为单位的多轮对话，会话与历史落库到 SQLite
+- 内置论文解读/深度阅读的常用问题模板，适合边读边问
+- 模型选择：默认使用 **Interpret** 场景的模型配置（见第 3 点）
+
+## 3）支持细粒度模型配置（按功能拆分 llmConfigs）
+
+你可以为不同功能配置不同模型/不同 API，以降低成本并提升效果：
+
+- **Translate**：AI 翻译
+- **Interpret**：AI 解读 + AI Chat
+- **Daily arXiv**：Daily arXiv 的总结/分析
+
+配置入口：设置 → Agentic → LLM 配置（分别填写 Translate / Interpret / Daily arXiv 三组）。
+
+Agentic Settings（保存在 DB 的 JSON）核心结构如下：
+
+```json
+{
+  "llmConfigs": {
+    "translate": { "llmModel": "xxx", "llmBaseUrl": "http://127.0.0.1:6002/v1", "llmApiKey": "sk-***" },
+    "interpret": { "llmModel": "xxx", "llmBaseUrl": "http://127.0.0.1:6002/v1", "llmApiKey": "sk-***" },
+    "dailyArxiv": { "llmModel": "xxx", "llmBaseUrl": "http://127.0.0.1:6002/v1", "llmApiKey": "sk-***" }
+  },
+  "mineruServerUrl": "http://127.0.0.1:6001",
+  "mineruUseApi": false,
+  "mineruApiToken": ""
+}
+```
+
+兼容性：旧版的 `llmModel/llmBaseUrl/llmApiKey` 会在首次运行/保存设置时自动迁移补齐到 `llmConfigs.*`。
+
+## 4）支持对接 Supabase 后端鉴权（可安全部署公网）
+
+后端集成 Supabase Auth，用于登录鉴权与 API 访问控制，适合部署到公网场景。
+
+必需环境变量（建议写入 `.env`，不要提交任何密钥到仓库）：
+
+```bash
+SUPABASE_URL="https://<your-project-ref>.supabase.co"
+SUPABASE_ANON_KEY="<your-anon-key>"
+```
+
+当配置完成后，大多数 `/api/*` 接口需要携带 `Authorization: Bearer <token>`（前端会通过 Supabase 登录后自动附带）。
+
+## 5）UI/UX 交互优化：侧边栏显示/隐藏悬浮按钮
+
+- 左右侧边栏提供悬浮 Toggle 按钮，可快速收起/展开，提升小屏使用体验
+
+---
+
 <div align="center" xmlns="http://www.w3.org/1999/html">
 <!-- logo -->
 <p align="center">
