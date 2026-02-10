@@ -167,3 +167,8 @@ cython_debug/
 papers/
 *.rdf
 ai_server/
+db/*.db
+db/*.db-*
+db/*.sqlite
+db/*.sqlite3
+db/*.sqlite3-*

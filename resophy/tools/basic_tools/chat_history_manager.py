@@ -3,57 +3,70 @@ import json
 import uuid
 import time
 from datetime import datetime
+from resophy.database.dao.chat_dao import ChatDAO
 
 class ChatHistoryManager:
     """
-    Manages chat history persistence for papers.
-    Chats are stored in a 'chats' subdirectory under the paper's directory.
-    Each session is a separate JSON file: {session_id}.json
+    Manages chat history persistence for papers using SQLite.
     """
 
     def __init__(self, paper_store):
         self.paper_store = paper_store
 
     def _get_chats_dir(self, paper_id):
-        """Get the directory where chat sessions are stored for a paper."""
+        """Deprecated: Get the directory where chat sessions are stored for a paper."""
         paper = self.paper_store.get(paper_id)
         if not paper:
-            raise ValueError(f"Paper with ID {paper_id} not found")
+            return None
         
         paper_path = paper.file_path
         paper_dir = os.path.dirname(paper_path)
         chats_dir = os.path.join(paper_dir, "chats")
-        
-        if not os.path.exists(chats_dir):
-            os.makedirs(chats_dir)
-            
         return chats_dir
 
     def get_sessions(self, paper_id):
         """Get a list of all chat sessions for a paper."""
         try:
-            chats_dir = self._get_chats_dir(paper_id)
+            # Get from DB
+            sessions_data = ChatDAO.get_chats_by_paper(paper_id)
             sessions = []
             
-            for filename in os.listdir(chats_dir):
-                if filename.endswith(".json"):
-                    file_path = os.path.join(chats_dir, filename)
-                    try:
-                        with open(file_path, 'r', encoding='utf-8') as f:
-                            session_data = json.load(f)
-                            # Basic validation
-                            if 'id' in session_data and 'title' in session_data:
-                                sessions.append({
-                                    'id': session_data['id'],
-                                    'title': session_data.get('title', 'New Chat'),
-                                    'updated_at': session_data.get('updated_at', 0),
-                                    'preview': self._get_preview(session_data.get('messages', []))
-                                })
-                    except Exception as e:
-                        print(f"Error loading chat session {filename}: {e}")
-            
+            for s in sessions_data:
+                sessions.append({
+                    'id': s['session_id'],
+                    'title': s.get('title', 'New Chat'),
+                    'updated_at': s.get('updated_at', 0),
+                    'preview': self._get_preview(s.get('history', []))
+                })
+
+            # Check for legacy files and migrate if not in DB
+            # This might be slow if many files, but it's a one-time migration logic usually
+            # But we can't easily check if DB has ALL files without listing files.
+            # So we list files, check if in DB, if not migrate.
+            chats_dir = self._get_chats_dir(paper_id)
+            if chats_dir and os.path.exists(chats_dir):
+                 for filename in os.listdir(chats_dir):
+                    if filename.endswith(".json"):
+                        session_id = filename[:-5]
+                        # Check if already in sessions list
+                        if not any(sess['id'] == session_id for sess in sessions):
+                             # Load and migrate
+                             try:
+                                 with open(os.path.join(chats_dir, filename), 'r', encoding='utf-8') as f:
+                                     file_data = json.load(f)
+                                     self._save_session(paper_id, file_data)
+                                     # Add to list
+                                     sessions.append({
+                                        'id': file_data['id'],
+                                        'title': file_data.get('title', 'New Chat'),
+                                        'updated_at': file_data.get('updated_at', 0),
+                                        'preview': self._get_preview(file_data.get('messages', []))
+                                    })
+                             except Exception as e:
+                                 print(f"Error migrating chat {filename}: {e}")
+
             # Sort by updated_at desc
-            sessions.sort(key=lambda x: x['updated_at'], reverse=True)
+            sessions.sort(key=lambda x: float(x['updated_at'] or 0), reverse=True)
             return sessions
         except Exception as e:
             print(f"Error getting sessions for paper {paper_id}: {e}")
@@ -84,14 +97,24 @@ class ChatHistoryManager:
 
     def get_session(self, paper_id, session_id):
         """Get a specific chat session with full history."""
+        # Try DB
+        data = ChatDAO.get_chat(session_id)
+        if data:
+            data['messages'] = data.pop('history', [])
+            return data
+
+        # Fallback to file
         chats_dir = self._get_chats_dir(paper_id)
-        file_path = os.path.join(chats_dir, f"{session_id}.json")
-        
-        if not os.path.exists(file_path):
-            return None
+        if chats_dir:
+            file_path = os.path.join(chats_dir, f"{session_id}.json")
+            if os.path.exists(file_path):
+                with open(file_path, 'r', encoding='utf-8') as f:
+                    data = json.load(f)
+                    # Auto-migrate
+                    self._save_session(paper_id, data)
+                    return data
             
-        with open(file_path, 'r', encoding='utf-8') as f:
-            return json.load(f)
+        return None
 
     def save_message(self, paper_id, session_id, role, content):
         """Append a message to a session and update it."""
@@ -100,8 +123,6 @@ class ChatHistoryManager:
             # Create if not exists (shouldn't happen normally if flow is correct)
             session = self.create_session(paper_id)
             if session['id'] != session_id:
-                # If we were passed a specific ID but it didn't exist, we might want to respect it
-                # But for simplicity, we assume session exists or we create a new one
                 pass
 
         # Append message
@@ -122,13 +143,23 @@ class ChatHistoryManager:
 
     def delete_session(self, paper_id, session_id):
         """Delete a chat session."""
-        chats_dir = self._get_chats_dir(paper_id)
-        file_path = os.path.join(chats_dir, f"{session_id}.json")
+        # Delete from DB
+        try:
+            ChatDAO.delete_chat(session_id)
+        except Exception as e:
+            print(f"Error deleting chat {session_id} from DB: {e}")
         
-        if os.path.exists(file_path):
-            os.remove(file_path)
-            return True
-        return False
+        # Delete file if exists (cleanup legacy files)
+        chats_dir = self._get_chats_dir(paper_id)
+        if chats_dir:
+            file_path = os.path.join(chats_dir, f"{session_id}.json")
+            if os.path.exists(file_path):
+                try:
+                    os.remove(file_path)
+                except Exception as e:
+                    print(f"Error deleting chat file {file_path}: {e}")
+        
+        return True
         
     def update_session_title(self, paper_id, session_id, new_title):
         """Update the title of a session."""
@@ -141,9 +172,7 @@ class ChatHistoryManager:
         return False
 
     def _save_session(self, paper_id, session_data):
-        """Helper to write session to disk."""
-        chats_dir = self._get_chats_dir(paper_id)
-        file_path = os.path.join(chats_dir, f"{session_data['id']}.json")
-        
-        with open(file_path, 'w', encoding='utf-8') as f:
-            json.dump(session_data, f, ensure_ascii=False, indent=2)
+        """Helper to write session to DB."""
+        dao_data = session_data.copy()
+        dao_data['history'] = dao_data.pop('messages', [])
+        ChatDAO.save_chat(session_data['id'], dao_data)

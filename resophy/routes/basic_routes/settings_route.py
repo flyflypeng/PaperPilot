@@ -7,7 +7,7 @@ import uuid
 from typing import Any, Dict
 
 from flask import Flask, jsonify, request, send_from_directory
-
+from resophy.database.dao.settings_dao import SettingsDAO
 
 def register_settings_routes(
     app: Flask,
@@ -28,10 +28,7 @@ def register_settings_routes(
     def api_user_settings():
         if request.method == "GET":
             try:
-                with open(user_settings_file, "r", encoding="utf-8") as fp:
-                    settings = json.load(fp)
-            except FileNotFoundError:
-                settings = {}
+                settings = SettingsDAO.get_setting('user_settings', {})
             except Exception as exc:
                 print(f"Failed to read user settings: {exc}")
                 settings = {}
@@ -42,17 +39,12 @@ def register_settings_routes(
         data = request.json or {}
         try:
             # Read existing settings
-            try:
-                with open(user_settings_file, "r", encoding="utf-8") as fp:
-                    current = json.load(fp)
-            except:
-                current = default_user_settings.copy()
-
+            current = SettingsDAO.get_setting('user_settings', default_user_settings.copy())
+            
             # Update settings
             current.update(data)
 
-            with open(user_settings_file, "w", encoding="utf-8") as fp:
-                json.dump(current, fp, ensure_ascii=False, indent=2)
+            SettingsDAO.save_setting('user_settings', current)
             return jsonify({"success": True})
         except Exception as exc:
             return jsonify({"success": False, "error": str(exc)}), 500
@@ -94,16 +86,9 @@ def register_settings_routes(
                 f.write(image_data)
 
             # Update user settings
-            try:
-                with open(user_settings_file, "r", encoding="utf-8") as fp:
-                    settings = json.load(fp)
-            except:
-                settings = default_user_settings.copy()
-
+            settings = SettingsDAO.get_setting('user_settings', default_user_settings.copy())
             settings["avatar"] = filename
-
-            with open(user_settings_file, "w", encoding="utf-8") as fp:
-                json.dump(settings, fp, ensure_ascii=False, indent=2)
+            SettingsDAO.save_setting('user_settings', settings)
 
             return jsonify({"success": True, "avatar": filename})
         except Exception as exc:
@@ -113,8 +98,7 @@ def register_settings_routes(
     def api_get_avatar():
         """Get avatar picture"""
         try:
-            with open(user_settings_file, "r", encoding="utf-8") as fp:
-                settings = json.load(fp)
+            settings = SettingsDAO.get_setting('user_settings', {})
             avatar_file = settings.get("avatar")
             if avatar_file and os.path.exists(os.path.join(avatars_dir, avatar_file)):
                 return send_from_directory(avatars_dir, avatar_file)
@@ -129,10 +113,7 @@ def register_settings_routes(
     def api_reading_history():
         if request.method == "GET":
             try:
-                with open(reading_history_file, "r", encoding="utf-8") as fp:
-                    history = json.load(fp)
-            except FileNotFoundError:
-                history = {}
+                history = SettingsDAO.get_setting('reading_history', {})
             except Exception as exc:
                 print(f"Failed to read reading history: {exc}")
                 history = {}
@@ -141,11 +122,7 @@ def register_settings_routes(
         data = request.json or {}
         try:
             # Read existing history
-            try:
-                with open(reading_history_file, "r", encoding="utf-8") as fp:
-                    current = json.load(fp)
-            except:
-                current = {}
+            current = SettingsDAO.get_setting('reading_history', {})
 
             # Update history (merged)
             for date, minutes in data.items():
@@ -154,8 +131,7 @@ def register_settings_routes(
                 else:
                     current[date] = minutes
 
-            with open(reading_history_file, "w", encoding="utf-8") as fp:
-                json.dump(current, fp, ensure_ascii=False, indent=2)
+            SettingsDAO.save_setting('reading_history', current)
             return jsonify({"success": True})
         except Exception as exc:
             return jsonify({"success": False, "error": str(exc)}), 500
@@ -175,11 +151,7 @@ def register_settings_routes(
                 date = datetime.now().strftime("%Y-%m-%d")
 
             # Read existing history
-            try:
-                with open(reading_history_file, "r", encoding="utf-8") as fp:
-                    history = json.load(fp)
-            except:
-                history = {}
+            history = SettingsDAO.get_setting('reading_history', {})
 
             # Update reading history (compatible with new and old formats)
             if date in history:
@@ -203,8 +175,7 @@ def register_settings_routes(
                     "papers": [paper_id] if paper_id else [],
                 }
 
-            with open(reading_history_file, "w", encoding="utf-8") as fp:
-                json.dump(history, fp, ensure_ascii=False, indent=2)
+            SettingsDAO.save_setting('reading_history', history)
 
             total = (
                 history[date]["total"]
@@ -219,8 +190,7 @@ def register_settings_routes(
     def api_clear_reading_history():
         """Clear all reading history"""
         try:
-            with open(reading_history_file, "w", encoding="utf-8") as fp:
-                json.dump({}, fp, ensure_ascii=False, indent=2)
+            SettingsDAO.save_setting('reading_history', {})
             return jsonify({"success": True})
         except Exception as exc:
             return jsonify({"success": False, "error": str(exc)}), 500
@@ -232,11 +202,7 @@ def register_settings_routes(
             from datetime import datetime, timedelta
 
             # Read reading history
-            try:
-                with open(reading_history_file, "r", encoding="utf-8") as fp:
-                    history = json.load(fp)
-            except:
-                history = {}
+            history = SettingsDAO.get_setting('reading_history', {})
 
             # Calculate the date range for this week (Monday to today)
             today = datetime.now().date()
@@ -279,10 +245,7 @@ def register_settings_routes(
         """
         if request.method == "GET":
             try:
-                with open(agentic_settings_file, "r", encoding="utf-8") as fp:
-                    settings = json.load(fp)
-            except FileNotFoundError:
-                settings = {}
+                settings = SettingsDAO.get_setting('agentic_settings', {})
             except Exception as exc:
                 print(f"readAIFunction setting failed: {exc}")
                 settings = {}
@@ -308,16 +271,13 @@ def register_settings_routes(
             was_llm_configured = False
             old_settings = {}
             try:
-                with open(agentic_settings_file, "r", encoding="utf-8") as fp:
-                    old_settings = json.load(fp)
-                    old_model = old_settings.get("llmModel", "").strip()
-                    old_base_url = old_settings.get("llmBaseUrl", "").strip()
-                    old_api_key = old_settings.get("llmApiKey", "").strip()
-                    was_llm_configured = bool(
-                        old_model and old_base_url and old_api_key
-                    )
-            except FileNotFoundError:
-                old_settings = {}
+                old_settings = SettingsDAO.get_setting('agentic_settings', {})
+                old_model = old_settings.get("llmModel", "").strip()
+                old_base_url = old_settings.get("llmBaseUrl", "").strip()
+                old_api_key = old_settings.get("llmApiKey", "").strip()
+                was_llm_configured = bool(
+                    old_model and old_base_url and old_api_key
+                )
             except Exception as exc:
                 print(f"Failed to read old settings: {exc}")
                 old_settings = {}
@@ -355,13 +315,8 @@ def register_settings_routes(
                     print(f"[Settings] detected LLM Configuration has changed")
 
             # Save the merged configuration
-            print(f"[Settings] keep Agentic set to: {agentic_settings_file}")
-            print(
-                f"[Settings] Configuration content: llmModel={merged_settings.get('llmModel', '')[:20]}..., llmBaseUrl={merged_settings.get('llmBaseUrl', '')[:30]}..., mineruServerUrl={merged_settings.get('mineruServerUrl', '')[:30]}..."
-            )
-            with open(agentic_settings_file, "w", encoding="utf-8") as fp:
-                json.dump(merged_settings, fp, ensure_ascii=False, indent=2)
-            print(f"[Settings] ✅ Settings saved")
+            SettingsDAO.save_setting('agentic_settings', merged_settings)
+            print(f"[Settings] ✅ Settings saved to DB")
 
             # if LLM The configuration is complete and changes, or changes from unconfigured to configured, triggering Daily arXiv crawl
             if is_llm_configured and (llm_config_changed or not was_llm_configured):

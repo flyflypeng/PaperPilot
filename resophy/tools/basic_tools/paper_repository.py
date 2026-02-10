@@ -8,6 +8,7 @@ from typing import Iterable, List, Optional
 
 from resophy.core.base_paper import Paper
 from resophy.core.paper_store import paper_store
+from resophy.database.dao.paper_dao import PaperDAO
 
 
 def get_paper_json_path(pdf_path: str) -> str:
@@ -16,33 +17,55 @@ def get_paper_json_path(pdf_path: str) -> str:
 
 def save_paper_metadata(pdf_path: str, paper_data) -> None:
     if isinstance(paper_data, Paper):
-        data_to_save = paper_data.to_dict()
+        paper = paper_data
     else:
-        data_to_save = paper_data or {}
-
-    json_path = get_paper_json_path(pdf_path)
-    try:
-        with open(json_path, "w", encoding="utf-8") as f:
-            json.dump(data_to_save, f, ensure_ascii=False, indent=2)
-        # Remove successfully saved log output to reduce console noise (only output on errors)
-    except Exception as exc:
-        print(f"Failed to save article metadata: {exc}")
+        paper = Paper.from_dict(paper_data) if paper_data else None
+    
+    if paper:
+        # Ensure file_path is set
+        if not paper.file_path:
+            paper.file_path = pdf_path
+        
+        try:
+            PaperDAO.save_paper(paper.to_dict())
+        except Exception as exc:
+            print(f"Failed to save article metadata to DB: {exc}")
+            
+        # Optional: Delete legacy JSON if it exists to avoid confusion?
+        # json_path = get_paper_json_path(pdf_path)
+        # if os.path.exists(json_path):
+        #    os.remove(json_path)
 
 
 def load_paper_metadata(pdf_path: str) -> Optional[Paper]:
+    # 1. Try loading from DB
+    try:
+        data = PaperDAO.get_paper_by_path(pdf_path)
+        if data:
+            return Paper.from_dict(data)
+    except Exception as exc:
+        print(f"Failed to load from DB: {exc}")
+
+    # 2. Fallback to JSON file (Legacy support & Migration)
     json_path = get_paper_json_path(pdf_path)
     try:
         if os.path.exists(json_path):
             with open(json_path, "r", encoding="utf-8") as f:
-                return Paper.from_dict(json.load(f))
+                paper = Paper.from_dict(json.load(f))
+                # Auto-migrate to DB
+                if paper:
+                    paper.sync_filesystem(pdf_path, os.path.basename(pdf_path))
+                    save_paper_metadata(pdf_path, paper)
+                return paper
     except Exception as exc:
-        print(f"Failed to load article metadata: {exc}")
+        print(f"Failed to load article metadata from JSON: {exc}")
     return None
 
 
 def delete_paper_files(pdf_path: str) -> None:
     json_path = get_paper_json_path(pdf_path)
 
+    # Delete physical files
     if os.path.exists(pdf_path):
         os.remove(pdf_path)
         print(f"DeletedPDFdocument: {pdf_path}")
@@ -76,6 +99,15 @@ def delete_paper_files(pdf_path: str) -> None:
                 print(f"Empty deletedoutputsTable of contents: {outputs_dir}")
         except Exception:
             pass
+            
+    # Delete from DB
+    try:
+        # We need the ID. Try to get it from DB first.
+        data = PaperDAO.get_paper_by_path(pdf_path)
+        if data and data.get('id'):
+            PaperDAO.delete_paper(data['id'])
+    except Exception as e:
+        print(f"Failed to delete paper from DB: {e}")
 
 
 def scan_papers_in_directory(

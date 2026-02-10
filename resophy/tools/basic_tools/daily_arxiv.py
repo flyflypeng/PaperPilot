@@ -23,6 +23,9 @@ from typing import Any, Callable, Dict, List, Optional
 
 import arxiv
 
+from resophy.database.dao.paper_dao import PaperDAO
+from resophy.database.dao.daily_arxiv_dao import DailyArxivDAO
+
 # System prompt words extracted by the organization
 AFFILIATION_EXTRACTION_PROMPT = """I will provide you with the first-page information of a paper. You need to extract all affiliations (institution names) from it and also extract the homepage and github repo url if there is. For affiliations, do not include author names. If an affiliation includes details such as region, department, school, or college, those should be omitted. Only keep the main institution name (e.g., School of Computer Science, Fudan University → Fudan University).
 
@@ -461,7 +464,6 @@ class DailyArxivManager:
         """
         self.base_dir = base_dir
         self.settings_file = settings_file
-        self.metadata_file = os.path.join(base_dir, "metadata.json")
 
         os.makedirs(base_dir, exist_ok=True)
 
@@ -490,9 +492,6 @@ class DailyArxivManager:
         self._llm_api_failed: bool = False
         self._llm_api_error_message: str = ""
 
-        # Load existing metadata
-        self._load_metadata()
-
     def set_llm_config_callback(self, callback: Callable[[], Dict]):
         """set get LLM Configured callback function"""
         self._get_llm_config = callback
@@ -500,24 +499,6 @@ class DailyArxivManager:
     def set_user_settings_callback(self, callback: Callable[[], Dict]):
         """set get user settings callback function (for getting aiLanguage)"""
         self._get_user_settings = callback
-
-    def _load_metadata(self):
-        """Load metadata"""
-        self._metadata = {}
-        if os.path.exists(self.metadata_file):
-            try:
-                with open(self.metadata_file, "r", encoding="utf-8") as f:
-                    self._metadata = json.load(f)
-            except Exception as e:
-                print(f"[DailyArxiv] Loading metadata failed: {e}")
-
-    def _save_metadata(self):
-        """Save metadata"""
-        try:
-            with open(self.metadata_file, "w", encoding="utf-8") as f:
-                json.dump(self._metadata, f, ensure_ascii=False, indent=2)
-        except Exception as e:
-            print(f"[DailyArxiv] Failed to save metadata: {e}")
 
     def get_settings(self) -> Dict:
         """Get settings"""
@@ -535,108 +516,6 @@ class DailyArxivManager:
         """Get partition directory path"""
         return os.path.join(self.base_dir, date_str, category.replace(".", "_"))
 
-    def get_download_status_file(self, date_str: str, category: str) -> str:
-        """Get download status file path"""
-        cat_dir = self.get_category_dir(date_str, category)
-        return os.path.join(cat_dir, "download_status.json")
-
-    def _load_download_status(self, date_str: str, category: str) -> Dict[str, str]:
-        """Load download status
-
-        Returns:
-            {arxiv_id: status} dictionary,status for "downloading" or "completed"
-        """
-        status_file = self.get_download_status_file(date_str, category)
-        if os.path.exists(status_file):
-            try:
-                with open(status_file, "r", encoding="utf-8") as f:
-                    return json.load(f)
-            except Exception as e:
-                print(f"[DailyArxiv] Failed to load download status: {e}")
-                return {}
-        return {}
-
-    def _save_download_status(
-        self, date_str: str, category: str, status_dict: Dict[str, str]
-    ):
-        """Save download status"""
-        status_file = self.get_download_status_file(date_str, category)
-        try:
-            # Make sure the directory exists
-            os.makedirs(os.path.dirname(status_file), exist_ok=True)
-            with open(status_file, "w", encoding="utf-8") as f:
-                json.dump(status_dict, f, ensure_ascii=False, indent=2)
-        except Exception as e:
-            print(f"[DailyArxiv] Failed to save download status: {e}")
-
-    def _mark_downloading(self, date_str: str, category: str, arxiv_id: str):
-        """Mark the paper as downloading"""
-        status = self._load_download_status(date_str, category)
-        status[arxiv_id] = "downloading"
-        self._save_download_status(date_str, category, status)
-
-    def _mark_download_completed(self, date_str: str, category: str, arxiv_id: str):
-        """Mark the paper as download complete"""
-        status = self._load_download_status(date_str, category)
-        status[arxiv_id] = "completed"
-        self._save_download_status(date_str, category, status)
-
-    def _cleanup_incomplete_downloads(self, date_str: str, category: str):
-        """Clean up unfinished downloads (called after server restart)
-
-        Delete all tagged "downloading" thesis files and related data
-        """
-        status = self._load_download_status(date_str, category)
-        cat_dir = self.get_category_dir(date_str, category)
-
-        if not os.path.exists(cat_dir):
-            return
-
-        incomplete_count = 0
-        for arxiv_id, download_status in list(status.items()):
-            if download_status == "downloading":
-                print(
-                    f"[DailyArxiv] Incomplete download detected: {arxiv_id}, clean related files..."
-                )
-                safe_id = arxiv_id.replace("/", "_").replace(":", "_")
-
-                # delete PDF document
-                pdf_path = os.path.join(cat_dir, f"{safe_id}.pdf")
-                if os.path.exists(pdf_path):
-                    try:
-                        os.remove(pdf_path)
-                        print(f"[DailyArxiv] Incomplete deleted PDF: {pdf_path}")
-                    except Exception as e:
-                        print(f"[DailyArxiv] delete PDF fail: {e}")
-
-                # Delete thumbnail
-                thumbnail_path = os.path.join(cat_dir, f"{safe_id}_thumbnail.jpg")
-                if os.path.exists(thumbnail_path):
-                    try:
-                        os.remove(thumbnail_path)
-                    except:
-                        pass
-
-                # delete JSON metadata file
-                json_path = os.path.join(cat_dir, f"{safe_id}.json")
-                if os.path.exists(json_path):
-                    try:
-                        os.remove(json_path)
-                        print(f"[DailyArxiv] Incomplete metadata removed: {json_path}")
-                    except Exception as e:
-                        print(f"[DailyArxiv] Deletion of metadata failed: {e}")
-
-                # Remove from status
-                del status[arxiv_id]
-                incomplete_count += 1
-
-        if incomplete_count > 0:
-            # Save updated status
-            self._save_download_status(date_str, category, status)
-            print(
-                f"[DailyArxiv] Cleanup completed, total cleanup {incomplete_count} incomplete downloads"
-            )
-
     def get_available_dates(self) -> List[str]:
         """
         Get a list of dates with papers
@@ -644,31 +523,7 @@ class DailyArxivManager:
         Returns:
             List of dates (descending order, newest first)
         """
-        dates = []
-        if not os.path.exists(self.base_dir):
-            return dates
-
-        for name in os.listdir(self.base_dir):
-            path = os.path.join(self.base_dir, name)
-            if os.path.isdir(path) and name.count("-") == 2:
-                # Check if there is a paper
-                has_papers = False
-                for cat_dir in os.listdir(path):
-                    cat_path = os.path.join(path, cat_dir)
-                    if os.path.isdir(cat_path):
-                        # Check if there is JSON document
-                        for f in os.listdir(cat_path):
-                            if f.endswith(".json"):
-                                has_papers = True
-                                break
-                    if has_papers:
-                        break
-
-                if has_papers:
-                    dates.append(name)
-
-        dates.sort(reverse=True)
-        return dates
+        return PaperDAO.get_available_daily_dates()
 
     def get_papers_for_date(self, date_str: str, category: str = None) -> List[Dict]:
         """
@@ -681,83 +536,35 @@ class DailyArxivManager:
         Returns:
             Thesis dictionary list
         """
-        papers = []
-        date_dir = self.get_date_dir(date_str)
+        papers = PaperDAO.get_daily_papers(date_str, category)
+
         settings = self.get_settings()
         keyword_list = settings.get("keywordList", []) or []
         keyword_list = [k for k in keyword_list if isinstance(k, str) and k.strip()]
 
-        if not os.path.exists(date_dir):
-            return papers
-
-        # Determine the partition directory to be read
-        if category:
-            cat_dirs = [self.get_category_dir(date_str, category)]
-        else:
-            cat_dirs = [
-                os.path.join(date_dir, d)
-                for d in os.listdir(date_dir)
-                if os.path.isdir(os.path.join(date_dir, d))
-            ]
-
-        for cat_dir in cat_dirs:
-            if not os.path.exists(cat_dir):
+        result_papers = []
+        for paper_data in papers:
+            # Check if PDF exists
+            local_pdf_path = paper_data.get("file_path")
+            if local_pdf_path and not os.path.exists(local_pdf_path):
                 continue
 
-            # Get the download status of this partition
-            # Extract partition name from directory path
-            cat_name = os.path.basename(cat_dir)
-            download_status = self._load_download_status(date_str, cat_name)
+            paper_data['local_pdf_path'] = local_pdf_path
+            paper_data['pdf_downloaded'] = True
 
-            for filename in os.listdir(cat_dir):
-                if filename.endswith(".json"):
-                    json_path = os.path.join(cat_dir, filename)
-                    try:
-                        with open(json_path, "r", encoding="utf-8") as f:
-                            paper_data = json.load(f)
+            if keyword_list:
+                matched = match_any_keyword_in_title_or_abstract(
+                    paper_data.get("title", ""),
+                    paper_data.get("abstract", ""),
+                    keyword_list,
+                )
+                if not matched:
+                    continue
+                paper_data["matched_keywords"] = matched
 
-                            # Check the download status of your paper
-                            arxiv_id = paper_data.get("arxiv_id")
-                            if arxiv_id:
-                                paper_status = download_status.get(arxiv_id)
-                                # If the paper status is downloading, skip (not returned to the front end)
-                                if paper_status == "downloading":
-                                    continue
+            result_papers.append(paper_data)
 
-                            # Check that the paper has complete metadata (at least PDF document)
-                            local_pdf_path = paper_data.get("local_pdf_path")
-                            if local_pdf_path:
-                                # if JSON There is PDF Path, check if the file exists
-                                if not os.path.exists(local_pdf_path):
-                                    # PDF File does not exist, skipped (possibly incomplete download)
-                                    continue
-                            else:
-                                # if JSON None PDF path, trying to infer from the filename
-                                safe_id = (
-                                    arxiv_id.replace("/", "_").replace(":", "_")
-                                    if arxiv_id
-                                    else filename[:-5]
-                                )
-                                pdf_path = os.path.join(cat_dir, f"{safe_id}.pdf")
-                                if not os.path.exists(pdf_path):
-                                    # No PDF File, skipped (possibly an incomplete download)
-                                    continue
-
-                            if keyword_list:
-                                matched = match_any_keyword_in_title_or_abstract(
-                                    paper_data.get("title", ""),
-                                    paper_data.get("abstract", ""),
-                                    keyword_list,
-                                )
-                                if not matched:
-                                    continue
-                                paper_data["matched_keywords"] = matched
-
-                            papers.append(paper_data)
-                    except Exception as e:
-                        print(f"[DailyArxiv] Failed to read the paper {json_path}: {e}")
-
-        return papers
+        return result_papers
 
     def get_progress(self, category: str) -> Dict:
         """Get the crawling progress of a partition"""
@@ -801,7 +608,7 @@ class DailyArxivManager:
             keyword_list = settings.get("keywordList", []) or []
             keyword_list = [k for k in keyword_list if isinstance(k, str) and k.strip()]
 
-            # Get enough papers at once (up to500articles) and then filter for papers with target date
+            # Get enough papers at once (up to 500 articles) and then filter for papers with target date
             max_fetch = 500
             target_date = datetime.strptime(date_str, "%Y-%m-%d").date()
 
@@ -897,24 +704,6 @@ class DailyArxivManager:
 
             # Set processing progress
             progress.set_processing(len(results))
-
-            # Clean up unfinished downloads (after server restart)
-            # Collect all dates that need to be cleaned
-            dates_to_clean = set()
-            for result in results:
-                paper_tmp = ArxivPaper.from_arxiv_result(
-                    result, fetch_category=category
-                )
-                paper_announce_date = (
-                    paper_tmp.announced.strftime("%Y-%m-%d")
-                    if paper_tmp.announced
-                    else date_str
-                )
-                dates_to_clean.add(paper_announce_date)
-
-            # Clean up outstanding downloads per date
-            for clean_date in dates_to_clean:
-                self._cleanup_incomplete_downloads(clean_date, category)
 
             # get LLM Configuration
             llm_config = {}
@@ -1032,73 +821,57 @@ Now the input abstract is:
                     paper_cat_dir = self.get_category_dir(paper_announce_date, category)
                     os.makedirs(paper_cat_dir, exist_ok=True)
 
-                    # Check download status
-                    download_status = self._load_download_status(
-                        paper_announce_date, category
-                    )
-                    paper_status = download_status.get(paper.arxiv_id)
-
-                    # Check if the paper exists and has been downloaded
+                    # Check if the paper exists in DB and has been downloaded
                     safe_id = paper.arxiv_id.replace("/", "_").replace(":", "_")
-                    json_path = os.path.join(paper_cat_dir, f"{safe_id}.json")
                     pdf_path = os.path.join(paper_cat_dir, f"{safe_id}.pdf")
-
+                    
+                    # Check DB
+                    existing_paper_dict = PaperDAO.get_paper_by_arxiv_id(paper.arxiv_id)
+                    # Also need to check if it's a daily paper (though arxiv_id is unique)
+                    # And check if file exists
+                    
                     if (
                         not force
-                        and paper_status == "completed"
-                        and os.path.exists(json_path)
-                        and os.path.exists(pdf_path)
+                        and existing_paper_dict
+                        and existing_paper_dict.get('is_daily')
+                        and existing_paper_dict.get('file_path')
+                        and os.path.exists(existing_paper_dict['file_path'])
                     ):
-                        # Already exists and marked as completed, check if thumbnails need to be generated
-                        try:
-                            with open(json_path, "r", encoding="utf-8") as f:
-                                existing_data = json.load(f)
+                        # Already exists and downloaded
+                        
+                        # Check thumbnails
+                        if not existing_paper_dict.get('thumbnail_path'):
+                             thumbnail_path = self._generate_thumbnail(
+                                existing_paper_dict['file_path'], paper_cat_dir
+                             )
+                             if thumbnail_path:
+                                 # Update DB
+                                 existing_paper_dict['thumbnail_path'] = thumbnail_path
+                                 # We need to save it back. 
+                                 # But _save_paper takes dict from ArxivPaper.to_dict().
+                                 # existing_paper_dict is from PaperDAO._row_to_dict().
+                                 # They have different structures.
+                                 # Let's manually update PaperDAO.
+                                 PaperDAO.save_paper(existing_paper_dict)
 
-                            # Check if thumbnails need to be generated
-                            if not existing_data.get("thumbnail_path"):
-                                thumbnail_path = self._generate_thumbnail(
-                                    pdf_path, paper_cat_dir
-                                )
-                                if thumbnail_path:
-                                    existing_data["thumbnail_path"] = thumbnail_path
-                                    self._save_paper(existing_data, paper_cat_dir)
-
-                            # PDF Completely downloaded, skip
-                            skipped_count += 1
-                            progress.update(
-                                i + 1, f"[Already exists] {paper.title[:40]}"
-                            )
-                            print(
-                                f"[DailyArxiv] Skip fully downloaded papers: {paper.arxiv_id}"
-                            )
-                            continue
-                        except Exception as e:
-                            print(
-                                f"[DailyArxiv] Failed to check for existing papers: {e}"
-                            )
-                            import traceback
-
-                            traceback.print_exc()
-                            # If the read fails, continue the download process
+                        skipped_count += 1
+                        progress.update(
+                            i + 1, f"[Already exists] {paper.title[:40]}"
+                        )
+                        print(
+                            f"[DailyArxiv] Skip fully downloaded papers: {paper.arxiv_id}"
+                        )
+                        continue
 
                     # Update progress (update before starting the download so the frontend can see the current paper immediately)
                     # Set up first PDF Path (even if the file doesn't exist yet so the frontend can display it)
                     progress.update(i + 1, paper.title[:50], pdf_path=pdf_path)
-
-                    # Mark as downloading
-                    self._mark_downloading(
-                        paper_announce_date, category, paper.arxiv_id
-                    )
 
                     # download PDF to the correct date directory (file size is updated periodically during download)
                     pdf_path = self._download_pdf(paper, paper_cat_dir, progress)
                     if pdf_path:
                         paper.local_pdf_path = pdf_path
                         paper.pdf_downloaded = True  # mark PDF Successfully downloaded
-                        # Mark download complete
-                        self._mark_download_completed(
-                            paper_announce_date, category, paper.arxiv_id
-                        )
 
                         # Generate thumbnails (PDFFirst half of the first page)
                         thumbnail_path = self._generate_thumbnail(
@@ -1128,15 +901,7 @@ Now the input abstract is:
                             paper.github = extraction_result.get("github")
                             paper.affiliations_extracted = True
                     else:
-                        # PDF Download failed, removed from status (will download again next time)
-                        download_status = self._load_download_status(
-                            paper_announce_date, category
-                        )
-                        if paper.arxiv_id in download_status:
-                            del download_status[paper.arxiv_id]
-                            self._save_download_status(
-                                paper_announce_date, category, download_status
-                            )
+                        # PDF Download failed
                         paper.pdf_downloaded = False
                         print(
                             f"[DailyArxiv] PDF Download failed, will try again at next check: {paper.arxiv_id}"
@@ -1161,7 +926,7 @@ Now the input abstract is:
                         paper.keywords = summary_result.get("keywords", [])
                         paper.summary_extracted = True
 
-                    # Save paper metadata to the correct date directory
+                    # Save paper metadata to DB
                     # even though PDF If the download fails, the metadata is also saved so that you can try again next time.
                     paper_dict = paper.to_dict()
                     self._save_paper(paper_dict, paper_cat_dir)
@@ -1501,16 +1266,44 @@ Now the input abstract is:
         )
 
     def _save_paper(self, paper_dict: Dict, cat_dir: str):
-        """Save article metadata"""
-        arxiv_id = paper_dict.get("arxiv_id", "unknown")
-        safe_id = arxiv_id.replace("/", "_").replace(":", "_")
-        json_path = os.path.join(cat_dir, f"{safe_id}.json")
+        """Save article metadata to DB"""
+        arxiv_id = paper_dict.get('arxiv_id')
+        if not arxiv_id:
+            return
 
-        try:
-            with open(json_path, "w", encoding="utf-8") as f:
-                json.dump(paper_dict, f, ensure_ascii=False, indent=2)
-        except Exception as e:
-            print(f"[DailyArxiv] Failed to save article metadata: {e}")
+        # Generate ID (prefix to avoid collision with main library UUIDs)
+        paper_id = f"daily_{arxiv_id}"
+
+        # Map fields
+        dao_data = {
+            'id': paper_id,
+            'title': paper_dict.get('title'),
+            'authors': paper_dict.get('authors'),
+            'abstract': paper_dict.get('abstract'),
+            'arxiv_published_date': paper_dict.get('published'),
+            'arxiv_url': paper_dict.get('pdf_url'),
+            'arxiv_id': arxiv_id,
+            'subject': paper_dict.get('primary_category'),
+            'upload_date': datetime.now().isoformat(),
+            'file_path': paper_dict.get('local_pdf_path'),
+            'thumbnail_path': paper_dict.get('thumbnail_path'),
+            'is_daily': 1,
+            'daily_date': paper_dict.get('fetch_date'),
+            # Store extra fields in metadata column (handled by DAO)
+            'categories': paper_dict.get('categories'),
+            'comment': paper_dict.get('comment'),
+            'journal_ref': paper_dict.get('journal_ref'),
+            'affiliations': paper_dict.get('affiliations'),
+            'countries': paper_dict.get('countries'),
+            'homepage': paper_dict.get('homepage'),
+            'github': paper_dict.get('github'),
+            'summary': paper_dict.get('summary'),
+            'keywords': paper_dict.get('keywords'),
+            'matched_keywords': paper_dict.get('matched_keywords'),
+            'fetch_category': paper_dict.get('fetch_category')
+        }
+
+        PaperDAO.save_paper(dao_data)
 
     def cleanup_old_papers(self, retention_days: int = 7):
         """
@@ -1524,10 +1317,6 @@ Now the input abstract is:
         print(
             f"[DailyArxiv] Clean up expired papers and keep the latest ones {retention_days} date with paper..."
         )
-
-        if not os.path.exists(self.base_dir):
-            print(f"[DailyArxiv] The base directory does not exist: {self.base_dir}")
-            return
 
         # Get the dates of all papers (sorted in descending order, latest first)
         available_dates = self.get_available_dates()
@@ -1553,33 +1342,25 @@ Now the input abstract is:
         )
 
         deleted_count = 0
-        for name in os.listdir(self.base_dir):
-            path = os.path.join(self.base_dir, name)
-            # Check if it is a date directory (format:YYYY-MM-DD, with two hyphens)
-            if os.path.isdir(path) and name.count("-") == 2:
-                if name not in dates_to_keep:
-                    print(f"[DailyArxiv] Delete expired directory: {name}")
-                    try:
-                        shutil.rmtree(path)
-                        deleted_count += 1
-                    except Exception as e:
-                        print(f"[DailyArxiv] Delete failed: {e}")
+        for name in dates_to_delete:
+             # Delete directory
+            path = self.get_date_dir(name)
+            if os.path.exists(path):
+                print(f"[DailyArxiv] Delete expired directory: {name}")
+                try:
+                    shutil.rmtree(path)
+                    deleted_count += 1
+                except Exception as e:
+                    print(f"[DailyArxiv] Delete failed: {e}")
+
+        # Delete from DB
+        if dates_to_keep:
+            oldest_date_to_keep = sorted(list(dates_to_keep))[0]
+            PaperDAO.delete_old_daily_papers(oldest_date_to_keep)
 
         print(
             f"[DailyArxiv] Cleanup completed, deleted in total {deleted_count} Expiration date directory"
         )
-
-        # Verify cleanup results
-        remaining_dates = self.get_available_dates()
-        remaining_count = len(remaining_dates)
-        print(
-            f"[DailyArxiv] Remaining after cleaning {remaining_count} date with paper: {remaining_dates}"
-        )
-
-        if remaining_count > retention_days:
-            print(
-                f"[DailyArxiv] ⚠️ Warning: There are still {remaining_count} dates, exceeded reserved quantity {retention_days}"
-            )
 
     def start_scheduler(self):
         """Start scheduler"""

@@ -13,6 +13,8 @@ from flask import Flask, g, jsonify, render_template, request
 from resophy.core.base_paper import Paper
 from resophy.core.paper_store import paper_store
 from resophy.core.search_index import SearchIndex
+from resophy.database.connection import init_db as register_db_teardown
+from resophy.database.db_manager import init_db_schema
 from resophy.routes.agent_routes.agent_summary_route import (
     register_agent_summary_routes,
 )
@@ -61,6 +63,7 @@ parser.add_argument(
 parser.add_argument("--debug", action="store_true", help="Enable debug mode")
 
 app = Flask(__name__)
+register_db_teardown(app)
 app.config["MAX_CONTENT_LENGTH"] = 100 * 1024 * 1024  # 100MB max file size
 
 _auth_cache: dict[str, tuple[float, str]] = {}
@@ -337,6 +340,13 @@ def delete_paper_files(pdf_path: str) -> None:
 
 def init_app(papers_dir=None):
     """Initialize application configuration and directories"""
+    # Initialize DB Schema
+    try:
+        os.makedirs(os.path.join(os.getcwd(), 'db'), exist_ok=True)
+        init_db_schema()
+    except Exception as e:
+        print(f"Failed to initialize database schema: {e}")
+
     global UPLOAD_FOLDER, CATEGORIES_FILE, READING_LIST_FILE
     global USER_SETTINGS_FILE, READING_HISTORY_FILE, AGENTIC_SETTINGS_FILE, AVATARS_DIR
     global DAILY_ARXIV_SETTINGS_FILE, TEMP_PAPERS_DIR, READING_LIST_TEMP_DIR

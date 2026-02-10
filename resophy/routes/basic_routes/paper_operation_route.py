@@ -12,6 +12,7 @@ from flask import Flask, jsonify, request, send_file
 
 from resophy.core.base_paper import Paper
 from resophy.core.paper_store import PaperStore
+from resophy.database.dao.user_data_dao import ReadingListDAO, ReadingHistoryDAO
 from resophy.tools.basic_tools.paper_repository import scan_papers_in_directory
 from resophy.tools.basic_tools.upload_paper import (
     process_uploaded_pdf,
@@ -87,32 +88,17 @@ def register_paper_operation_routes(
 ) -> None:
 
     def load_reading_list() -> List[str]:
-        try:
-            with open(reading_list_file, "r", encoding="utf-8") as f:
-                data = json.load(f)
-                return data.get("papers", [])
-        except Exception as exc:  # noqa: BLE001
-            print(f"Failed to read to-be-read list: {exc}")
-            return []
+        items = ReadingListDAO.get_list()
+        return [item['paper_id'] for item in items]
 
     def save_reading_list(paper_ids: List[str]) -> None:
-        try:
-            with open(reading_list_file, "w", encoding="utf-8") as f:
-                json.dump({"papers": paper_ids}, f, ensure_ascii=False, indent=2)
-        except Exception as exc:  # noqa: BLE001
-            print(f"Failed to save to-read list: {exc}")
+        pass
 
     def add_to_reading_list(paper_id: str) -> None:
-        paper_ids = load_reading_list()
-        if paper_id not in paper_ids:
-            paper_ids.append(paper_id)
-            save_reading_list(paper_ids)
+        ReadingListDAO.add_item(paper_id, datetime.now().isoformat())
 
     def remove_from_reading_list(paper_id: str) -> None:
-        paper_ids = load_reading_list()
-        if paper_id in paper_ids:
-            paper_ids.remove(paper_id)
-            save_reading_list(paper_ids)
+        ReadingListDAO.remove_item(paper_id)
 
     def is_in_reading_list(paper_id: str) -> bool:
         return paper_id in load_reading_list()
@@ -584,15 +570,10 @@ def register_paper_operation_routes(
             )
 
             # Will _ReadingListTemp Papers in the table of contents are added to the to-read list (if they are not already there)
-            updated = False
             for paper in temp_papers:
                 if paper.id not in paper_ids:
+                    add_to_reading_list(paper.id)
                     paper_ids.append(paper.id)
-                    updated = True
-
-            # If there are updates, save the to-read list
-            if updated:
-                save_reading_list(paper_ids)
 
         # Return all to-read list papers (no more limited number)
         papers = collect_papers_by_ids(paper_ids)
@@ -703,54 +684,12 @@ def register_paper_operation_routes(
             if paper.file_path:
                 save_paper_metadata(paper.file_path, paper)
 
-            # Update reading history and record papers at the same timeIDand date
-            reading_history_file = os.path.join(upload_folder, "reading_history.json")
-
-            if os.path.exists(reading_history_file):
-                try:
-                    with open(reading_history_file, "r", encoding="utf-8") as fp:
-                        history = json_lib.load(fp)
-                except:
-                    history = {}
-
-                # Get today's date
-                today = datetime.now().strftime("%Y-%m-%d")
-                minutes = int(increment / 60)  # Convert to minutes
-
-                # Update reading history structure
-                # new format: { "date": { "total": minutes, "papers": ["paper_id1", "paper_id2"] } }
-                # Compatible with older formats: { "date": minutes }
-                if today in history:
-                    if isinstance(history[today], dict):
-                        # new format
-                        history[today]["total"] = (
-                            history[today].get("total", 0) + minutes
-                        )
-                        if paper_id not in history[today].get("papers", []):
-                            if "papers" not in history[today]:
-                                history[today]["papers"] = []
-                            history[today]["papers"].append(paper_id)
-                    else:
-                        # old format, converted to new format
-                        old_minutes = history[today]
-                        history[today] = {
-                            "total": old_minutes + minutes,
-                            "papers": [paper_id],
-                        }
-                else:
-                    history[today] = {"total": minutes, "papers": [paper_id]}
-
-                # Save updated history
-                with open(reading_history_file, "w", encoding="utf-8") as fp:
-                    json_lib.dump(history, fp, ensure_ascii=False, indent=2)
-            else:
-                # If the file does not exist, create a new file
-                today = datetime.now().strftime("%Y-%m-%d")
-                minutes = int(increment / 60)
-                history = {today: {"total": minutes, "papers": [paper_id]}}
-                os.makedirs(os.path.dirname(reading_history_file), exist_ok=True)
-                with open(reading_history_file, "w", encoding="utf-8") as fp:
-                    json_lib.dump(history, fp, ensure_ascii=False, indent=2)
+            # Update reading history
+            today = datetime.now().strftime("%Y-%m-%d")
+            duration = int(increment)
+            timestamp = int(datetime.now().timestamp())
+            
+            ReadingHistoryDAO.add_history(today, duration, paper_id, timestamp)
 
             return jsonify({"success": True, "read_time": paper.read_time})
 

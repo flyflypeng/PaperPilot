@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 import os
 from typing import Any, Callable, Dict, List, Optional
+from resophy.database.dao.category_dao import CategoryDAO
 
 # Empty default classification structure (only root, no subcategories)
 EMPTY_CATEGORIES: Dict[str, Any] = {
@@ -15,21 +16,77 @@ EMPTY_CATEGORIES: Dict[str, Any] = {
 def init_categories(
     categories_file: str, default: Optional[Dict[str, Any]] = None
 ) -> None:
+    # Check if DB has categories
+    rows = CategoryDAO.get_all_categories()
+    if rows:
+        return
+
     if not os.path.exists(categories_file):
         # if not specified default, use an empty classification structure
         categories_to_save = default if default is not None else EMPTY_CATEGORIES
-        with open(categories_file, "w", encoding="utf-8") as f:
-            json.dump(categories_to_save, f, ensure_ascii=False, indent=2)
+        save_categories(categories_file, categories_to_save)
+    else:
+        # Migrate from file
+        with open(categories_file, "r", encoding="utf-8") as f:
+            cats = json.load(f)
+            save_categories(categories_file, cats)
 
 
 def get_categories(categories_file: str) -> Dict[str, Any]:
-    with open(categories_file, "r", encoding="utf-8") as f:
-        return json.load(f)
+    rows = CategoryDAO.get_all_categories()
+    if not rows:
+        # Fallback to file
+        if os.path.exists(categories_file):
+            try:
+                with open(categories_file, "r", encoding="utf-8") as f:
+                    cats = json.load(f)
+                    # Optional: Auto-migrate
+                    save_categories(categories_file, cats)
+                    return cats
+            except:
+                pass
+        return EMPTY_CATEGORIES
+
+    # Build tree
+    # 1. Create dict of nodes
+    nodes = {row['id']: dict(row) for row in rows}
+    # Initialize children list
+    for node in nodes.values():
+        node['children'] = []
+    
+    root = None
+    # 2. Link children
+    for node in nodes.values():
+        parent_id = node.get('parent_id')
+        if parent_id and parent_id in nodes:
+            nodes[parent_id]['children'].append(node)
+        elif node['id'] == 'root':
+            root = node
+            
+    return root if root else EMPTY_CATEGORIES
 
 
 def save_categories(categories_file: str, categories: Dict[str, Any]) -> None:
-    with open(categories_file, "w", encoding="utf-8") as f:
-        json.dump(categories, f, ensure_ascii=False, indent=2)
+    # Update DB
+    # We clear and rebuild because identifying deletions is harder
+    CategoryDAO.clear_categories()
+    
+    def save_node(node, parent_id=None):
+        CategoryDAO.save_category(
+            id=node['id'], 
+            name=node['name'], 
+            parent_id=parent_id, 
+            display_name=node.get('display_name')
+        )
+        for child in node.get('children', []):
+            save_node(child, node['id'])
+
+    save_node(categories)
+    
+    # Optional: Keep file sync for safety/backup if needed, but user asked to move to DB.
+    # We can skip writing to file.
+    # with open(categories_file, "w", encoding="utf-8") as f:
+    #     json.dump(categories, f, ensure_ascii=False, indent=2)
 
 
 def find_category_node(
