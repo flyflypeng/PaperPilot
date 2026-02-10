@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import json
 import os
 import re
 import threading
@@ -13,6 +12,7 @@ from flask import Flask, jsonify, request
 
 from resophy.core.base_paper import Paper
 from resophy.core.paper_store import PaperStore
+from resophy.database.dao.user_data_dao import ReadingListDAO
 from resophy.tools.basic_tools.upload_paper import (
     fetch_bibtex_from_dblp, fetch_paper_by_arxiv_id_fast)
 
@@ -105,27 +105,8 @@ def register_update_from_url_routes(
     reading_list_temp_dir: str,
     paper_store: PaperStore,
 ) -> None:
-    def _load_reading_list() -> list[str]:
-        try:
-            with open(reading_list_file, "r", encoding="utf-8") as f:
-                data = json.load(f)
-                return data.get("papers", [])
-        except Exception as exc:  # noqa: BLE001
-            print(f"Failed to read to-be-read list: {exc}")
-            return []
-
-    def _save_reading_list(paper_ids: list[str]) -> None:
-        try:
-            with open(reading_list_file, "w", encoding="utf-8") as f:
-                json.dump({"papers": paper_ids}, f, ensure_ascii=False, indent=2)
-        except Exception as exc:  # noqa: BLE001
-            print(f"Failed to save to-read list: {exc}")
-
     def _add_to_reading_list(paper_id: str) -> None:
-        paper_ids = _load_reading_list()
-        if paper_id not in paper_ids:
-            paper_ids.append(paper_id)
-            _save_reading_list(paper_ids)
+        ReadingListDAO.add_item(paper_id, datetime.now().isoformat())
 
     def _fetch_dblp_bibtex_background(
         paper_id: str,

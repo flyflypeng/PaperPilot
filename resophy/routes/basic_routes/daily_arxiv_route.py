@@ -16,6 +16,7 @@ from flask import Flask, jsonify, request, send_file
 
 from resophy.core.base_paper import Paper
 from resophy.core.paper_store import paper_store
+from resophy.database.dao.user_data_dao import ReadingListDAO
 from resophy.database.dao.settings_dao import SettingsDAO
 from resophy.tools.basic_tools.daily_arxiv import (
     DailyArxivManager,
@@ -527,23 +528,9 @@ def register_daily_arxiv_routes(
                     # If using temp Table of contents, add to to-read list
                     if use_temp_dir:
                         try:
-                            # Load to-read list
-                            with open(reading_list_file, "r", encoding="utf-8") as f:
-                                reading_list_data = json.load(f)
-                            paper_ids = reading_list_data.get("papers", [])
-
-                            # If the paper ID Not in the list, add it
-                            if existing_paper.id not in paper_ids:
-                                paper_ids.append(existing_paper.id)
-                                with open(
-                                    reading_list_file, "w", encoding="utf-8"
-                                ) as f:
-                                    json.dump(
-                                        {"papers": paper_ids},
-                                        f,
-                                        ensure_ascii=False,
-                                        indent=2,
-                                    )
+                            ReadingListDAO.add_item(
+                                existing_paper.id, datetime.now().isoformat()
+                            )
                         except Exception as e:
                             print(f"Failed to add to to-read list: {e}")
 
@@ -611,18 +598,7 @@ def register_daily_arxiv_routes(
             # If using temp Table of contents, add to to-read list
             if use_temp_dir:
                 try:
-                    # Load to-read list
-                    with open(reading_list_file, "r", encoding="utf-8") as f:
-                        reading_list_data = json.load(f)
-                    paper_ids = reading_list_data.get("papers", [])
-
-                    # If the paper ID Not in the list, add it
-                    if paper.id not in paper_ids:
-                        paper_ids.append(paper.id)
-                        with open(reading_list_file, "w", encoding="utf-8") as f:
-                            json.dump(
-                                {"papers": paper_ids}, f, ensure_ascii=False, indent=2
-                            )
+                    ReadingListDAO.add_item(paper.id, datetime.now().isoformat())
                 except Exception as e:
                     print(f"Failed to add to to-read list: {e}")
 

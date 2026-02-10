@@ -13,7 +13,9 @@ from flask import Flask, g, jsonify, render_template, request
 from resophy.core.base_paper import Paper
 from resophy.core.paper_store import paper_store
 from resophy.core.search_index import SearchIndex
+from resophy.database.connection import DB_PATH
 from resophy.database.connection import init_db as register_db_teardown
+from resophy.database.dao.settings_dao import SettingsDAO
 from resophy.database.db_manager import init_db_schema
 from resophy.routes.agent_routes.agent_summary_route import (
     register_agent_summary_routes,
@@ -384,27 +386,7 @@ def init_app(papers_dir=None):
     # Initialize search index
     search_index = SearchIndex(SEARCH_INDEX_DB)
 
-    # Initialize reading list file
-    if not os.path.exists(READING_LIST_FILE):
-        with open(READING_LIST_FILE, "w", encoding="utf-8") as f:
-            json.dump({"papers": []}, f, ensure_ascii=False, indent=2)
-
-    # Initialize user settings file
-    if not os.path.exists(USER_SETTINGS_FILE):
-        with open(USER_SETTINGS_FILE, "w", encoding="utf-8") as f:
-            json.dump(DEFAULT_USER_SETTINGS, f, ensure_ascii=False, indent=2)
-
-    # Initialize reading history file
-    if not os.path.exists(READING_HISTORY_FILE):
-        with open(READING_HISTORY_FILE, "w", encoding="utf-8") as f:
-            json.dump({}, f, ensure_ascii=False, indent=2)
-
-    # Initialize Agentic settings file (uniform AI feature configuration)
-    if not os.path.exists(AGENTIC_SETTINGS_FILE):
-        with open(AGENTIC_SETTINGS_FILE, "w", encoding="utf-8") as f:
-            json.dump(DEFAULT_AGENTIC_SETTINGS, f, ensure_ascii=False, indent=2)
-
-    # Initialize Daily arXiv settings file
+    # Initialize Daily arXiv settings file (still file-based)
     if not os.path.exists(DAILY_ARXIV_SETTINGS_FILE):
         with open(DAILY_ARXIV_SETTINGS_FILE, "w", encoding="utf-8") as f:
             json.dump(DEFAULT_DAILY_ARXIV_SETTINGS, f, ensure_ascii=False, indent=2)
@@ -422,12 +404,10 @@ def init_app(papers_dir=None):
     )
 
     print(f"Paper directory: {UPLOAD_FOLDER}")
-    print(f"Category configuration: {CATEGORIES_FILE}")
-    print(f"Reading list: {READING_LIST_FILE}")
-    print(f"User settings: {USER_SETTINGS_FILE}")
-    print(f"Reading history: {READING_HISTORY_FILE}")
-    print(f"Agentic settings: {AGENTIC_SETTINGS_FILE}")
-    print(f"Daily arXiv settings: {DAILY_ARXIV_SETTINGS_FILE}")
+    print(f"SQLite database: {DB_PATH}")
+    print("Settings storage: SQLite (user_settings / reading_history / agentic_settings)")
+    print(f"Category configuration (file): {CATEGORIES_FILE}")
+    print(f"Daily arXiv settings (file): {DAILY_ARXIV_SETTINGS_FILE}")
     print(f"Avatar directory: {AVATARS_DIR}")
     print(f"Daily arXiv temporary directory: {TEMP_PAPERS_DIR}")
     print(f"Search index database: {SEARCH_INDEX_DB}")
@@ -486,9 +466,8 @@ def register_routes():
     # Set LLM configuration callback
     def get_llm_config():
         try:
-            with open(AGENTIC_SETTINGS_FILE, "r", encoding="utf-8") as f:
-                return json.load(f)
-        except:
+            return SettingsDAO.get_setting("agentic_settings", {}) or {}
+        except Exception:
             return {}
 
     daily_arxiv_manager.set_llm_config_callback(get_llm_config)
@@ -496,9 +475,8 @@ def register_routes():
     # Set user settings callback (for getting aiLanguage)
     def get_user_settings():
         try:
-            with open(USER_SETTINGS_FILE, "r", encoding="utf-8") as f:
-                return json.load(f)
-        except:
+            return SettingsDAO.get_setting("user_settings", {}) or {}
+        except Exception:
             return {}
 
     daily_arxiv_manager.set_user_settings_callback(get_user_settings)
