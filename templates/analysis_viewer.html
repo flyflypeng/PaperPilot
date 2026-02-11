@@ -380,6 +380,85 @@
                 font-size: 1.6em;
             }
         }
+
+        /* Dropdown Styles */
+        .dropdown {
+            position: relative;
+            display: inline-block;
+        }
+
+        .dropdown-content {
+            display: none;
+            position: absolute;
+            right: 0;
+            background-color: #fff;
+            min-width: 160px;
+            box-shadow: 0 8px 16px rgba(0,0,0,0.1);
+            border-radius: 8px;
+            z-index: 1000;
+            padding: 8px 0;
+            border: 1px solid rgba(0,0,0,0.05);
+        }
+
+        .dropdown-content button {
+            color: #333;
+            padding: 10px 16px;
+            text-decoration: none;
+            display: block;
+            width: 100%;
+            text-align: left;
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 14px;
+            transition: background 0.2s;
+        }
+
+        .dropdown-content button:hover {
+            background-color: rgba(103, 126, 234, 0.1);
+            color: #667eea;
+        }
+
+        .dropdown:hover .dropdown-content {
+            display: block;
+        }
+
+        /* Print Styles */
+        @media print {
+            .header, #close-btn, .dropdown {
+                display: none !important;
+            }
+            body {
+                background: white;
+            }
+            .container {
+                padding: 0;
+                min-height: auto;
+                display: block;
+            }
+            .content {
+                box-shadow: none;
+                padding: 0;
+                width: 100%;
+                max-width: none;
+            }
+            .markdown-viewer {
+                font-size: 12pt;
+            }
+            .markdown-viewer pre {
+                border: 1px solid #ddd;
+                break-inside: avoid;
+            }
+            .markdown-viewer img {
+                break-inside: avoid;
+                box-shadow: none;
+            }
+            /* Ensure background colors are printed */
+            * {
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
+            }
+        }
     </style>
 </head>
 
@@ -390,7 +469,19 @@
                 <i class="fas fa-arrow-left"></i> Back
             </button>
             <div class="title">AI Analysis Reader</div>
-            <div style="width:80px"></div>
+            <div class="dropdown">
+                <button class="btn">
+                    <i class="fas fa-download"></i> Export
+                </button>
+                <div class="dropdown-content">
+                    <button onclick="exportMarkdown()">
+                        <i class="fab fa-markdown"></i> Export Markdown
+                    </button>
+                    <button onclick="exportPDF()">
+                        <i class="fas fa-file-pdf"></i> Export PDF
+                    </button>
+                </div>
+            </div>
         </div>
     </div>
     <div id="loading" class="loading">Loading AI analysis...</div>
@@ -401,6 +492,8 @@
     </div>
     <script>
         const paperId = {{ paper_id| tojson }};
+        let rawMarkdown = '';
+        let currentPaperTitle = 'analysis';
 
         function rewriteImages(markdown) {
             const imageRegex = /!\[([^\]]*)\]\(([^)]+)\)/g;
@@ -476,13 +569,54 @@
                 const res = await fetch(`/api/paper/${paperId}/analysis/result`);
                 const json = await res.json();
                 if (!res.ok || !json.success) throw new Error(json.error || 'Failed to load');
-                const md = rewriteImages(json.content || '');
+                
+                currentPaperTitle = json.title || 'analysis';
+                rawMarkdown = json.content || '';
+                
+                const md = rewriteImages(rawMarkdown);
                 renderMarkdown(md);
                 document.getElementById('loading').style.display = 'none';
                 document.getElementById('container').style.display = 'flex';
             } catch (e) {
                 document.getElementById('loading').textContent = `Failed to load: ${e.message}`;
             }
+        }
+
+        async function exportMarkdown() {
+            if (!rawMarkdown) return;
+            const filename = `${currentPaperTitle}_analysis.md`.replace(/[\/\\:"*?<>|]/g, '_');
+            
+            try {
+                if (window.showSaveFilePicker) {
+                    const handle = await window.showSaveFilePicker({
+                        suggestedName: filename,
+                        types: [{
+                            description: 'Markdown File',
+                            accept: { 'text/markdown': ['.md'] },
+                        }],
+                    });
+                    const writable = await handle.createWritable();
+                    await writable.write(rawMarkdown);
+                    await writable.close();
+                } else {
+                    const blob = new Blob([rawMarkdown], { type: 'text/markdown' });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = filename;
+                    a.click();
+                    URL.revokeObjectURL(url);
+                }
+            } catch (err) {
+                if (err.name !== 'AbortError') {
+                    console.error('Export failed:', err);
+                    alert('Export failed: ' + err.message);
+                }
+            }
+        }
+
+        function exportPDF() {
+            window.print();
         }
 
         function setupClose() {

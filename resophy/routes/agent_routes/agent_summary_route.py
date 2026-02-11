@@ -446,7 +446,12 @@ def register_agent_summary_routes(
             with open(result_file, "r", encoding="utf-8") as f:
                 content = f.read()
             return jsonify(
-                {"success": True, "content": content, "file_path": result_file}
+                {
+                    "success": True,
+                    "content": content,
+                    "file_path": result_file,
+                    "title": paper.title if paper else "Paper Analysis",
+                }
             )
         except Exception as exc:  # noqa: BLE001
             return jsonify({"error": f"Failed to read result file: {str(exc)}"}), 500
