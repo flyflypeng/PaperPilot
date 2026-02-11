@@ -2,7 +2,7 @@
 
 <div align="center">
 
-**A Fully Open-Source, Modern Paper Reading & Management Platform for Vibe Coding**
+**A Fully Open-Source, AI Paper Reading & Management Platform**
 
 [![License: CC BY-NC 4.0](https://img.shields.io/badge/License-CC%20BY--NC%204.0-lightgrey.svg)](https://creativecommons.org/licenses/by-nc/4.0/)
 [![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
@@ -13,6 +13,8 @@
 </div>
 
 ---
+
+> This project is developed based on the open-source project [Resophy](https://github.com/Mountchicken/Resophy). Special thanks to the original author for their interesting creation.
 
 ## 📖 Introduction
 
