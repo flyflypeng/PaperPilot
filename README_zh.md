@@ -66,6 +66,12 @@
   <img src="static/images/snapshots/setting-overview.png" width="48%" />
 </div>
 
+### 🔐 安全鉴权与访问控制
+支持用户登录鉴权，保障私密访问，方便公网部署。
+<div align="center">
+  <img src="static/images/snapshots/login.png" width="48%" />
+</div>
+
 ## 🛠️ 技术栈
 
 - **后端**：Python 3.10+, Flask

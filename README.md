@@ -66,6 +66,12 @@ Efficient reading list management and flexible system configuration.
   <img src="static/images/snapshots/setting-overview.png" width="48%" />
 </div>
 
+### 🔐 Secure Authentication & Access Control
+Supports user authentication for secure private access and public network deployment.
+<div align="center">
+  <img src="static/images/snapshots/login.png" width="48%" />
+</div>
+
 ## 🛠️ Tech Stack
 
 - **Backend**: Python 3.10+, Flask
