@@ -5545,27 +5545,39 @@ async function updateAvatars() {
     const userSettings = await getUserSettings();
 
     // Draw avatar to canvas auxiliary function
-    const drawAvatarToCanvas = (canvas, avatarUrl, userName) => {
+    const drawAvatarToCanvas = async (canvas, avatarUrl, userName) => {
         if (avatarUrl) {
-            // Use images from the server
-            const img = new Image();
-            img.onload = () => {
-                const ctx = canvas.getContext('2d');
-                ctx.clearRect(0, 0, canvas.width, canvas.height);
-                // round cut
-                ctx.save();
-                ctx.beginPath();
-                ctx.arc(canvas.width / 2, canvas.height / 2, canvas.width / 2, 0, Math.PI * 2);
-                ctx.closePath();
-                ctx.clip();
-                ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-                ctx.restore();
-            };
-            img.onerror = () => {
-                // Use pixel avatar when loading fails
+            try {
+                // Use fetch to load image with Authorization header
+                const response = await fetch(avatarUrl + '?t=' + Date.now());
+                if (!response.ok) throw new Error('Failed to load avatar');
+                const blob = await response.blob();
+                const objectUrl = URL.createObjectURL(blob);
+
+                const img = new Image();
+                img.onload = () => {
+                    const ctx = canvas.getContext('2d');
+                    ctx.clearRect(0, 0, canvas.width, canvas.height);
+                    // round cut
+                    ctx.save();
+                    ctx.beginPath();
+                    ctx.arc(canvas.width / 2, canvas.height / 2, canvas.width / 2, 0, Math.PI * 2);
+                    ctx.closePath();
+                    ctx.clip();
+                    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                    ctx.restore();
+                    URL.revokeObjectURL(objectUrl);
+                };
+                img.onerror = () => {
+                    // Use pixel avatar when loading fails
+                    drawIdenticon(canvas, userName);
+                    URL.revokeObjectURL(objectUrl);
+                };
+                img.src = objectUrl;
+            } catch (e) {
+                console.error('Avatar load error:', e);
                 drawIdenticon(canvas, userName);
-            };
-            img.src = avatarUrl + '?t=' + Date.now(); // Add timestamp to avoid caching
+            }
         } else {
             // Use generated pixel avatar
             drawIdenticon(canvas, userName);
