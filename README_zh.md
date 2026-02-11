@@ -2,6 +2,8 @@
 
 <div align="center">
 
+<img src="static/images/paperpilot-github-banner.png" width="100%" />
+
 **一个全开源的AI原生的论文阅读与管理平台**
 
 [![License: CC BY-NC 4.0](https://img.shields.io/badge/License-CC%20BY--NC%204.0-lightgrey.svg)](https://creativecommons.org/licenses/by-nc/4.0/)
