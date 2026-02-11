@@ -188,7 +188,7 @@ function saveCurrentViewState() {
 }
 
 // Restore last view state
-async function restoreViewState() {
+async function restoreViewState(preloadedReadingListPapers = null) {
     try {
         const saved = sessionStorage.getItem('currentViewState');
         if (saved) {
@@ -253,7 +253,7 @@ async function restoreViewState() {
 
             switchTab('paper');
             if (state.viewMode === 'reading-list' || state.viewMode === 'translating' || state.viewMode === 'analyzing') {
-                await showReadingList();
+                await showReadingList(preloadedReadingListPapers);
                 return;
             }
             if (state.viewMode === 'category' && state.categoryId) {
@@ -340,7 +340,7 @@ async function bootstrapApp() {
     } catch (e) {
         console.error('Error during app initialization:', e);
     }
-    await updateReadingListCount();
+    const readingListPapers = await updateReadingListCount();
     restoreQueuesFromStorage();
     cleanupCompletedQueues();
     await restoreActiveTasks();
@@ -350,7 +350,7 @@ async function bootstrapApp() {
     if (analysisQueue.length > 0 && !isAnalyzing) {
         processAnalysisQueue();
     }
-    await restoreViewState();
+    await restoreViewState(readingListPapers);
     updateTaskIndicator();
 }
 
@@ -873,7 +873,7 @@ async function loadPapers(categoryId, recursive = false) {
 }
 
 // Show to-read list
-async function showReadingList() {
+async function showReadingList(preloadedPapers = null) {
     try {
         clearPaperInfo();
         document.querySelectorAll('.paper-item.selected').forEach(item => item.classList.remove('selected'));
@@ -900,8 +900,14 @@ async function showReadingList() {
                 <p>loading...</p>
             </div>
         `;
-        const response = await fetch('/api/reading-list');
-        papers = await response.json();
+
+        if (preloadedPapers) {
+            papers = preloadedPapers;
+        } else {
+            const response = await fetch('/api/reading-list');
+            papers = await response.json();
+        }
+
         // update count sumIDgather（Make sure to complete before rendering）
         readingListCount = papers.length;
         readingListPaperIds.clear();
@@ -959,8 +965,10 @@ async function updateReadingListCount() {
                 btnReading.classList.remove('has-tasks');
             }
         }
+        return papers;
     } catch (e) {
         console.error('Failed to update reading list count:', e);
+        return null;
     }
 }
 
@@ -1017,10 +1025,10 @@ async function removeFromReadingList(paperId, event) {
                     showMessage('Removed from reading list and deleted related files', 'success');
                     // renewIDSets and counting
                     readingListPaperIds.delete(paperId);
-                    await updateReadingListCount();
+                    const updatedPapers = await updateReadingListCount();
                     // If you are currently viewing the to-read list, refresh the list
                     if (currentViewMode === 'reading-list') {
-                        showReadingList();
+                        showReadingList(updatedPapers);
                     } else if (currentViewMode === 'category' && currentCategoryId) {
                         // If in the category list, update the display
                         renderPapersList();
@@ -1040,7 +1048,7 @@ async function removeFromReadingList(paperId, event) {
             showMessage(message, 'success');
             // renewIDSets and counting
             readingListPaperIds.delete(paperId);
-            await updateReadingListCount();
+            const updatedPapers = await updateReadingListCount();
             if (currentViewMode === 'reading-list' && currentPaperId === paperId) {
                 clearPaperInfo();
                 document.querySelectorAll('.paper-item.selected').forEach(item => item.classList.remove('selected'));
@@ -1048,7 +1056,7 @@ async function removeFromReadingList(paperId, event) {
             }
             // If you are currently viewing the to-read list, refresh the list
             if (currentViewMode === 'reading-list') {
-                showReadingList();
+                showReadingList(updatedPapers);
             } else if (currentViewMode === 'category' && currentCategoryId) {
                 // If in the category list, update the display
                 renderPapersList();
@@ -1874,21 +1882,23 @@ async function uploadFile(file, categoryId) {
             method: 'POST',
             body: formData
         }).then(response => response.json())
-            .then(result => {
+            .then(async result => {
                 if (result.success) {
                     // Refresh silently without displaying success prompt
+
+                    // Synchronously update category counts and to-be-read list counts
+                    updateCategoriesData();
+                    renderCategoryTreeWithState();
+                    const updatedPapers = await updateReadingListCount();
+
                     // If uploaded to the currently selected category, refresh the list immediately（Show placeholder）
                     if (currentCategoryId === categoryId) {
                         loadPapers(currentCategoryId);
                     }
                     // If uploaded to the to-read list, refresh the to-read list
                     if (categoryId === 'reading_list_temp' && currentViewMode === 'reading-list') {
-                        showReadingList();
+                        showReadingList(updatedPapers);
                     }
-                    // Synchronously update category counts and to-be-read list counts
-                    updateCategoriesData();
-                    renderCategoryTreeWithState();
-                    updateReadingListCount();
 
                     // Start background polling to check whether the metadata update is completed
                     if (result.paper && result.paper.id) {
@@ -4734,6 +4744,11 @@ function switchTab(tabName) {
     const dailyArxivView = document.getElementById('daily-arxiv-view');
     const navTabs = document.querySelectorAll('.nav-tab');
     const navAvatar = document.getElementById('nav-avatar');
+
+    // If not switching to Daily arXiv, stop polling
+    if (tabName !== 'daily-arxiv' && typeof stopAllDailyArxivPolling === 'function') {
+        stopAllDailyArxivPolling();
+    }
 
     navTabs.forEach(tab => {
         if (tab.dataset.tab === tabName) {
@@ -10102,8 +10117,22 @@ function setupDailyArxivFilterResizing() {
     }
 }
 
+// Stop all Daily arXiv Progress polling
+function stopAllDailyArxivPolling() {
+    Object.keys(dailyArxivProgressIntervals).forEach(category => {
+        clearInterval(dailyArxivProgressIntervals[category]);
+        delete dailyArxivProgressIntervals[category];
+    });
+}
+
 // Check if there are partitions being fetched, if so start polling
 async function checkAndStartProgressPolling() {
+    // Only perform polling in Daily arXiv view
+    const dailyArxivView = document.getElementById('daily-arxiv-view');
+    if (!dailyArxivView || dailyArxivView.style.display === 'none') {
+        return;
+    }
+
     let hasActiveTask = false;
 
     // Check all partitions, start polling for all ongoing tasks
@@ -10260,6 +10289,12 @@ async function navigateDate(direction) {
 
 // Load papers of current date
 async function loadPapersForCurrentDate() {
+    // Only load in Daily arXiv view
+    const dailyArxivView = document.getElementById('daily-arxiv-view');
+    if (!dailyArxivView || dailyArxivView.style.display === 'none') {
+        return;
+    }
+
     if (!dailyArxivCurrentDate) {
         return;
     }

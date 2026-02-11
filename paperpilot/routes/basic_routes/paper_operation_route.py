@@ -559,9 +559,29 @@ def register_paper_operation_routes(
     def api_get_reading_list():
         paper_ids = load_reading_list()
 
-        # Auto-sync: scan _ReadingListTemp Table of contents, add papers in the table of contents to the to-read list
+        # Auto-sync: scan _ReadingListTemp directory
+        # Optimization: Only scan if the directory has been modified
         reading_list_temp_path = os.path.join(upload_folder, "_ReadingListTemp")
+        should_scan = False
+        
         if os.path.exists(reading_list_temp_path):
+            try:
+                # Check directory mtime
+                mtime = os.path.getmtime(reading_list_temp_path)
+                
+                # Use a module-level variable to store the last scan time
+                # We attach it to the function to avoid global namespace pollution
+                if not hasattr(api_get_reading_list, "_last_scan_time"):
+                    api_get_reading_list._last_scan_time = 0
+                
+                if mtime > api_get_reading_list._last_scan_time:
+                    should_scan = True
+                    api_get_reading_list._last_scan_time = mtime
+            except Exception:
+                # If checking mtime fails, default to scanning (safer)
+                should_scan = True
+
+        if should_scan and os.path.exists(reading_list_temp_path):
             # Scan all papers in the directory
             temp_papers = scan_papers_in_directory(
                 reading_list_temp_path,
@@ -569,13 +589,13 @@ def register_paper_operation_routes(
                 category_path=["Root", "_ReadingListTemp"],
             )
 
-            # Will _ReadingListTemp Papers in the table of contents are added to the to-read list (if they are not already there)
+            # Add papers from _ReadingListTemp to the reading list (if not already present)
             for paper in temp_papers:
                 if paper.id not in paper_ids:
                     add_to_reading_list(paper.id)
                     paper_ids.append(paper.id)
 
-        # Return all to-read list papers (no more limited number)
+        # Return all reading list papers
         papers = collect_papers_by_ids(paper_ids)
         return jsonify([paper.to_dict() for paper in papers])
 

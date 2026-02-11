@@ -12,10 +12,12 @@
     <script src="https://cdn.jsdelivr.net/npm/marked@15.0.12/marked.min.js"
         onerror="this.onerror=null;this.src='https://unpkg.com/marked@15.0.12/marked.min.js';"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
     <script>
         window.__SUPABASE_URL = {{ supabase_url | tojson }};
         window.__SUPABASE_ANON_KEY = {{ supabase_anon_key | tojson }};
-    </script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"
+        onerror="this.onerror=null;this.src='https://unpkg.com/@supabase/supabase-js@2';"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"
         onerror="this.onerror=null;this.src='https://unpkg.com/@supabase/supabase-js@2';"></script>
     <script src="{{ url_for('static', filename='js/api_auth_patch.js') }}?v=1"></script>
@@ -29,7 +31,8 @@
                 skipHtmlTags: ["script", "noscript", "style", "textarea", "pre"],
                 processHtmlClass: "markdown-viewer"
             }
-        };
+    <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js"
+        onerror="this.onerror=null;this.src='https://cdnjs.cloudflare.com/ajax/libs/mathjax/3.2.2/es5/tex-chtml.min.js';"></script>
     </script>
     <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js"
         onerror="this.onerror=null;this.src='https://cdnjs.cloudflare.com/ajax/libs/mathjax/3.2.2/es5/tex-chtml.min.js';"></script>
@@ -390,11 +393,11 @@
         .dropdown-content {
             display: none;
             position: absolute;
-            right: 0;
+            box-shadow: 0 8px 16px rgba(0,0,0,0.1);
             background-color: #fff;
             min-width: 160px;
             box-shadow: 0 8px 16px rgba(0,0,0,0.1);
-            border-radius: 8px;
+            border: 1px solid rgba(0,0,0,0.05);
             z-index: 1000;
             padding: 8px 0;
             border: 1px solid rgba(0,0,0,0.05);
@@ -422,44 +425,34 @@
         .dropdown:hover .dropdown-content {
             display: block;
         }
-
-        /* Print Styles */
-        @media print {
             .header, #close-btn, .dropdown {
                 display: none !important;
             }
-            body {
                 background: white;
             }
             .container {
-                padding: 0;
                 min-height: auto;
                 display: block;
             }
             .content {
                 box-shadow: none;
-                padding: 0;
                 width: 100%;
                 max-width: none;
             }
             .markdown-viewer {
                 font-size: 12pt;
             }
-            .markdown-viewer pre {
                 border: 1px solid #ddd;
                 break-inside: avoid;
             }
-            .markdown-viewer img {
                 break-inside: avoid;
                 box-shadow: none;
             }
             /* Ensure background colors are printed */
-            * {
                 -webkit-print-color-adjust: exact !important;
                 print-color-adjust: exact !important;
             }
         }
-    </style>
 </head>
 
 <body>
@@ -576,10 +569,10 @@
                 const md = rewriteImages(rawMarkdown);
                 renderMarkdown(md);
                 document.getElementById('loading').style.display = 'none';
-                document.getElementById('container').style.display = 'flex';
+                
             } catch (e) {
                 document.getElementById('loading').textContent = `Failed to load: ${e.message}`;
-            }
+                
         }
 
         async function exportMarkdown() {
@@ -592,7 +585,7 @@
                         suggestedName: filename,
                         types: [{
                             description: 'Markdown File',
-                            accept: { 'text/markdown': ['.md'] },
+            
                         }],
                     });
                     const writable = await handle.createWritable();
