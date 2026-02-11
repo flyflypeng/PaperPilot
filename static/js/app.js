@@ -322,10 +322,10 @@ function expandToCategoryPath(targetCategoryId) {
 }
 
 async function bootstrapApp() {
-    if (window.__RESOPHY_APP_BOOTSTRAPPED) {
+    if (window.__PAPERPILOT_APP_BOOTSTRAPPED) {
         return;
     }
-    window.__RESOPHY_APP_BOOTSTRAPPED = true;
+    window.__PAPERPILOT_APP_BOOTSTRAPPED = true;
 
     try {
         await loadCategories();

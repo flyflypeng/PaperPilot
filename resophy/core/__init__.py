@@ -1,2 +1,0 @@
-# Core module for Resophy
-

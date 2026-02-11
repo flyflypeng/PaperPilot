@@ -1,6 +1,6 @@
-请将你修改后的 Resophy 前端截图放到本目录，并命名为：
+请将你修改后的 PaperPilot 前端截图放到本目录，并命名为：
 
-- `resophy-frontend.png`
+- `paperpilot-frontend.png`
 
 文档引用位置：
 

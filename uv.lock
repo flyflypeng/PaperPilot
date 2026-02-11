@@ -5559,7 +5559,7 @@ wheels = [
 ]
 
 [[package]]
-name = "resophy"
+name = "paperpilot"
 version = "0.1.0"
 source = { editable = "." }
 dependencies = [

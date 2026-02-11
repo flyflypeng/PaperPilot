@@ -10,48 +10,48 @@ from typing import Optional
 import requests
 from flask import Flask, g, jsonify, render_template, request
 
-from resophy.core.base_paper import Paper
-from resophy.core.paper_store import paper_store
-from resophy.core.search_index import SearchIndex
-from resophy.database.connection import DB_PATH
-from resophy.database.connection import init_db as register_db_teardown
-from resophy.database.dao.settings_dao import SettingsDAO
-from resophy.database.db_manager import init_db_schema
-from resophy.routes.agent_routes.agent_summary_route import (
+from paperpilot.core.base_paper import Paper
+from paperpilot.core.paper_store import paper_store
+from paperpilot.core.search_index import SearchIndex
+from paperpilot.database.connection import DB_PATH
+from paperpilot.database.connection import init_db as register_db_teardown
+from paperpilot.database.dao.settings_dao import SettingsDAO
+from paperpilot.database.db_manager import init_db_schema
+from paperpilot.routes.agent_routes.agent_summary_route import (
     register_agent_summary_routes,
 )
-from resophy.routes.agent_routes.agent_chat_route import (
+from paperpilot.routes.agent_routes.agent_chat_route import (
     register_agent_chat_routes,
 )
-from resophy.routes.agent_routes.agent_translate_route import (
+from paperpilot.routes.agent_routes.agent_translate_route import (
     register_agent_translate_routes,
 )
-from resophy.routes.basic_routes.category_tree_route import register_category_routes
-from resophy.routes.basic_routes.daily_arxiv_route import register_daily_arxiv_routes
-from resophy.routes.basic_routes.export_route import register_export_routes
-from resophy.routes.basic_routes.import_route import register_import_routes
-from resophy.routes.basic_routes.institution_mapping_route import (
+from paperpilot.routes.basic_routes.category_tree_route import register_category_routes
+from paperpilot.routes.basic_routes.daily_arxiv_route import register_daily_arxiv_routes
+from paperpilot.routes.basic_routes.export_route import register_export_routes
+from paperpilot.routes.basic_routes.import_route import register_import_routes
+from paperpilot.routes.basic_routes.institution_mapping_route import (
     register_institution_mapping_routes,
 )
-from resophy.routes.basic_routes.paper_operation_route import (
+from paperpilot.routes.basic_routes.paper_operation_route import (
     register_paper_operation_routes,
 )
-from resophy.routes.basic_routes.search_route import register_search_routes
-from resophy.routes.basic_routes.settings_route import register_settings_routes
-from resophy.routes.basic_routes.update_from_url_route import (
+from paperpilot.routes.basic_routes.search_route import register_search_routes
+from paperpilot.routes.basic_routes.settings_route import register_settings_routes
+from paperpilot.routes.basic_routes.update_from_url_route import (
     register_update_from_url_routes,
 )
-from resophy.routes.basic_routes.upload_from_pdf_route import (
+from paperpilot.routes.basic_routes.upload_from_pdf_route import (
     register_upload_from_pdf_routes,
 )
-from resophy.tools.basic_tools import category_manager, paper_repository
+from paperpilot.tools.basic_tools import category_manager, paper_repository
 
-parser = argparse.ArgumentParser(description="Resophy")
+parser = argparse.ArgumentParser(description="PaperPilot")
 parser.add_argument(
     "--papers-dir",
     type=str,
     default="./papers",
-    help="Resophy papers directory path (default: ./papers)",
+    help="PaperPilot papers directory path (default: ./papers)",
 )
 parser.add_argument(
     "--host",
@@ -473,7 +473,7 @@ def register_routes():
     )
 
     # First register Daily arXiv routes, get manager instance
-    from resophy.tools.basic_tools.daily_arxiv import get_manager
+    from paperpilot.tools.basic_tools.daily_arxiv import get_manager
 
     daily_arxiv_manager = get_manager(TEMP_PAPERS_DIR, DAILY_ARXIV_SETTINGS_FILE)
 

@@ -4,29 +4,29 @@
 <div align=center>
   <img src="https://github.com/user-attachments/assets/73d25cfa-5791-4b54-a131-d816f51afebb" >
   <div style="margin-top:8px; color: #555; font-size: 16px;">
-    Resophy adopts a frontend-backend separated architecture
+    PaperPilot adopts a frontend-backend separated architecture
   </div>
 </div>
 
 
 - [Installation](#installation)
-    - [1. Resophy Architecture Overview](#1-resophy-architecture-overview)
-    - [1.1. Local End (Resophy Core - Main Service)](#11-local-end-resophy-core---main-service)
+    - [1. PaperPilot Architecture Overview](#1-paperpilot-architecture-overview)
+    - [1.1. Local End (PaperPilot Core - Main Service)](#11-local-end-paperpilot-core---main-service)
     - [1.2. AI End (Optional - AI Server)](#12-ai-end-optional---ai-server)
-  - [2. Install Resophy Local End](#2-install-resophy-local-end)
-  - [3. Install Resophy AI End (Optional)](#3-install-resophy-ai-end-optional)
+  - [2. Install PaperPilot Local End](#2-install-paperpilot-local-end)
+  - [3. Install PaperPilot AI End (Optional)](#3-install-paperpilot-ai-end-optional)
     - [3.1 Deploy MinerU](#31-deploy-mineru)
     - [3.2 Configure LLM Server](#32-configure-llm-server)
 
 
-#### 1. Resophy Architecture Overview
+#### 1. PaperPilot Architecture Overview
 
-Resophy adopts a **dual-end separated architecture**, consisting of two independent deployment ends:
+PaperPilot adopts a **dual-end separated architecture**, consisting of two independent deployment ends:
 
-#### 1.1. Local End (Resophy Core - Main Service)
+#### 1.1. Local End (PaperPilot Core - Main Service)
 
 - **Tech Stack**: HTML + CSS + JavaScript + Python Flask
-- **Features**: Contains all core functionalities of Resophy
+- **Features**: Contains all core functionalities of PaperPilot
   - Paper management (upload, classification, search)
   - Literature management (tree classification, full-text search, metadata management)
   - Import/Export (Zotero import, JSON export)
@@ -52,11 +52,11 @@ Resophy adopts a **dual-end separated architecture**, consisting of two independ
 - **Communication Method**: Local end calls AI end services through HTTP API
 
 
-### 2. Install Resophy Local End
+### 2. Install PaperPilot Local End
 
-Resophy uses `uv` for dependency management.
+PaperPilot uses `uv` for dependency management.
 
-On the machine where you need to run the Resophy main service, install the local end version (does not include AI server dependencies):
+On the machine where you need to run the PaperPilot main service, install the local end version (does not include AI server dependencies):
 
 
 <details open>
@@ -66,8 +66,8 @@ On the machine where you need to run the Resophy main service, install the local
 # Install uv (if not already installed)
 curl -LsSf https://astral.sh/uv/install.sh | sh
 # Clone repository
-git clone https://github.com/Mountchicken/Resophy.git
-cd Resophy
+git clone https://github.com/Mountchicken/PaperPilot.git
+cd PaperPilot
 # Create virtual environment (recommended)
 uv venv
 source .venv/bin/activate
@@ -85,8 +85,8 @@ uv pip install -e ".[local]"
 curl -LsSf https://astral.sh/uv/install.sh | sh
 source ~/.zshrc
 # Clone repository
-git clone https://github.com/Mountchicken/Resophy.git
-cd Resophy
+git clone https://github.com/Mountchicken/PaperPilot.git
+cd PaperPilot
 # Create virtual environment (recommended)
 uv venv
 source .venv/bin/activate
@@ -116,7 +116,7 @@ uv pip install -e ".[local]"
 
 </details>
 
-**Start Resophy Main Service**
+**Start PaperPilot Main Service**
 
 ```bash
 python app.py --papers-dir ./papers --host 0.0.0.0 --port 7890
@@ -127,15 +127,15 @@ Parameter description:
 - `--host`: Server listening address (default: `0.0.0.0`)
 - `--port`: Server listening port (default: `7890`)
 
-After the service starts, you can access the Resophy interface by visiting `http://0.0.0.0:7890` in your browser.
+After the service starts, you can access the PaperPilot interface by visiting `http://0.0.0.0:7890` in your browser.
 
 > **Note**: The local end installation does not include dependencies required for AI features. If you need to use AI translation, AI interpretation, and other features, you need to:
 > - Deploy an AI server on another machine (see section 1.2), or
-> - Use remote AI API services (such as OpenAI, DeepSeek, etc.), and configure the API address and key in Resophy settings
+> - Use remote AI API services (such as OpenAI, DeepSeek, etc.), and configure the API address and key in PaperPilot settings
 
-### 3. Install Resophy AI End (Optional)
+### 3. Install PaperPilot AI End (Optional)
 
-> **Important Note**: AI servers can be deployed on different machines from the Resophy main service. The Resophy main service only needs the API addresses of these AI servers to use AI features. You can deploy AI servers on machines with GPUs according to your resources, while the Resophy main service can be deployed on any machine.
+> **Important Note**: AI servers can be deployed on different machines from the PaperPilot main service. The PaperPilot main service only needs the API addresses of these AI servers to use AI features. You can deploy AI servers on machines with GPUs according to your resources, while the PaperPilot main service can be deployed on any machine.
 
 
 On the machine where you need to deploy MinerU and LLM servers (recommended: machines with GPU), install the server end version:
@@ -147,8 +147,8 @@ On the machine where you need to deploy MinerU and LLM servers (recommended: mac
 # Install uv (if not already installed)
 curl -LsSf https://astral.sh/uv/install.sh | sh
 # Clone repository
-git clone https://github.com/Mountchicken/Resophy.git
-cd Resophy
+git clone https://github.com/Mountchicken/PaperPilot.git
+cd PaperPilot
 # Create virtual environment (recommended)
 uv venv
 source .venv/bin/activate
@@ -166,8 +166,8 @@ uv pip install -e ".[server]"
 curl -LsSf https://astral.sh/uv/install.sh | sh
 source ~/.zshrc
 # Clone repository
-git clone https://github.com/Mountchicken/Resophy.git
-cd Resophy
+git clone https://github.com/Mountchicken/PaperPilot.git
+cd PaperPilot
 # Create virtual environment (recommended)
 uv venv
 source .venv/bin/activate
@@ -197,7 +197,7 @@ uv pip install -e ".[server]"
 
 </details>
 
-Resophy's AI features (**AI Translation**, **AI Interpretation**, **Daily arXiv**) depend on the following services:
+PaperPilot's AI features (**AI Translation**, **AI Interpretation**, **Daily arXiv**) depend on the following services:
 
 - **LLM API Access**: For paper translation, interpretation generation, and arXiv paper intelligent analysis
 - **MinerU Service**: For parsing PDFs into Markdown format, supporting high-quality document structure recognition
@@ -215,7 +215,7 @@ You have two options for using MinerU:
 This is the easiest way to get started without GPU requirements:
 
 1. **Get API Token**: Visit [https://mineru.net/](https://mineru.net/) to register and get your API token
-2. **Configure in Resophy**: 
+2. **Configure in PaperPilot**: 
    - Go to Settings → Agentic tab
    - Under "MinerU Mode", select "Cloud API"
    - Enter your API token
@@ -253,7 +253,7 @@ mineru-vllm-server \
 
 MinerU will start an API server at `http://0.0.0.0:6001` for parsing PDFs into Markdown format.
 
-**Step3. Configure in Resophy**:
+**Step3. Configure in PaperPilot**:
 - Go to Settings → Agentic tab
 - Under "MinerU Mode", select "Local Deployment"
 - Enter your MinerU server URL (e.g., `http://0.0.0.0:6001`)
@@ -264,7 +264,7 @@ MinerU will start an API server at `http://0.0.0.0:6001` for parsing PDFs into M
 
 #### 3.2 Configure LLM Server
 
-Resophy's AI features require access to LLM API. You can use one of the following two methods:
+PaperPilot's AI features require access to LLM API. You can use one of the following two methods:
 
 **Method 1: Use Locally Deployed LLM (Recommended)**
 
@@ -279,7 +279,7 @@ mkdir ai_server
 huggingface-cli download Qwen/Qwen3-4B-Instruct-2507 --local-dir ai_server/Qwen3-4B-Instruct-2507
 
 # or download from modelscope (for chinese users)
-# If you installed resophy[server], modelscope is already included
+# If you installed paperpilot[server], modelscope is already included
 modelscope download Qwen/Qwen3-4B-Instruct-2507 --local_dir ai_server/Qwen3-4B-Instruct-2507
 ```
 
@@ -297,4 +297,4 @@ vllm serve ai_server/Qwen3-4B-Instruct-2507 \
 
 **Method 2: Use Remote LLM API**
 
-If you use remote API services such as OpenAI, DeepSeek, OpenRouter, etc., you can directly configure the API address and key in Resophy settings without local deployment
+If you use remote API services such as OpenAI, DeepSeek, OpenRouter, etc., you can directly configure the API address and key in PaperPilot settings without local deployment

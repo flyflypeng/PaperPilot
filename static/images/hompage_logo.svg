@@ -1,4 +1,4 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 56" role="img" aria-label="Resophy - Simpilfy Paper Reading">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 56" role="img" aria-label="PaperPilot - Simpilfy Paper Reading">
   <defs>
     <linearGradient id="rp-grad" x1="0" y1="0" x2="1" y2="1">
       <stop offset="0" stop-color="#7d4a9d"/>
@@ -21,7 +21,7 @@
   </g>
 
   <g transform="translate(64,6)">
-    <text x="0" y="22" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica, Arial, sans-serif" font-size="22" font-weight="700" fill="#111827">Resophy</text>
-    <text x="0" y="46" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica, Arial, sans-serif" font-size="16" font-weight="600" fill="#6b7280" dominant-baseline="text-after-edge">Simpilfy Paper Reading</text>
+    <text x="0" y="22" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica, Arial, sans-serif" font-size="22" font-weight="700" fill="#111827">PaperPilot</text>
+    <text x="0" y="46" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica, Arial, sans-serif" font-size="16" font-weight="600" fill="#6b7280" dominant-baseline="text-after-edge">Simplify Paper Reading</text>
   </g>
 </svg>

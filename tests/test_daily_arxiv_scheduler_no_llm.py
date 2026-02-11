@@ -5,7 +5,7 @@ import unittest
 from unittest.mock import patch
 
 
-from resophy.tools.basic_tools.daily_arxiv import DailyArxivManager
+from paperpilot.tools.basic_tools.daily_arxiv import DailyArxivManager
 
 
 class TestDailyArxivSchedulerNoLLM(unittest.TestCase):
@@ -36,7 +36,7 @@ class TestDailyArxivSchedulerNoLLM(unittest.TestCase):
 
             manager.fetch_papers = fake_fetch_papers
 
-            with patch("resophy.tools.basic_tools.daily_arxiv.time.sleep", lambda _: None):
+            with patch("paperpilot.tools.basic_tools.daily_arxiv.time.sleep", lambda _: None):
                 manager._do_scheduled_fetch()
 
             self.assertTrue(called)

@@ -1,7 +1,7 @@
 import unittest
 
 
-from resophy.tools.basic_tools.daily_arxiv import match_any_keyword_in_title_or_abstract
+from paperpilot.tools.basic_tools.daily_arxiv import match_any_keyword_in_title_or_abstract
 
 
 class TestDailyArxivKeywordFilter(unittest.TestCase):

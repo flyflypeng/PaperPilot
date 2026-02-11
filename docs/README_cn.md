@@ -1,11 +1,11 @@
 # 本项目新增的核心特性（增强版说明）
 
-下面内容为在 Resophy 基础上的增强优化要点与配置方法（放在文档最前，便于快速上手）。
+下面内容为在 PaperPilot 基础上的增强优化要点与配置方法（放在文档最前，便于快速上手）。
 
 ## 界面效果（修改后）
 
 <div align="center">
-  <img src="assets/screenshots/resophy-frontend.png" width="900px" />
+  <img src="assets/screenshots/paperpilot-frontend.png" width="900px" />
 </div>
 
 ## 快速运行与配置（增强版）
@@ -48,7 +48,7 @@ powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | ie
 
 ```bash
 git clone <YOUR_REPO_URL>
-cd Resophy
+cd PaperPilot
 uv venv
 source .venv/bin/activate
 uv pip install -e .
@@ -63,7 +63,7 @@ SUPABASE_URL="https://<your-project-ref>.supabase.co"
 SUPABASE_ANON_KEY="<your-anon-key>"
 ```
 
-### 4）启动 Resophy
+### 4）启动 PaperPilot
 
 ```bash
 python app.py --papers-dir ./papers --host 0.0.0.0 --port 7191
@@ -98,13 +98,13 @@ python app.py --papers-dir ./papers --host 0.0.0.0 --port 7191
 补充说明：
 
 - AI Chat 默认使用 **Interpret** 场景的模型配置。
-- SQLite 数据库会在首次运行时自动生成：`./db/resophy.db`。
+- SQLite 数据库会在首次运行时自动生成：`./db/paperpilot.db`。
 
 ## 1）后端持久化统一为 SQLite DB
 
-- 统一数据库文件：`./db/resophy.db`（启动时自动创建/初始化表结构）
+- 统一数据库文件：`./db/paperpilot.db`（启动时自动创建/初始化表结构）
 - 覆盖数据（示例）：论文/分类、用户设置、阅读历史、阅读清单、Daily arXiv 任务、AI Chat 会话与历史等
-- 备份与迁移：停止服务后复制 `db/resophy.db`；如需完整迁移论文资产，请同时备份 `papers/` 目录
+- 备份与迁移：停止服务后复制 `db/paperpilot.db`；如需完整迁移论文资产，请同时备份 `papers/` 目录
 
 ## 2）新增 AI Chat 对话：对话式深度论文阅读
 
@@ -173,23 +173,23 @@ SUPABASE_ANON_KEY="<your-anon-key>"
 
 
   <!-- Stars Badge -->
-  <img src="https://img.shields.io/github/stars/Mountchicken/Resophy?style=social&color=D3C1D9" alt="Stars">
+  <img src="https://img.shields.io/github/stars/Mountchicken/PaperPilot?style=social&color=D3C1D9" alt="Stars">
 
   <!-- Forks Badge -->
-  <img src="https://img.shields.io/github/forks/Mountchicken/Resophy?style=social&color=D3C1D9" alt="Forks">
+  <img src="https://img.shields.io/github/forks/Mountchicken/PaperPilot?style=social&color=D3C1D9" alt="Forks">
 
   <!-- Open Issues Badge -->
-  <a href="https://github.com/Mountchicken/Resophy/issues">
-    <img src="https://img.shields.io/github/issues-raw/Mountchicken/Resophy?color=D3C1D9" alt="Open Issues">
+  <a href="https://github.com/Mountchicken/PaperPilot/issues">
+    <img src="https://img.shields.io/github/issues-raw/Mountchicken/PaperPilot?color=D3C1D9" alt="Open Issues">
   </a>
 
   <!-- Issue Resolution Badge -->
-  <a href="https://github.com/Mountchicken/Resophy/issues">
-    <img src="https://img.shields.io/github/issues-closed-raw/Mountchicken/Resophy?color=32CD32" alt="Issue Resolution">
+  <a href="https://github.com/Mountchicken/PaperPilot/issues">
+    <img src="https://img.shields.io/github/issues-closed-raw/Mountchicken/PaperPilot?color=32CD32" alt="Issue Resolution">
   </a>
 
   <!-- Pull Requests Badge -->
-  <img src="https://img.shields.io/github/issues-pr/Mountchicken/Resophy?color=FFFF00" alt="Pull Requests">
+  <img src="https://img.shields.io/github/issues-pr/Mountchicken/PaperPilot?color=FFFF00" alt="Pull Requests">
 
   <!-- Platform Support Badge (Windows, Mac, Linux) with Light Green -->
   <img src="https://img.shields.io/badge/Platform-Windows%2C%20Mac%2C%20Linux-D3C1D9" alt="Platform Support">
@@ -203,7 +203,7 @@ SUPABASE_ANON_KEY="<your-anon-key>"
 
 [English](docs/README_en.md) | [简体中文](README.md) | [安装文档](installation_zh.md)
 
-<span style="color:rgb(154, 46, 222);">***Resophy 所有代码都采用 Cusor (Sonnet 4.5/Auto) 生成，人工校验的方式搭建***</span>
+<span style="color:rgb(154, 46, 222);">***PaperPilot 所有代码都采用 Cusor (Sonnet 4.5/Auto) 生成，人工校验的方式搭建***</span>
 
 </div>
 
@@ -214,17 +214,17 @@ SUPABASE_ANON_KEY="<your-anon-key>"
 
 ----
 
-# Resophy
+# PaperPilot
 
 ## 🆕 最新动态
 
-**MinerU 官方 API 支持**：Resophy 现已支持 MinerU 官方云端 API！您可以使用 MinerU 的云端服务进行 PDF 解析，无需部署自己的 MinerU 服务器。只需在设置 → Agentic → MinerU 模式中选择"Cloud API"，并输入从 [https://mineru.net/](https://mineru.net/) 获取的 API Token 即可。这使得无需 GPU 也能轻松使用 AI 解读功能。
+**MinerU 官方 API 支持**：PaperPilot 现已支持 MinerU 官方云端 API！您可以使用 MinerU 的云端服务进行 PDF 解析，无需部署自己的 MinerU 服务器。只需在设置 → Agentic → MinerU 模式中选择"Cloud API"，并输入从 [https://mineru.net/](https://mineru.net/) 获取的 API Token 即可。这使得无需 GPU 也能轻松使用 AI 解读功能。
 
 ---
 
-在如今信息爆炸的时代，科研人员面对海量的论文，常常感到疲惫不堪。如何快速获取精华、理解前沿成果，成了每个研究者的痛点。Resophy 诞生的初衷就是要让你告别低效的论文阅读，赋能科研者，让读论文变得更高效、更智能📚⚡。
+在如今信息爆炸的时代，科研人员面对海量的论文，常常感到疲惫不堪。如何快速获取精华、理解前沿成果，成了每个研究者的痛点。PaperPilot 诞生的初衷就是要让你告别低效的论文阅读，赋能科研者，让读论文变得更高效、更智能📚⚡。
 
-Resophy 是一个完全开源、Vibe Coding 导向的现代论文阅读器，它通过简洁的技术栈（HTML + JavaScript + Python Flask）和 AI 功能，帮助你快速理解论文的核心内容🤖💡。从自动翻译到论文解析，从智能推荐到一键导入 Zotero，Resophy 一站式解决你的论文阅读需求📑✨。最重要的是，你可以随时通过 **Vibe Coding** 的方式自定义功能，打造成专属于你的论文助手🎨🛠️。
+PaperPilot 是一个完全开源、Vibe Coding 导向的现代论文阅读器，它通过简洁的技术栈（HTML + JavaScript + Python Flask）和 AI 功能，帮助你快速理解论文的核心内容🤖💡。从自动翻译到论文解析，从智能推荐到一键导入 Zotero，PaperPilot 一站式解决你的论文阅读需求📑✨。最重要的是，你可以随时通过 **Vibe Coding** 的方式自定义功能，打造成专属于你的论文助手🎨🛠️。
 
 
 #### 🚀 核心功能
@@ -243,7 +243,7 @@ Resophy 是一个完全开源、Vibe Coding 导向的现代论文阅读器，它
 
 ## 目录
 
-- [Resophy](#resophy)
+- [PaperPilot](#paperpilot)
       - [🚀 核心功能](#-核心功能)
   - [目录](#目录)
   - [1. 安装](#1-安装)
@@ -274,17 +274,17 @@ Resophy 是一个完全开源、Vibe Coding 导向的现代论文阅读器，它
 <div align=center>
   <img src="https://github.com/user-attachments/assets/73d25cfa-5791-4b54-a131-d816f51afebb">
   <div style="margin-top:8px; color: #555; font-size: 16px;">
-    Resophy 采用前后端分离的架构
+    PaperPilot 采用前后端分离的架构
   </div>
 </div>
 
 
-1. **主服务（Resophy Core）**：HTML + JavaScript + Python Flask 后端服务，提供论文管理、分类、搜索等核心功能
+1. **主服务（PaperPilot Core）**：HTML + JavaScript + Python Flask 后端服务，提供论文管理、分类、搜索等核心功能
 2. **AI 服务** 包括：
    - **LLM 服务器**：用于 AI 翻译、解读和 arXiv 论文分析的 LLM 推理服务（可选，支持本地部署或远程 API）
    - **MinerU 服务器**：用于 PDF 到 Markdown 解析的文档解析服务（可选，用于 AI 功能）
   
-Resophy 使用 `uv` 进行依赖管理，支持分离部署架构。你可以将 Resophy 主服务和 AI 服务器部署在不同的机器上。安装和配置说明，请参考：
+PaperPilot 使用 `uv` 进行依赖管理，支持分离部署架构。你可以将 PaperPilot 主服务和 AI 服务器部署在不同的机器上。安装和配置说明，请参考：
 
 <div align="center">
   <table>
@@ -307,7 +307,7 @@ Resophy 使用 `uv` 进行依赖管理，支持分离部署架构。你可以将
 
 ## 2. 快速上手
 
-在这一节，我们简要介绍一些 Resophy 的使用方法
+在这一节，我们简要介绍一些 PaperPilot 的使用方法
 
 
 ### 2.1 ⚙️ 第一步，进行初始配置
@@ -378,7 +378,7 @@ Resophy 使用 `uv` 进行依赖管理，支持分离部署架构。你可以将
 
 **使用步骤**：
 1. 在 Zotero 中导出文献库为 RDF 格式
-2. 在 Resophy 设置界面进入 "Import" 标签页
+2. 在 PaperPilot 设置界面进入 "Import" 标签页
 3. （可选）选择目标目录
 4. 拖拽 RDF 文件到上传区域
 5. 系统自动解析并导入论文，显示导入进度和结果
@@ -429,7 +429,7 @@ Resophy 使用 `uv` 进行依赖管理，支持分离部署架构。你可以将
 
 **实现方式**：
 
-Resophy 的 AI 翻译功能使用 [Babeldoc](https://github.com/funstory-ai/BabelDOC) 工具实现 PDF 双语翻译：
+PaperPilot 的 AI 翻译功能使用 [Babeldoc](https://github.com/funstory-ai/BabelDOC) 工具实现 PDF 双语翻译：
 
 1. **调用 babeldoc**：
    - 传入配置的 LLM API 信息（模型、URL、密钥）
@@ -455,7 +455,7 @@ Resophy 的 AI 翻译功能使用 [Babeldoc](https://github.com/funstory-ai/Babe
 
 **实现方式**：
 
-Resophy 的 AI 解读功能采用两步流程，深度分析论文内容：
+PaperPilot 的 AI 解读功能采用两步流程，深度分析论文内容：
 
 1. **PDF 解析为 Markdown**：
    - 使用 [MinerU](https://github.com/opendatalab/MinerU) 工具将 PDF 解析为结构化 Markdown
@@ -534,7 +534,7 @@ Daily arXiv 功能自动爬取最新 arXiv 论文，并使用 AI 进行智能分
 
 ### 2.6 用户注册与登录（基于 Supabase）
 
-Resophy 现已支持通过 Supabase Auth 实现用户注册与登录，并在后端对所有 `/api/*` 路由进行会话鉴权（必须携带 `Authorization: Bearer <access_token>`）。以下为配置与使用指南。
+PaperPilot 现已支持通过 Supabase Auth 实现用户注册与登录，并在后端对所有 `/api/*` 路由进行会话鉴权（必须携带 `Authorization: Bearer <access_token>`）。以下为配置与使用指南。
 
 #### 一、准备工作（在 Supabase 控制台）
 - 创建一个 Supabase Project
@@ -545,13 +545,13 @@ Resophy 现已支持通过 Supabase Auth 实现用户注册与登录，并在后
   - 控制台 → Authentication → URL Configuration
     - Site URL：设置为 `http://127.0.0.1:7191`（或你的实际域名/端口）
     - Redirect URLs：添加 `http://127.0.0.1:7191/*` 与 `http://localhost:7191/*`
-  - 这样邮件里的确认链接会跳回 Resophy 的端口，而不是默认的 `localhost:3000`
+  - 这样邮件里的确认链接会跳回 PaperPilot 的端口，而不是默认的 `localhost:3000`
 - 是否允许公开注册（可选）：
   - 控制台 → Authentication → Providers → Email → Email Signups
   - 开启：任何人都可注册；关闭：仅已存在用户可登录（页面上 Sign Up 会提示被拒绝）
 
 #### 二、后端环境变量（必须）
-Resophy 后端会把 Supabase 配置注入到前端，并通过 Supabase 的 `/auth/v1/user` 接口校验会话 token。请在启动服务前设置：
+PaperPilot 后端会把 Supabase 配置注入到前端，并通过 Supabase 的 `/auth/v1/user` 接口校验会话 token。请在启动服务前设置：
 
 ```bash
 export SUPABASE_URL="https://xxxx.supabase.co"
@@ -583,7 +583,7 @@ python app.py --port 7191 --debug
 
 ## 3. 💻 Vibe Coding
 
-Resophy 采用 **Vibe Coding** 的开发理念，这意味着你可以通过自然语言与 AI Coding Agent 对话，轻松自定义和扩展功能。无需深入了解复杂的代码结构，只需描述你的需求，AI 就能帮你实现。
+PaperPilot 采用 **Vibe Coding** 的开发理念，这意味着你可以通过自然语言与 AI Coding Agent 对话，轻松自定义和扩展功能。无需深入了解复杂的代码结构，只需描述你的需求，AI 就能帮你实现。
 
 [![Video Name](https://github.com/user-attachments/assets/bced2c0f-0d4c-4c5d-a264-47bfc533ca31)](https://github.com/user-attachments/assets/a7c218eb-f045-4b59-9076-fff93e5e4861)
 
@@ -637,12 +637,12 @@ Resophy 采用 **Vibe Coding** 的开发理念，这意味着你可以通过自�
 
 ### 📁 项目结构
 
-了解项目结构有助于你更好地描述需求。Resophy 采用清晰的分层架构：
+了解项目结构有助于你更好地描述需求。PaperPilot 采用清晰的分层架构：
 
 ```
-Resophy/
+PaperPilot/
 ├── app.py                    # Flask 应用入口，路由注册
-├── resophy/
+├── paperpilot/
 │   ├── core/                 # 核心数据模型
 │   │   ├── base_paper.py     # 论文数据模型
 │   │   ├── paper_store.py    # 论文存储管理
@@ -714,4 +714,4 @@ Resophy/
 ----
 
 ## 4. LICENSE
-Resophy 采用 [CC BY-NC 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.en) 开源许可证，请参考 [LICENSE](LICENSE) 文件。
+PaperPilot 采用 [CC BY-NC 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.en) 开源许可证，请参考 [LICENSE](LICENSE) 文件。

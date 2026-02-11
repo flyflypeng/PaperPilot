@@ -1,2 +1,0 @@
-# Routes module for Resophy
-

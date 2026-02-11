@@ -100,7 +100,7 @@ function ensureAppLoaded() {
     if (appLoaded || appLoading) return;
     if (!getAccessToken()) return;
 
-    const existing = document.getElementById('resophy-app-script');
+    const existing = document.getElementById('paperpilot-app-script');
     if (existing) {
         appLoading = true;
         return;
@@ -110,7 +110,7 @@ function ensureAppLoaded() {
 
     appLoading = true;
     const script = document.createElement('script');
-    script.id = 'resophy-app-script';
+    script.id = 'paperpilot-app-script';
     script.src = '/static/js/app.js?v=1.2';
     script.onload = () => {
         appLoaded = true;

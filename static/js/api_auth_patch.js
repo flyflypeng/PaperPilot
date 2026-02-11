@@ -7,8 +7,8 @@
   const client = window.supabase.createClient(supabaseUrl, supabaseAnonKey);
   let accessToken = null;
 
-  if (!window.__resophyFetchAuthPatched) {
-    window.__resophyFetchAuthPatched = true;
+  if (!window.__paperpilotFetchAuthPatched) {
+    window.__paperpilotFetchAuthPatched = true;
     const originalFetch = window.fetch.bind(window);
     window.fetch = (input, init = {}) => {
       try {

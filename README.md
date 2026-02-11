@@ -8,23 +8,23 @@
 
 
   <!-- Stars Badge -->
-  <img src="https://img.shields.io/github/stars/Mountchicken/Resophy?style=social&color=D3C1D9" alt="Stars">
+  <img src="https://img.shields.io/github/stars/Mountchicken/PaperPilot?style=social&color=D3C1D9" alt="Stars">
 
   <!-- Forks Badge -->
-  <img src="https://img.shields.io/github/forks/Mountchicken/Resophy?style=social&color=D3C1D9" alt="Forks">
+  <img src="https://img.shields.io/github/forks/Mountchicken/PaperPilot?style=social&color=D3C1D9" alt="Forks">
 
   <!-- Open Issues Badge -->
-  <a href="https://github.com/Mountchicken/Resophy/issues">
-    <img src="https://img.shields.io/github/issues-raw/Mountchicken/Resophy?color=D3C1D9" alt="Open Issues">
+  <a href="https://github.com/Mountchicken/PaperPilot/issues">
+    <img src="https://img.shields.io/github/issues-raw/Mountchicken/PaperPilot?color=D3C1D9" alt="Open Issues">
   </a>
 
   <!-- Issue Resolution Badge -->
-  <a href="https://github.com/Mountchicken/Resophy/issues">
-    <img src="https://img.shields.io/github/issues-closed-raw/Mountchicken/Resophy?color=32CD32" alt="Issue Resolution">
+  <a href="https://github.com/Mountchicken/PaperPilot/issues">
+    <img src="https://img.shields.io/github/issues-closed-raw/Mountchicken/PaperPilot?color=32CD32" alt="Issue Resolution">
   </a>
 
   <!-- Pull Requests Badge -->
-  <img src="https://img.shields.io/github/issues-pr/Mountchicken/Resophy?color=FFFF00" alt="Pull Requests">
+  <img src="https://img.shields.io/github/issues-pr/Mountchicken/PaperPilot?color=FFFF00" alt="Pull Requests">
 
   <!-- Platform Support Badge (Windows, Mac, Linux) with Light Green -->
   <img src="https://img.shields.io/badge/Platform-Windows%2C%20Mac%2C%20Linux-D3C1D9" alt="Platform Support">
@@ -39,7 +39,7 @@
 
 [English](README.md) | [简体中文](docs/README_cn.md) | [Installation Guide](docs/installation_en.md)
 
-<span style="color:rgb(154, 46, 222);">***All Resophy code is built using Cursor (Sonnet 4.5/Auto) generation with manual verification***</span>
+<span style="color:rgb(154, 46, 222);">***All PaperPilot code is built using Cursor (Sonnet 4.5/Auto) generation with manual verification***</span>
 
 </div>
 
@@ -50,14 +50,14 @@ This section highlights the major enhancements and how to configure them, placed
 ## UI Preview (Modified Frontend)
 
 <div align="center">
-  <img src="docs/assets/screenshots/resophy-frontend.png" width="900px" />
+  <img src="docs/assets/screenshots/paperpilot-frontend.png" width="900px" />
 </div>
 
 ## 1) Unified SQLite Persistence (Backend)
 
-- Single database file: `./db/resophy.db` (created automatically on startup; schema initialized automatically).
+- Single database file: `./db/paperpilot.db` (created automatically on startup; schema initialized automatically).
 - Covered data (examples): papers/categories, user settings, reading history, reading list, Daily arXiv tasks, AI Chat sessions/history, etc.
-- Backup/migration: stop the service and copy `db/resophy.db`; for full asset migration, also back up the `papers/` directory.
+- Backup/migration: stop the service and copy `db/paperpilot.db`; for full asset migration, also back up the `papers/` directory.
 
 ## 2) AI Chat: Conversational Deep Paper Reading
 
@@ -150,7 +150,7 @@ powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | ie
 
 ```bash
 git clone <YOUR_REPO_URL>
-cd Resophy
+cd PaperPilot
 uv venv
 source .venv/bin/activate
 uv pip install -e .
@@ -165,7 +165,7 @@ SUPABASE_URL="https://<your-project-ref>.supabase.co"
 SUPABASE_ANON_KEY="<your-anon-key>"
 ```
 
-### 4) Start Resophy
+### 4) Start PaperPilot
 
 ```bash
 python app.py --papers-dir ./papers --host 0.0.0.0 --port 7191
@@ -202,7 +202,7 @@ In the UI: Settings → Agentic
 Notes:
 
 - AI Chat uses the **Interpret** LLM config by default.
-- The SQLite DB is created at `./db/resophy.db` automatically on first run.
+- The SQLite DB is created at `./db/paperpilot.db` automatically on first run.
 
 ----
 
@@ -211,17 +211,17 @@ Notes:
 
 ----
 
-# Resophy
+# PaperPilot
 
 ## 🆕 News
 
-**2025-12-27：MinerU Official API Support**: Resophy now supports MinerU's official cloud API! You can use MinerU's cloud service for PDF parsing without deploying your own MinerU server. Simply configure your API token in Settings → Agentic → MinerU Mode (select "Cloud API") and enter your token from [https://mineru.net/](https://mineru.net/). This makes it easier to get started with AI interpretation features without GPU requirements.
+**2025-12-27：MinerU Official API Support**: PaperPilot now supports MinerU's official cloud API! You can use MinerU's cloud service for PDF parsing without deploying your own MinerU server. Simply configure your API token in Settings → Agentic → MinerU Mode (select "Cloud API") and enter your token from [https://mineru.net/](https://mineru.net/). This makes it easier to get started with AI interpretation features without GPU requirements.
 
 ---
 
-In this era of information explosion, researchers often feel overwhelmed when facing massive amounts of papers. How to quickly extract the essence and understand cutting-edge achievements has become a pain point for every researcher. Resophy was born with the intention of helping you bid farewell to inefficient paper reading, empowering researchers, and making paper reading more efficient and intelligent 📚⚡.
+In this era of information explosion, researchers often feel overwhelmed when facing massive amounts of papers. How to quickly extract the essence and understand cutting-edge achievements has become a pain point for every researcher. PaperPilot was born with the intention of helping you bid farewell to inefficient paper reading, empowering researchers, and making paper reading more efficient and intelligent 📚⚡.
 
-Resophy is a fully open-source, Vibe Coding-oriented modern paper reader that helps you quickly understand the core content of papers through a simple tech stack (HTML + JavaScript + Python Flask) and AI features 🤖💡. From automatic translation to paper parsing, from intelligent recommendations to one-click Zotero import, Resophy provides a one-stop solution for your paper reading needs 📑✨. Most importantly, you can customize features at any time through **Vibe Coding**, creating a paper assistant tailored to you 🎨🛠️.
+PaperPilot is a fully open-source, Vibe Coding-oriented modern paper reader that helps you quickly understand the core content of papers through a simple tech stack (HTML + JavaScript + Python Flask) and AI features 🤖💡. From automatic translation to paper parsing, from intelligent recommendations to one-click Zotero import, PaperPilot provides a one-stop solution for your paper reading needs 📑✨. Most importantly, you can customize features at any time through **Vibe Coding**, creating a paper assistant tailored to you 🎨🛠️.
 
 
 #### 🚀 Core Features
@@ -239,7 +239,7 @@ Resophy is a fully open-source, Vibe Coding-oriented modern paper reader that he
 ----
 
 ## Table of Contents
-- [Resophy](#resophy)
+- [PaperPilot](#paperpilot)
       - [Core Features](#-core-features)
   - [Table of Contents](#table-of-contents)
   - [1. Installation](#1-installation)
@@ -267,17 +267,17 @@ Resophy is a fully open-source, Vibe Coding-oriented modern paper reader that he
 <div align=center>
   <img src="https://github.com/user-attachments/assets/73d25cfa-5791-4b54-a131-d816f51afebb">
   <div style="margin-top:8px; color: #555; font-size: 16px;">
-    Resophy adopts a frontend-backend separated architecture
+    PaperPilot adopts a frontend-backend separated architecture
   </div>
 </div>
 
 
-1. **Main Service (Resophy Core)**: HTML + JavaScript + Python Flask backend service, providing core features such as paper management, classification, and search
+1. **Main Service (PaperPilot Core)**: HTML + JavaScript + Python Flask backend service, providing core features such as paper management, classification, and search
 2. **AI Services** include:
    - **LLM Server**: LLM inference service for AI translation, interpretation, and arXiv paper analysis (optional, supports local deployment or remote API)
    - **MinerU Server**: Document parsing service for PDF to Markdown parsing (optional, for AI features)
   
-Resophy uses `uv` for dependency management and supports separated deployment architecture. You can deploy Resophy main service and AI servers on different machines. For installation and configuration instructions, please refer to:
+PaperPilot uses `uv` for dependency management and supports separated deployment architecture. You can deploy PaperPilot main service and AI servers on different machines. For installation and configuration instructions, please refer to:
 
 <div align="center">
   <table>
@@ -300,7 +300,7 @@ Resophy uses `uv` for dependency management and supports separated deployment ar
 
 ## 2. Quick Start
 
-In this section, we briefly introduce some usage methods of Resophy
+In this section, we briefly introduce some usage methods of PaperPilot
 
 
 ### 2.1 ⚙️ First Step: Initial Configuration
@@ -371,7 +371,7 @@ In this section, we briefly introduce some usage methods of Resophy
 
 **Usage Steps**:
 1. Export library from Zotero as RDF format
-2. Enter "Import" tab in Resophy settings interface
+2. Enter "Import" tab in PaperPilot settings interface
 3. (Optional) Select target directory
 4. Drag RDF file to upload area
 5. System automatically parses and imports papers, displays import progress and results
@@ -415,7 +415,7 @@ When uploading papers (via arXiv URL or dragging PDF), the system automatically 
 </details>
 
 ### 2.6 User Registration & Login (Supabase)
-- Refer to the Chinese documentation for full setup and usage: [用户注册与登录（基于 Supabase）](file:///home/flyflypeng/agent/Resophy/docs/README_cn.md#L369-L418)
+- Refer to the Chinese documentation for full setup and usage: [用户注册与登录（基于 Supabase）](file:///home/flyflypeng/agent/PaperPilot/docs/README_cn.md#L369-L418)
 
 ### 2.3. AI Translation
 
@@ -425,7 +425,7 @@ When uploading papers (via arXiv URL or dragging PDF), the system automatically 
 
 **Implementation Method**:
 
-Resophy's AI translation feature uses the [Babeldoc](https://github.com/funstory-ai/BabelDOC) tool to implement PDF bilingual translation:
+PaperPilot's AI translation feature uses the [Babeldoc](https://github.com/funstory-ai/BabelDOC) tool to implement PDF bilingual translation:
 
 1. **Call babeldoc**:
    - Pass configured LLM API information (model, URL, key)
@@ -451,7 +451,7 @@ Resophy's AI translation feature uses the [Babeldoc](https://github.com/funstory
 
 **Implementation Method**:
 
-Resophy's AI interpretation feature uses a two-step process to deeply analyze paper content:
+PaperPilot's AI interpretation feature uses a two-step process to deeply analyze paper content:
 
 1. **Parse PDF to Markdown**:
    - Use [MinerU](https://github.com/opendatalab/MinerU) tool to parse PDF into structured Markdown
@@ -530,7 +530,7 @@ Daily arXiv feature automatically crawls latest arXiv papers and uses AI for int
 
 ## 3. 💻 Vibe Coding
 
-Resophy adopts the **Vibe Coding** development philosophy, which means you can easily customize and extend features through natural language conversations with AI Coding Agent. No need to deeply understand complex code structures, just describe your needs, and AI will help you implement them.
+PaperPilot adopts the **Vibe Coding** development philosophy, which means you can easily customize and extend features through natural language conversations with AI Coding Agent. No need to deeply understand complex code structures, just describe your needs, and AI will help you implement them.
 
 [![Video Name](https://github.com/user-attachments/assets/bced2c0f-0d4c-4c5d-a264-47bfc533ca31)](https://github.com/user-attachments/assets/a7c218eb-f045-4b59-9076-fff93e5e4861)
 
@@ -584,12 +584,12 @@ I want to add keyboard shortcuts, like pressing 'j' and 'k' keys to navigate up 
 
 ### 📁 Project Structure
 
-Understanding the project structure helps you better describe your needs. Resophy adopts a clear layered architecture:
+Understanding the project structure helps you better describe your needs. PaperPilot adopts a clear layered architecture:
 
 ```
-Resophy/
+PaperPilot/
 ├── app.py                    # Flask application entry, route registration
-├── resophy/
+├── paperpilot/
 │   ├── core/                 # Core data models
 │   │   ├── base_paper.py     # Paper data model
 │   │   ├── paper_store.py    # Paper storage management
@@ -661,4 +661,4 @@ The following are some common customization need examples, you can refer to thes
 ----
 
 ## 4. LICENSE
-Resophy uses the [CC BY-NC 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.en) open source license, please refer to the [LICENSE](LICENSE) file.
+PaperPilot uses the [CC BY-NC 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.en) open source license, please refer to the [LICENSE](LICENSE) file.

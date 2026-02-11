@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Resophy - Agentic Paper Reading</title>
+    <title>PaperPilot - Agentic Paper Reading</title>
     <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='images/website_logo.svg') }}">
     <link rel="alternate icon" type="image/png" href="{{ url_for('static', filename='images/website_logo.png') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}?v=1.1">
@@ -42,11 +42,11 @@
     <nav class="navbar">
         <div class="navbar-content">
             <div class="navbar-brand" id="navbar-brand" style="cursor: pointer;" title="Back to Home">
-                <img src="{{ url_for('static', filename='images/hompage_logo.svg') }}" alt="Resophy" class="navbar-logo"
+                <img src="{{ url_for('static', filename='images/hompage_logo.svg') }}" alt="PaperPilot" class="navbar-logo"
                     id="navbar-logo"
                     onerror="this.style.display='none'; this.nextElementSibling.style.display='inline-block';">
                 <span class="navbar-brand-text" id="navbar-brand-text" style="display:none;"><i class="fas fa-book"></i>
-                    Resophy</span>
+                    PaperPilot</span>
             </div>
             <div class="navbar-tabs" style="margin-left:auto; display:flex; align-items:center; gap:12px;">
                 <button id="btn-show-reading-list" class="ti-item ti-reading" title="View reading list">
@@ -1389,7 +1389,7 @@
         <div class="onboarding-overlay" onclick="closeOnboardingModal()"></div>
         <div class="onboarding-card">
             <div class="onboarding-header">
-                <h2><i class="fas fa-graduation-cap"></i> Welcome to Resophy</h2>
+                <h2><i class="fas fa-graduation-cap"></i> Welcome to PaperPilot</h2>
                 <button class="onboarding-close" onclick="closeOnboardingModal()">
                     <i class="fas fa-times"></i>
                 </button>
@@ -1483,10 +1483,10 @@
     <div id="login-overlay" class="login-overlay" style="display: none;">
         <div class="login-card">
             <div class="login-header">
-                <img src="{{ url_for('static', filename='images/website_logo.svg') }}" alt="Resophy Logo"
+                <img src="{{ url_for('static', filename='images/website_logo.svg') }}" alt="PaperPilot Logo"
                     class="login-logo" onerror="this.style.display='none'">
                 <h2 id="auth-title">Log In</h2>
-                <p>Welcome to Resophy Paper Reading</p>
+                <p>Welcome to PaperPilot Paper Reading</p>
             </div>
             <form id="auth-form" class="auth-form">
                 <div class="form-group">
