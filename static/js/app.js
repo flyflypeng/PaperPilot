@@ -1,5 +1,8 @@
 // Global state
 let categories = {};
+let hasLoadedCategories = false; // Whether the category has been loaded
+let hasLoadedPapersDir = false; // Whether the papers directory path has been loaded
+
 let currentCategoryId = null;
 let currentPaperId = null;
 let papers = [];
@@ -328,7 +331,26 @@ async function bootstrapApp() {
     window.__PAPERPILOT_APP_BOOTSTRAPPED = true;
 
     try {
-        await loadCategories();
+        // Determine whether you need to load a directory tree (sidebar visible or restore category view)
+        const leftSidebar = document.querySelector('.sidebar');
+        let shouldLoadCategories = leftSidebar && leftSidebar.style.display !== 'none';
+
+        if (!shouldLoadCategories) {
+            try {
+                const savedState = sessionStorage.getItem('currentViewState');
+                if (savedState) {
+                    const state = JSON.parse(savedState);
+                    if (state.viewMode === 'category' && state.categoryId) {
+                        shouldLoadCategories = true;
+                    }
+                }
+            } catch (e) { }
+        }
+
+        if (shouldLoadCategories) {
+            await loadCategories();
+        }
+
         setupEventListeners();
         setupNavigation();
         loadAgenticSettings().catch(err => {
@@ -551,6 +573,7 @@ async function updateCategoriesData() {
     try {
         const response = await fetch('/api/categories');
         categories = await response.json();
+        hasLoadedCategories = true;
     } catch (error) {
         console.error('Failed to refresh category data:', error);
     }
@@ -8029,6 +8052,7 @@ async function switchSettingPanel(panelName) {
     // If you switch to Export panel, reset UI
     if (panelName === 'export') {
         resetExportUI();
+        await loadPapersDir();
     }
 
     // If you switch to Daily arXiv Panel, load settings
@@ -10385,6 +10409,10 @@ async function loadPapersForCurrentDate() {
     }
 
     // After the paper data is loaded, first refresh the filter options and then render the grid.
+    // Ensure that the institution mapping table is loaded (if not already loaded)
+    if (!dailyArxivKnownInstitutions || dailyArxivKnownInstitutions.size === 0) {
+        await loadKnownInstitutions();
+    }
     renderDailyArxivFilterAffiliations();
     renderDailyArxivFilterCountries();
     renderDailyArxivFilterKeywords();
@@ -10436,7 +10464,11 @@ async function loadDailyArxivSettings() {
         }
 
         // Load list of known institutions
-        await loadKnownInstitutions();
+        // Lazy loading: Only when the Daily arXiv function is enabled or when entering the Daily arXiv interface is it necessary to load
+        const dailyArxivView = document.getElementById('daily-arxiv-view');
+        if (isDailyArxivEnabled() && dailyArxivView && dailyArxivView.style.display !== 'none') {
+            await loadKnownInstitutions();
+        }
     } catch (err) {
         console.error('load Daily arXiv Setup failed:', err);
     }
@@ -10444,6 +10476,11 @@ async function loadDailyArxivSettings() {
 
 // Load a list of all known institutions（System default + User defined）
 async function loadKnownInstitutions() {
+    // Avoid repeated loading
+    if (dailyArxivKnownInstitutions && dailyArxivKnownInstitutions.size > 0) {
+        return;
+    }
+
     try {
         const res = await fetch('/api/all-known-institutions');
         if (res.ok) {
@@ -12836,6 +12873,9 @@ async function showDailyArxivView() {
     await checkDailyArxivLLMConfig();
 
     await loadDailyArxivSettings();
+    // Lazy loading of custom organization list (only loaded when entering Daily arXiv)
+    await loadCustomInstitutions();
+
     // Load available dates first（This will set dailyArxivCurrentDate）
     await loadAvailableDates();
 
@@ -12868,18 +12908,26 @@ async function showDailyArxivView() {
 // ==================== Custom organization configuration management ====================
 
 let customInstitutions = []; // Store custom organization
+let hasLoadedCustomInstitutions = false; // Whether the custom mechanism has been loaded
 let currentEditingInstitution = null; // Institution currently being edited
 
 /**
  * Load custom organization configuration
+ * @param {boolean} force Force reload
  */
-async function loadCustomInstitutions() {
+async function loadCustomInstitutions(force = false) {
+    // Avoid repeated loading (unless forced refresh)
+    if (!force && hasLoadedCustomInstitutions && customInstitutions.length > 0) {
+        return;
+    }
+
     try {
         const response = await fetch('/api/custom-institutions');
         const data = await response.json();
 
         if (data.success) {
             customInstitutions = data.institutions || [];
+            hasLoadedCustomInstitutions = true;
             renderCustomInstitutions();
         } else {
             console.error('Failed to load custom organization:', data.error);
@@ -13186,7 +13234,7 @@ async function saveInstitutionInModal() {
         if (data.success) {
             showMessage('The institution has been saved and the paper is being refreshed....', 'success');
             closeInstitutionModal();
-            await loadCustomInstitutions();
+            await loadCustomInstitutions(true);
 
             // refresh Daily arXiv of thesis data to enable the new institutional mapping
             await refreshDailyArxivAfterInstitutionChange();
@@ -13221,7 +13269,7 @@ async function deleteInstitutionInModal() {
         if (data.success) {
             showMessage('Deleted, refreshing the paper...', 'success');
             closeInstitutionModal();
-            await loadCustomInstitutions();
+            await loadCustomInstitutions(true);
 
             // refresh Daily arXiv paper data
             await refreshDailyArxivAfterInstitutionChange();
@@ -13274,9 +13322,6 @@ onAppReady(() => {
     // Initialize custom organization management
     initCustomInstitutionManagement();
 
-    // Load custom institution list now（When the page loads）
-    loadCustomInstitutions();
-
     // Monitoring settings panel switch（Make sure to switch to Daily arXiv Also refresh when setting）
     const dailyArxivSettingBtn = document.querySelector('.setting-nav-item[data-setting="daily-arxiv"]');
     if (dailyArxivSettingBtn) {
@@ -13292,6 +13337,25 @@ onAppReady(() => {
 // ==================== Export Function ====================
 let exportTaskId = null;
 let exportProgressInterval = null;
+
+// Load papers directory path
+async function loadPapersDir() {
+    if (hasLoadedPapersDir) return;
+
+    try {
+        const pathElement = document.getElementById('papers-dir-path');
+        if (pathElement) {
+            const response = await fetch('/api/papers-dir');
+            const data = await response.json();
+            if (data.success) {
+                pathElement.textContent = data.path;
+                hasLoadedPapersDir = true;
+            }
+        }
+    } catch (error) {
+        console.error('get papers Directory path failed:', error);
+    }
+}
 
 // Initialize export function
 async function initExportFeature() {
@@ -13309,20 +13373,6 @@ async function initExportFeature() {
 
     if (btnDownloadExport) {
         btnDownloadExport.addEventListener('click', downloadExport);
-    }
-
-    // Get and display papers directory path
-    try {
-        const response = await fetch('/api/papers-dir');
-        const data = await response.json();
-        if (data.success) {
-            const pathElement = document.getElementById('papers-dir-path');
-            if (pathElement) {
-                pathElement.textContent = data.path;
-            }
-        }
-    } catch (error) {
-        console.error('get papers Directory path failed:', error);
     }
 }
 
@@ -13667,6 +13717,11 @@ async function checkAndShowOnboarding() {
                 leftSidebar.style.display = isVisible ? 'none' : 'flex';
                 leftToggleBtn.classList.toggle('active', !isVisible);
                 window.dispatchEvent(new Event('resize'));
+
+                // If expanded and not loaded, load category
+                if (!isVisible && !hasLoadedCategories) {
+                    loadCategories();
+                }
             });
         }
 
