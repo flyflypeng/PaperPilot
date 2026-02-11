@@ -468,6 +468,7 @@ Resophy's AI interpretation feature uses a two-step process to deeply analyze pa
    - Step 2: LLM deeply analyzes and generates interpretation report
 3. View progress and logs in "Interpretation Tasks" page
 4. After interpretation completes, click paper to enter interpretation view for detailed analysis
+5. **Export Report**: Click the "Export" button in the top right corner to save the report as **Markdown** or **PDF** (optimized for printing)
 
 </details>
 
