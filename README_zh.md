@@ -14,7 +14,7 @@
 
 ---
 
-> 这个项目是基于 [Resophy](https://github.com/Mountchicken/Resophy) 开源项目二次开发而来，非常感谢原作者非常有趣的创造。
+> 这个项目是基于 [Resophy](https://github.com/Mountchicken/Resophy) 开源项目二次开发而来，非常感谢原作者有趣的创造。
 
 ## 📖 简介
 
@@ -63,7 +63,7 @@
 
 1. **克隆仓库**
    ```bash
-   git clone https://github.com/Mountchicken/PaperPilot.git
+   git clone https://github.com/flyflypeng/PaperPilot
    cd PaperPilot
    ```
 

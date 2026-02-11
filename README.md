@@ -63,7 +63,7 @@ We recommend using [uv](https://github.com/astral-sh/uv) for fast and reliable d
 
 1. **Clone the Repository**
    ```bash
-   git clone https://github.com/Mountchicken/PaperPilot.git
+   git clone https://github.com/flyflypeng/PaperPilot
    cd PaperPilot
    ```
 
