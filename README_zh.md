@@ -43,6 +43,29 @@
 - **AI 摘要**：自动为新论文生成简明扼要的中文摘要。
 - **离线可用**：即使没有 LLM 连接也能正常抓取（仅跳过摘要/机构信息）。
 
+## 📸 功能展示
+
+### 📡 Daily ArXiv 每日论文追踪
+自动抓取最新论文，生成 AI 摘要，助您紧跟前沿。
+<div align="center">
+  <img src="static/images/snapshots/Daily-arxiv-1.png" width="48%" />
+  <img src="static/images/snapshots/Daily-arXiv-2.png" width="48%" />
+</div>
+
+### 🤖 AI 深度解读与对话
+基于全文的深度分析与交互式问答，打破语言与理解障碍。
+<div align="center">
+  <img src="static/images/snapshots/AI-Interpretion.png" width="48%" />
+  <img src="static/images/snapshots/AI-Chat.png" width="48%" />
+</div>
+
+### 📚 论文管理与配置
+高效的阅读列表管理与灵活的系统配置。
+<div align="center">
+  <img src="static/images/snapshots/Reading-List.png" width="48%" />
+  <img src="static/images/snapshots/setting-overview.png" width="48%" />
+</div>
+
 ## 🛠️ 技术栈
 
 - **后端**：Python 3.10+, Flask

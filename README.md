@@ -43,6 +43,29 @@ Whether you are tracking the latest ArXiv preprints or deep-diving into complex 
 - **AI Summarization**: Automatically generate concise summaries for new arrivals.
 - **Offline Capable**: Works even without LLM connections (skips summary/institution details).
 
+## 📸 Feature Showcase
+
+### 📡 Daily ArXiv Tracking
+Automated daily paper fetching with AI summaries to keep you updated.
+<div align="center">
+  <img src="static/images/snapshots/Daily-arxiv-1.png" width="48%" />
+  <img src="static/images/snapshots/Daily-arXiv-2.png" width="48%" />
+</div>
+
+### 🤖 AI Interpretation & Chat
+Deep full-text analysis and interactive Q&A to bridge language and understanding gaps.
+<div align="center">
+  <img src="static/images/snapshots/AI-Interpretion.png" width="48%" />
+  <img src="static/images/snapshots/AI-Chat.png" width="48%" />
+</div>
+
+### 📚 Management & Configuration
+Efficient reading list management and flexible system configuration.
+<div align="center">
+  <img src="static/images/snapshots/Reading-List.png" width="48%" />
+  <img src="static/images/snapshots/setting-overview.png" width="48%" />
+</div>
+
 ## 🛠️ Tech Stack
 
 - **Backend**: Python 3.10+, Flask
