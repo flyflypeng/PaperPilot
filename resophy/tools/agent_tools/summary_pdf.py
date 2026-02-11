@@ -70,6 +70,11 @@ INPUT: <MARKDOWN>"""
         log_lock = task_info["log_lock"]
         process = None
 
+    def update_progress(progress: int):
+        with deps.analysis_tasks_lock:
+            if task_id in deps.analysis_tasks:
+                deps.analysis_tasks[task_id]["progress"] = progress
+
     def read_output(pipe, label):
         """Read subprocess output in real time"""
         try:
@@ -86,12 +91,15 @@ INPUT: <MARKDOWN>"""
 
     original_cwd = os.getcwd()
     try:
+        update_progress(5)
         with deps.analysis_tasks_lock:
             deps.analysis_tasks[task_id]["step"] = "pdf2md"
             with log_lock:
                 log_lines.append("=" * 50)
                 log_lines.append("Step one: start toPDFparsed asMarkdown...")
                 log_lines.append("=" * 50)
+        
+        update_progress(10)
 
         base_name = os.path.splitext(pdf_filename)[0]
         pdf_output_dir = os.path.join(pdf_dir, "outputs", base_name, "vlm")
@@ -123,6 +131,10 @@ INPUT: <MARKDOWN>"""
                         log_lines.append(
                             f"Parsing progress: {extracted_pages}/{total_pages} pages"
                         )
+                        # Map parsing progress to 10-50%
+                        if total_pages > 0:
+                            p = 10 + int((extracted_pages / total_pages) * 40)
+                            update_progress(p)
                     elif state == "converting":
                         log_lines.append("Format converting...")
 
@@ -138,6 +150,8 @@ INPUT: <MARKDOWN>"""
 
             if not md_file:
                 raise Exception("API parsing failed")
+            
+            update_progress(50)
 
             with log_lock:
                 log_lines.append("=" * 50)
@@ -245,6 +259,8 @@ INPUT: <MARKDOWN>"""
             if not md_file:
                 raise Exception("Generated not foundMarkdowndocument")
 
+            update_progress(50)
+
             with log_lock:
                 log_lines.append("=" * 50)
                 log_lines.append(
@@ -259,6 +275,8 @@ INPUT: <MARKDOWN>"""
                 log_lines.append("=" * 50)
                 log_lines.append("Step 2: StartLLMInterpretation...")
                 log_lines.append("=" * 50)
+        
+        update_progress(55)
 
         with open(md_file, "r", encoding="utf-8") as f:
             markdown_content = f.read()
@@ -357,10 +375,14 @@ INPUT: <MARKDOWN>"""
             log_lines.append(f"Use model: {model}")
             log_lines.append("Start callingLLM API...")
 
+        update_progress(60)
+
         chat_completion = client.chat.completions.create(
             messages=messages,
             model=model,
         )
+        
+        update_progress(90)
 
         result_content = chat_completion.choices[0].message.content
         result_content = re.sub(
@@ -447,6 +469,7 @@ INPUT: <MARKDOWN>"""
 
         with deps.analysis_tasks_lock:
             deps.analysis_tasks[task_id]["status"] = "completed"
+            deps.analysis_tasks[task_id]["progress"] = 100
             deps.analysis_tasks[task_id]["result"] = {
                 "success": True,
                 "result_file": result_file,

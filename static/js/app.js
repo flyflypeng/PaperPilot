@@ -1097,11 +1097,37 @@ function generatePaperItemHTML(paper, showCheckbox = false) {
     let translateCol = '';
     if (tStatus && tStatus.status === 'translating') {
         const progress = clampProgress(tStatus.progress ?? 0);
-        translateCol = `<div class="paper-col-action"><span class="paper-action-status processing translation-progress"><div class="translation-progress-top"><button class="paper-action-log" onclick="showTranslationLogs('${paper.id}', event)" title="View logs"><i class="fas fa-list"></i></button><span class="translation-progress-label">Translating</span><span class="translation-progress-percent">${Math.round(progress)}%</span></div><div class="progress-bar-container translation-progress-bar"><div class="progress-bar" style="width: ${progress}%;"></div></div><button class="paper-action-stop" onclick="cancelTranslationFromStatus('${paper.id}', event)" title="Stop translation"><i class="fas fa-times"></i></button></span></div>`;
+        translateCol = `<div class="paper-col-action">
+            <div style="display: flex; flex-direction: column; width: 100%; gap: 4px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; line-height: 1;">
+                    <div style="display: flex; align-items: center; gap: 4px;">
+                        <button class="paper-action-log" onclick="showTranslationLogs('${paper.id}', event)" title="View logs"><i class="fas fa-list"></i></button>
+                        <span style="font-size: 11px; color: #007bff; font-weight: 500;">${Math.round(progress)}%</span>
+                    </div>
+                    <button onclick="cancelTranslationFromStatus('${paper.id}', event)" title="Cancel translation" style="font-size: 10px; padding: 2px 6px; border: 1px solid #dc3545; background: #fff; color: #dc3545; border-radius: 4px; cursor: pointer; display: flex; align-items: center; gap: 3px; line-height: 1;">
+                        <i class="fas fa-stop" style="font-size: 8px;"></i> Cancel
+                    </button>
+                </div>
+                <div class="progress-bar-container translation-progress-bar" style="height: 4px; background: #e9ecef; border-radius: 2px;">
+                    <div class="progress-bar" style="width: ${progress}%; background-color: #007bff; height: 100%; border-radius: 2px; transition: width 0.3s;"></div>
+                </div>
+            </div>
+        </div>`;
     } else if (tStatus && tStatus.status === 'queued') {
         const currentIndex = translationQueue.indexOf(paper.id) + 1;
-        const queueText = currentIndex > 0 ? `in queue (${currentIndex}/${translationQueue.length})` : 'in queue';
-        translateCol = `<div class="paper-col-action"><span class="paper-action-status processing"><button class="paper-action-log" onclick="showTranslationLogs('${paper.id}', event)" title="View logs"><i class="fas fa-list"></i></button><i class="fas fa-clock"></i> ${queueText}<button class="paper-action-stop" onclick="cancelTranslationFromQueue('${paper.id}', event)" title="Cancel queue"><i class="fas fa-times"></i></button></span></div>`;
+        const queueText = currentIndex > 0 ? `Queue ${currentIndex}` : 'Queueing';
+        translateCol = `<div class="paper-col-action">
+            <div style="display: flex; flex-direction: column; width: 100%; gap: 4px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; line-height: 1;">
+                    <span style="font-size: 11px; color: #ffc107; display: flex; align-items: center; gap: 4px;">
+                        <i class="fas fa-clock" style="font-size: 10px;"></i> ${queueText}
+                    </span>
+                    <button onclick="cancelTranslationFromQueue('${paper.id}', event)" title="Cancel queue" style="font-size: 10px; padding: 2px 6px; border: 1px solid #dc3545; background: #fff; color: #dc3545; border-radius: 4px; cursor: pointer; display: flex; align-items: center; gap: 3px; line-height: 1;">
+                        <i class="fas fa-times" style="font-size: 8px;"></i> Cancel
+                    </button>
+                </div>
+            </div>
+        </div>`;
     } else if (paper.has_chinese_version) {
         translateCol = `<div class="paper-col-action"><button class="paper-col-btn view chinese" onclick="openChineseVersion('${paper.id}', event)"><i class="fas fa-language"></i> Chinese version</button></div>`;
     } else {
@@ -1112,10 +1138,38 @@ function generatePaperItemHTML(paper, showCheckbox = false) {
     const aStatus = analysisStatus[paper.id];
     let analyzeCol = '';
     if (aStatus && aStatus.status === 'analyzing') {
-        const step = aStatus.step === 'pdf2md' ? 'PDF Parsing...' : 'AI Interpreting...';
-        analyzeCol = `<div class="paper-col-action"><span class="paper-action-status processing"><i class="fas fa-spinner fa-spin"></i> ${step}<button class="paper-action-stop" onclick="cancelAnalysis('${paper.id}', event)" title="stop interpretation"><i class="fas fa-times"></i></button></span></div>`;
+        const progress = clampProgress(aStatus.progress ?? 0);
+        analyzeCol = `<div class="paper-col-action">
+            <div style="display: flex; flex-direction: column; width: 100%; gap: 4px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; line-height: 1;">
+                    <div style="display: flex; align-items: center; gap: 4px;">
+                         <button class="paper-action-log" onclick="showAnalysisLogs('${paper.id}', event)" title="View logs"><i class="fas fa-list"></i></button>
+                        <span style="font-size: 11px; color: #6f42c1; font-weight: 500;">${Math.round(progress)}%</span>
+                    </div>
+                    <button onclick="cancelAnalysis('${paper.id}', event)" title="Cancel interpretation" style="font-size: 10px; padding: 2px 6px; border: 1px solid #dc3545; background: #fff; color: #dc3545; border-radius: 4px; cursor: pointer; display: flex; align-items: center; gap: 3px; line-height: 1;">
+                        <i class="fas fa-stop" style="font-size: 8px;"></i> Cancel
+                    </button>
+                </div>
+                <div class="progress-bar-container" style="height: 4px; background: #e9ecef; border-radius: 2px; width: 100%;">
+                    <div class="progress-bar" style="width: ${progress}%; background-color: #6f42c1; height: 100%; border-radius: 2px; transition: width 0.3s;"></div>
+                </div>
+            </div>
+        </div>`;
     } else if (aStatus && aStatus.status === 'queued') {
-        analyzeCol = `<div class="paper-col-action"><span class="paper-action-status processing"><i class="fas fa-clock"></i> in queue<button class="paper-action-stop" onclick="cancelAnalysis('${paper.id}', event)" title="Cancel queue"><i class="fas fa-times"></i></button></span></div>`;
+        const currentIndex = analysisQueue.indexOf(paper.id) + 1;
+        const queueText = currentIndex > 0 ? `Queue ${currentIndex}` : 'Queueing';
+        analyzeCol = `<div class="paper-col-action">
+            <div style="display: flex; flex-direction: column; width: 100%; gap: 4px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; line-height: 1;">
+                    <span style="font-size: 11px; color: #ffc107; display: flex; align-items: center; gap: 4px;">
+                        <i class="fas fa-clock" style="font-size: 10px;"></i> ${queueText}
+                    </span>
+                    <button onclick="cancelAnalysis('${paper.id}', event)" title="Cancel queue" style="font-size: 10px; padding: 2px 6px; border: 1px solid #dc3545; background: #fff; color: #dc3545; border-radius: 4px; cursor: pointer; display: flex; align-items: center; gap: 3px; line-height: 1;">
+                        <i class="fas fa-times" style="font-size: 8px;"></i> Cancel
+                    </button>
+                </div>
+            </div>
+        </div>`;
     } else if (paper.has_analysis_result) {
         analyzeCol = `<div class="paper-col-action"><button class="paper-col-btn view analysis" onclick="viewAnalysisResult('${paper.id}', event)"><i class="fas fa-brain"></i> AI Interpretation</button></div>`;
     } else {
@@ -8330,11 +8384,35 @@ function updatePaperStatusDisplay(paperId) {
         let translateColHtml = '';
         if (tStatus && tStatus.status === 'translating') {
             const progress = clampProgress(tStatus.progress ?? 0);
-            translateColHtml = `<span class="paper-action-status processing translation-progress"><div class="translation-progress-top"><button class="paper-action-log" onclick="showTranslationLogs('${paperId}', event)" title="View logs"><i class="fas fa-list"></i></button><span class="translation-progress-label">Translating</span><span class="translation-progress-percent">${Math.round(progress)}%</span></div><div class="progress-bar-container translation-progress-bar"><div class="progress-bar" style="width: ${progress}%;"></div></div><button class="paper-action-stop" onclick="cancelTranslationFromStatus('${paperId}', event)" title="Stop translation"><i class="fas fa-times"></i></button></span>`;
+            translateColHtml = `
+            <div style="display: flex; flex-direction: column; width: 100%; gap: 4px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; line-height: 1;">
+                    <div style="display: flex; align-items: center; gap: 4px;">
+                        <button class="paper-action-log" onclick="showTranslationLogs('${paperId}', event)" title="View logs"><i class="fas fa-list"></i></button>
+                        <span style="font-size: 11px; color: #007bff; font-weight: 500;">${Math.round(progress)}%</span>
+                    </div>
+                    <button onclick="cancelTranslationFromStatus('${paperId}', event)" title="Cancel translation" style="font-size: 10px; padding: 2px 6px; border: 1px solid #dc3545; background: #fff; color: #dc3545; border-radius: 4px; cursor: pointer; display: flex; align-items: center; gap: 3px; line-height: 1;">
+                        <i class="fas fa-stop" style="font-size: 8px;"></i> Cancel
+                    </button>
+                </div>
+                <div class="progress-bar-container translation-progress-bar" style="height: 4px; background: #e9ecef; border-radius: 2px;">
+                    <div class="progress-bar" style="width: ${progress}%; background-color: #007bff; height: 100%; border-radius: 2px; transition: width 0.3s;"></div>
+                </div>
+            </div>`;
         } else if (tStatus && tStatus.status === 'queued') {
             const currentIndex = translationQueue.indexOf(paperId) + 1;
-            const queueText = currentIndex > 0 ? `in queue (${currentIndex}/${translationQueue.length})` : 'in queue';
-            translateColHtml = `<span class="paper-action-status processing"><button class="paper-action-log" onclick="showTranslationLogs('${paperId}', event)" title="View logs"><i class="fas fa-list"></i></button><i class="fas fa-clock"></i> ${queueText}<button class="paper-action-stop" onclick="cancelTranslationFromQueue('${paperId}', event)" title="Cancel queue"><i class="fas fa-times"></i></button></span>`;
+            const queueText = currentIndex > 0 ? `Queue ${currentIndex}` : 'Queueing';
+            translateColHtml = `
+            <div style="display: flex; flex-direction: column; width: 100%; gap: 4px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; line-height: 1;">
+                    <span style="font-size: 11px; color: #ffc107; display: flex; align-items: center; gap: 4px;">
+                        <i class="fas fa-clock" style="font-size: 10px;"></i> ${queueText}
+                    </span>
+                    <button onclick="cancelTranslationFromQueue('${paperId}', event)" title="Cancel queue" style="font-size: 10px; padding: 2px 6px; border: 1px solid #dc3545; background: #fff; color: #dc3545; border-radius: 4px; cursor: pointer; display: flex; align-items: center; gap: 3px; line-height: 1;">
+                        <i class="fas fa-times" style="font-size: 8px;"></i> Cancel
+                    </button>
+                </div>
+            </div>`;
         } else if (paper.has_chinese_version) {
             translateColHtml = `<button class="paper-col-btn view chinese" onclick="openChineseVersion('${paperId}', event)"><i class="fas fa-language"></i> Chinese version</button>`;
         } else {
@@ -8346,10 +8424,41 @@ function updatePaperStatusDisplay(paperId) {
         const aStatus = analysisStatus[paperId];
         let analyzeColHtml = '';
         if (aStatus && aStatus.status === 'analyzing') {
-            const step = aStatus.step === 'pdf2md' ? 'PDF Parsing...' : 'AI Interpreting...';
-            analyzeColHtml = `<span class="paper-action-status processing"><i class="fas fa-spinner fa-spin"></i> ${step}<button class="paper-action-stop" onclick="cancelAnalysis('${paperId}', event)" title="stop interpretation"><i class="fas fa-times"></i></button></span>`;
+            const progress = clampProgress(aStatus.progress ?? 0);
+            // Estimate step text
+            let stepText = 'Processing...';
+            if (aStatus.step === 'pdf2md') stepText = 'Parsing PDF';
+            else if (aStatus.step === 'llm_analysis') stepText = 'AI Thinking';
+
+            analyzeColHtml = `
+            <div style="display: flex; flex-direction: column; width: 100%; gap: 4px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; line-height: 1;">
+                    <div style="display: flex; align-items: center; gap: 4px;">
+                         <button class="paper-action-log" onclick="showAnalysisLogs('${paperId}', event)" title="View logs"><i class="fas fa-list"></i></button>
+                        <span style="font-size: 11px; color: #6f42c1; font-weight: 500;">${Math.round(progress)}%</span>
+                    </div>
+                    <button onclick="cancelAnalysis('${paperId}', event)" title="Cancel interpretation" style="font-size: 10px; padding: 2px 6px; border: 1px solid #dc3545; background: #fff; color: #dc3545; border-radius: 4px; cursor: pointer; display: flex; align-items: center; gap: 3px; line-height: 1;">
+                        <i class="fas fa-stop" style="font-size: 8px;"></i> Cancel
+                    </button>
+                </div>
+                <div class="progress-bar-container" style="height: 4px; background: #e9ecef; border-radius: 2px; width: 100%;">
+                    <div class="progress-bar" style="width: ${progress}%; background-color: #6f42c1; height: 100%; border-radius: 2px; transition: width 0.3s;"></div>
+                </div>
+            </div>`;
         } else if (aStatus && aStatus.status === 'queued') {
-            analyzeColHtml = `<span class="paper-action-status processing"><i class="fas fa-clock"></i> in queue<button class="paper-action-stop" onclick="cancelAnalysis('${paperId}', event)" title="Cancel queue"><i class="fas fa-times"></i></button></span>`;
+            const currentIndex = analysisQueue.indexOf(paperId) + 1;
+            const queueText = currentIndex > 0 ? `Queue ${currentIndex}` : 'Queueing';
+            analyzeColHtml = `
+            <div style="display: flex; flex-direction: column; width: 100%; gap: 4px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; line-height: 1;">
+                    <span style="font-size: 11px; color: #ffc107; display: flex; align-items: center; gap: 4px;">
+                        <i class="fas fa-clock" style="font-size: 10px;"></i> ${queueText}
+                    </span>
+                    <button onclick="cancelAnalysis('${paperId}', event)" title="Cancel queue" style="font-size: 10px; padding: 2px 6px; border: 1px solid #dc3545; background: #fff; color: #dc3545; border-radius: 4px; cursor: pointer; display: flex; align-items: center; gap: 3px; line-height: 1;">
+                        <i class="fas fa-times" style="font-size: 8px;"></i> Cancel
+                    </button>
+                </div>
+            </div>`;
         } else if (paper.has_analysis_result) {
             analyzeColHtml = `<button class="paper-col-btn view analysis" onclick="viewAnalysisResult('${paperId}', event)"><i class="fas fa-brain"></i> AI Interpretation</button>`;
         } else {
@@ -8492,9 +8601,10 @@ function startAnalysisLogPolling(taskId, paperId) {
                     updatePaperStatusDisplay(paperId);
                     processAnalysisQueue();
                 } else {
-                    // Update step information（Don't reload the entire list to avoid flickering）
-                    if (result.step && analysisStatus[paperId]) {
-                        analysisStatus[paperId].step = result.step;
+                    // Update step information and progress（Don't reload the entire list to avoid flickering）
+                    if (analysisStatus[paperId]) {
+                        if (result.step) analysisStatus[paperId].step = result.step;
+                        if (result.progress !== undefined) analysisStatus[paperId].progress = result.progress;
                         updatePaperStatusDisplay(paperId);
                     }
                 }

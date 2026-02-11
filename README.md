@@ -109,6 +109,11 @@ When configured, most `/api/*` endpoints require `Authorization: Bearer <token>`
 
 - Floating toggle buttons for left/right sidebars allow quick collapse/expand, improving small-screen usability.
 
+## 6) Enhanced Task Management UI
+
+- **Real-time Progress Tracking**: AI Translation and Interpretation tasks now display a percentage progress bar in the Reading List.
+- **Task Cancellation**: A dedicated "Cancel" button allows users to immediately stop running tasks.
+
 ## Run & Configuration (Enhanced Quick Start)
 
 ### Before You Start (Prepare These)

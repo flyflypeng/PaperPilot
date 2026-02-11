@@ -239,6 +239,7 @@ def register_agent_summary_routes(
                     "paper_id": paper_id,
                     "status": "queued",
                     "step": None,
+                    "progress": 0,
                     "logs": [],
                     "log_lock": threading.Lock(),
                     "process": None,
@@ -327,12 +328,14 @@ def register_agent_summary_routes(
             task_info = analysis_tasks[task_id]
             with task_info["log_lock"]:
                 logs = task_info["logs"].copy()
+                progress = int(task_info.get("progress") or 0)
 
             return jsonify(
                 {
                     "success": True,
                     "status": task_info["status"],
                     "step": task_info.get("step"),
+                    "progress": max(0, min(100, progress)),
                     "logs": logs,
                     "start_time": task_info["start_time"],
                     "result": task_info.get("result"),
