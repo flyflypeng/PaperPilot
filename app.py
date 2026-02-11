@@ -60,7 +60,7 @@ parser.add_argument(
     help="Server listening address (default: 0.0.0.0)",
 )
 parser.add_argument(
-    "--port", type=int, default=7191, help="Server listening port (default: 7190)"
+    "--port", type=int, default=7191, help="Server listening port (default: 7191)"
 )
 parser.add_argument("--debug", action="store_true", help="Enable debug mode")
 

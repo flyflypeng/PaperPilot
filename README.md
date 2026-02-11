@@ -94,7 +94,34 @@ We recommend using [uv](https://github.com/astral-sh/uv) for fast and reliable d
    ```bash
    python app.py
    ```
-   Access the web interface at `http://localhost:5000`.
+   Access the web interface at `http://localhost:7191` (default port).
+
+   **Custom Launch Arguments:**
+   `app.py` supports the following command-line arguments for custom configuration:
+
+   | Argument | Default | Description |
+   | :--- | :--- | :--- |
+   | `--papers-dir` | `./papers` | Path to the papers directory (absolute or relative) |
+   | `--host` | `0.0.0.0` | Server listening address |
+   | `--port` | `7191` | Server listening port |
+   | `--debug` | `False` | Enable debug mode (for development) |
+
+   **Typical Configuration Examples:**
+
+   - **Specify Data Storage Location** (useful for mounted data volumes):
+     ```bash
+     python app.py --papers-dir /mnt/data/my_papers
+     ```
+
+   - **Change Server Port** (if the default port is occupied):
+     ```bash
+     python app.py --port 8080
+     ```
+
+   - **Allow Local Access Only** (for enhanced security):
+     ```bash
+     python app.py --host 127.0.0.1
+     ```
 
 ## ⚙️ Configuration
 
