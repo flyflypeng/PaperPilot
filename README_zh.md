@@ -24,6 +24,8 @@
 
 无论您是追踪最新的 ArXiv 预印本，还是深度研读复杂的 PDF 文献，PaperPilot 都是您的智能副驾驶。
 
+> **Note**: 本项目基于 **Trae Coding Agent**，使用了 2 种模型（**Gemini-3-Pro-Preview** 和 **GPT-5.2**，其中 Gemini-3-Pro-Preview 主要用于代码功能开发，GPT-5.2 主要用于 Bugfix 和性能优化）**Vibe Coding** 实现，这真的对于我一个没有写过现代意义上 Web 前端代码的我简直不可思议 🤯（上一次写 Web 代码还是读本科时用 HTML 和 CSS 手写网页）。
+
 ## ✨ 核心功能
 
 ### 📚 智能论文管理
