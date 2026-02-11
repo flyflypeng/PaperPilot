@@ -180,6 +180,10 @@ SUPABASE_ANON_KEY=your_supabase_key
 
 本项目采用 **CC BY-NC 4.0** 许可证。详情请参阅 [LICENSE](LICENSE) 文件。
 
+## ⚠️ 注意事项
+
+- **多用户支持**：当前版本 PaperPilot 专为个人或小团队设计，尚未完全支持多用户隔离（Multi-tenancy）。虽然支持通过 Supabase 进行鉴权，但所有用户共享同一套后台配置和论文库。建议在私有网络或受信任的环境中部署。
+
 ---
 <div align="center">
 Made with ❤️ by the PaperPilot Team

@@ -180,6 +180,10 @@ SUPABASE_ANON_KEY=your_supabase_key
 
 This project is licensed under the **CC BY-NC 4.0** License. See the [LICENSE](LICENSE) file for details.
 
+## ⚠️ Important Notes
+
+- **Multi-User Support**: The current version of PaperPilot is designed for individuals or small teams and does not yet fully support multi-tenancy. While it supports authentication via Supabase, all users share the same backend configuration and paper library. It is recommended to deploy in a private network or trusted environment.
+
 ---
 <div align="center">
 Made with ❤️ by the PaperPilot Team
