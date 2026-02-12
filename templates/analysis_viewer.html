@@ -390,14 +390,14 @@
         .dropdown-content {
             display: none;
             position: absolute;
-            box-shadow: 0 8px 16px rgba(0,0,0,0.1);
+            right: 0;
             background-color: #fff;
             min-width: 160px;
-            box-shadow: 0 8px 16px rgba(0,0,0,0.1);
-            border: 1px solid rgba(0,0,0,0.05);
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
+            border-radius: 8px;
             z-index: 1000;
             padding: 8px 0;
-            border: 1px solid rgba(0,0,0,0.05);
+            border: 1px solid rgba(0, 0, 0, 0.05);
         }
 
         .dropdown-content button {
@@ -422,34 +422,54 @@
         .dropdown:hover .dropdown-content {
             display: block;
         }
-            .header, #close-btn, .dropdown {
+
+        /* Print Styles */
+        @media print {
+
+            .header,
+            #close-btn,
+            .dropdown {
                 display: none !important;
             }
+
+            body {
                 background: white;
             }
+
             .container {
+                padding: 0;
                 min-height: auto;
                 display: block;
             }
+
             .content {
                 box-shadow: none;
+                padding: 0;
                 width: 100%;
                 max-width: none;
             }
+
             .markdown-viewer {
                 font-size: 12pt;
             }
+
+            .markdown-viewer pre {
                 border: 1px solid #ddd;
                 break-inside: avoid;
             }
+
+            .markdown-viewer img {
                 break-inside: avoid;
                 box-shadow: none;
             }
+
             /* Ensure background colors are printed */
+            * {
                 -webkit-print-color-adjust: exact !important;
                 print-color-adjust: exact !important;
             }
         }
+    </style>
 </head>
 
 <body>
@@ -559,30 +579,30 @@
                 const res = await fetch(`/api/paper/${paperId}/analysis/result`);
                 const json = await res.json();
                 if (!res.ok || !json.success) throw new Error(json.error || 'Failed to load');
-                
+
                 currentPaperTitle = json.title || 'analysis';
                 rawMarkdown = json.content || '';
-                
+
                 const md = rewriteImages(rawMarkdown);
                 renderMarkdown(md);
                 document.getElementById('loading').style.display = 'none';
-                
+                document.getElementById('container').style.display = 'flex';
             } catch (e) {
                 document.getElementById('loading').textContent = `Failed to load: ${e.message}`;
-                
+            }
         }
 
         async function exportMarkdown() {
             if (!rawMarkdown) return;
             const filename = `${currentPaperTitle}_analysis.md`.replace(/[\/\\:"*?<>|]/g, '_');
-            
+
             try {
                 if (window.showSaveFilePicker) {
                     const handle = await window.showSaveFilePicker({
                         suggestedName: filename,
                         types: [{
                             description: 'Markdown File',
-            
+                            accept: { 'text/markdown': ['.md'] },
                         }],
                     });
                     const writable = await handle.createWritable();
