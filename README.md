@@ -21,7 +21,7 @@
 ## 📖 Introduction
 
 <div align="center">
-  <video src="static/videos/PaperPilot-demo.mp4" controls width="100%"></video>
+  <iframe src="//player.bilibili.com/player.html?bvid=BV1kGcGzdEYk&page=1&high_quality=1" scrolling="no" border="0" frameborder="no" allowfullscreen="true" width="100%"></iframe>
 </div>
 
 **PaperPilot** is a next-generation research assistant designed to streamline your academic workflow. By integrating advanced AI capabilities with a robust document management system, PaperPilot helps you discover, read, understand, and manage research papers more efficiently than ever before.
