@@ -13,8 +13,12 @@ document.addEventListener('DOMContentLoaded', async () => {
     bindAuthUIHandlers();
 
     if (!supabaseClient) {
-        showLoginOverlay();
-        setAuthError('Supabase 未配置：请在后端设置 SUPABASE_URL 和 SUPABASE_ANON_KEY');
+        hideLoginOverlay();
+        const loginBtn = document.getElementById('login-btn');
+        const logoutBtn = document.getElementById('logout-btn');
+        if (loginBtn) loginBtn.style.display = 'none';
+        if (logoutBtn) logoutBtn.style.display = 'none';
+        loadAppWithoutAuth();
         return;
     }
 
@@ -107,6 +111,29 @@ function ensureAppLoaded() {
     }
 
     patchFetchWithAuth();
+
+    appLoading = true;
+    const script = document.createElement('script');
+    script.id = 'paperpilot-app-script';
+    script.src = '/static/js/app.js?v=1.2';
+    script.onload = () => {
+        appLoaded = true;
+        appLoading = false;
+    };
+    script.onerror = () => {
+        appLoading = false;
+    };
+    document.body.appendChild(script);
+}
+
+function loadAppWithoutAuth() {
+    if (appLoaded || appLoading) return;
+
+    const existing = document.getElementById('paperpilot-app-script');
+    if (existing) {
+        appLoading = true;
+        return;
+    }
 
     appLoading = true;
     const script = document.createElement('script');

@@ -121,15 +121,44 @@
    uv pip install -e ".[server]"
    ```
 
-4. **启动应用**
+5. **Supabase Auth 鉴权（可选）**
+   PaperPilot 的登录/注册基于 Supabase Auth（邮箱+密码）。启用后，前端会在浏览器中通过 `supabase-js` 获取会话令牌，并在请求 `/api/*` 时携带 `Authorization: Bearer <access_token>`；后端会用 Supabase 的 `/auth/v1/user` 接口校验令牌有效性。
+   若未配置 `SUPABASE_URL` 与 `SUPABASE_ANON_KEY`，系统将默认关闭鉴权：前端不会显示登录界面，后端 `/api/*` 接口不要求 `Authorization` 头，直接进入管理界面。
 
-   在启动应用之前，如果需要鉴权功能，请准备好 Supabase 项目的 URL 和 ANON_KEY，并写入项目根目录下的 `.env` 文件中：
+   1）创建 Supabase 项目并获取密钥
+   - 进入 https://supabase.com/ 创建 Project
+   - 在 Supabase 控制台进入 **Project Settings → API**
+   - 复制 **Project URL** 作为 `SUPABASE_URL`
+   - 复制 **Project API keys → anon public** 作为 `SUPABASE_ANON_KEY`
+
+   2）在 Supabase 控制台启用 Email 登录
+   - 进入 **Authentication → Providers**
+   - 启用 **Email**（Email/Password）
+   - 如仅用于本地/内网试用，可在 **Authentication → Settings** 中关闭邮箱确认（Email confirmations），避免注册后必须点邮件验证
+
+   3）配置回调地址（非常重要）
+   - 进入 **Authentication → URL Configuration**
+   - 将 **Site URL** 设置为你的站点根地址，例如：
+   - 本地：`http://localhost:7191`
+   - 线上：`https://your-domain.com`
+   - 在 **Redirect URLs** 中添加允许的回调地址（至少包含站点根地址），例如：
+   - `http://localhost:7191/`
+   - `https://your-domain.com/`
+
+   4）在 PaperPilot 中启用鉴权
+   在项目根目录复制并编辑环境变量：
    ```bash
    cp .env.example .env
    # 编辑 .env 文件填入 SUPABASE_URL 和 SUPABASE_ANON_KEY
    ```
+   重启服务后访问页面，若 Supabase 配置正确会出现登录/注册入口。
 
-   然后启动应用：
+   **安全提示**
+   - 仅使用 `anon public` key；不要把 `service_role` key 放进 `.env` 或发到前端
+   - 本项目会把 `SUPABASE_URL` 与 `SUPABASE_ANON_KEY` 注入到页面中（用于浏览器侧登录），这是预期行为
+
+4. **启动应用**
+
    ```bash
    python app.py
    ```

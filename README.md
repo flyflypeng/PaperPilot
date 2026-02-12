@@ -121,13 +121,44 @@ We recommend using [uv](https://github.com/astral-sh/uv) for fast and reliable d
    uv pip install -e ".[server]"
    ```
 
-4. **Run the Application**
-   
-   Before running the application, if you need authentication features, please prepare your Supabase project's URL and ANON_KEY and write them into the `.env` file in the project root directory:
+4. **Supabase Auth (Optional)**
+   PaperPilot’s login/sign-up is powered by Supabase Auth (Email + Password). When enabled, the frontend uses `supabase-js` in the browser to obtain a session token and attaches `Authorization: Bearer <access_token>` to `/api/*` requests; the backend validates the token via Supabase `/auth/v1/user`.
+   If `SUPABASE_URL` and `SUPABASE_ANON_KEY` are not configured, auth is disabled by default: the login overlay is hidden, and `/api/*` endpoints do not require an `Authorization` header, so you can enter the management UI directly.
+
+   1) Create a Supabase project and get API values
+   - Create a project at https://supabase.com/
+   - In the Supabase dashboard, open **Project Settings → API**
+   - Copy **Project URL** as `SUPABASE_URL`
+   - Copy **Project API keys → anon public** as `SUPABASE_ANON_KEY`
+
+   2) Enable Email auth
+   - Go to **Authentication → Providers**
+   - Enable **Email** (Email/Password)
+   - For local/private deployments, you can disable email confirmations in **Authentication → Settings** to avoid requiring email verification after sign-up
+
+   3) Configure redirect URLs (important)
+   - Go to **Authentication → URL Configuration**
+   - Set **Site URL** to your site origin, for example:
+   - Local: `http://localhost:7191`
+   - Production: `https://your-domain.com`
+   - Add allowed callback URLs in **Redirect URLs** (at least include your site root), for example:
+   - `http://localhost:7191/`
+   - `https://your-domain.com/`
+
+   4) Enable auth in PaperPilot
+   Copy and edit environment variables in the project root:
    ```bash
    cp .env.example .env
    # Edit .env and fill in SUPABASE_URL and SUPABASE_ANON_KEY
    ```
+   Restart the server. If configured correctly, you will see the login/sign-up entry on the page.
+
+   **Security notes**
+   - Use only the `anon public` key; never put `service_role` keys into `.env` or ship them to the browser
+   - This project injects `SUPABASE_URL` and `SUPABASE_ANON_KEY` into pages for browser-side login, which is expected
+
+
+5. **Run the Application**
 
    Then start the application:
    ```bash

@@ -128,14 +128,7 @@ def _require_auth_for_api():
     supabase_url = os.getenv("SUPABASE_URL", "").strip()
     supabase_anon_key = os.getenv("SUPABASE_ANON_KEY", "").strip()
     if not (supabase_url and supabase_anon_key):
-        return (
-            jsonify(
-                {
-                    "error": "Supabase后端鉴权未配置，请设置 SUPABASE_URL / SUPABASE_ANON_KEY",
-                }
-            ),
-            500,
-        )
+        return None
 
     auth = request.headers.get("Authorization", "")
     if not auth.lower().startswith("bearer "):
