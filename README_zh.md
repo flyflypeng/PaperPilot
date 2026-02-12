@@ -20,6 +20,10 @@
 
 ## 📖 简介
 
+<div align="center">
+  <video src="static/videos/PaperPilot-demo.mp4" controls width="100%"></video>
+</div>
+
 **PaperPilot** 是您的下一代科研助手，旨在优化您的学术工作流。通过将先进的 AI 能力与强大的文档管理系统深度融合，PaperPilot 帮助您以前所未有的效率发现、阅读、理解和管理研究论文。
 
 无论您是追踪最新的 ArXiv 预印本，还是深度研读复杂的 PDF 文献，PaperPilot 都是您的智能副驾驶。
