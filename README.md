@@ -81,7 +81,7 @@ Supports user authentication for secure private access and public network deploy
 - **Database**: SQLite (Metadata), Supabase (Optional Auth)
 - **AI Core**:
   - [MinerU](https://github.com/opendatalab/MinerU) (High-fidelity PDF parsing)
-  - [BabelDOC](https://github.com/Mountchicken/BabelDOC) (Document Translation)
+  - [BabelDOC](https://github.com/funstory-ai/BabelDOC) (Document Translation)
   - OpenAI-compatible LLM Interface
 
 ## 🚀 Installation
@@ -185,6 +185,7 @@ This project is licensed under the **CC BY-NC 4.0** License. See the [LICENSE](L
 ## ⚠️ Important Notes
 
 - **Multi-User Support**: The current version of PaperPilot is designed for individuals or small teams and does not yet fully support multi-tenancy. While it supports authentication via Supabase, all users share the same backend configuration and paper library. It is recommended to deploy in a private network or trusted environment.
+- **BabelDOC Translation**: The English-Chinese parallel translation feature based on BabelDOC has high memory consumption and a long processing time. It is recommended to use this feature primarily for papers that require intensive reading.
 
 ---
 <div align="center">

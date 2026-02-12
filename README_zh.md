@@ -81,7 +81,7 @@
 - **数据库**：SQLite (元数据), Supabase (可选鉴权)
 - **AI 核心**：
   - [MinerU](https://github.com/opendatalab/MinerU) (高保真 PDF 解析)
-  - [BabelDOC](https://github.com/Mountchicken/BabelDOC) (文档翻译)
+  - [BabelDOC](https://github.com/funstory-ai/BabelDOC) (文档翻译)
   - OpenAI 兼容 LLM 接口
 
 ## 🚀 安装指南
@@ -184,6 +184,7 @@ PaperPilot 支持通过 Web UI 直接进行配置。
 ## ⚠️ 注意事项
 
 - **多用户支持**：当前版本 PaperPilot 专为个人或小团队设计，尚未完全支持多用户隔离（Multi-tenancy）。虽然支持通过 Supabase 进行鉴权，但所有用户共享同一套后台配置和论文库。建议在私有网络或受信任的环境中部署。
+- **BabelDOC 翻译**：基于 BabelDOC 功能的中英文对照翻译功能内存开销较大，并且整个 AI 翻译过程较长，建议需要特别精读论文时使用。
 
 ---
 <div align="center">
