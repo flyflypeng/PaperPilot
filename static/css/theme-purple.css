@@ -1,0 +1,438 @@
+:root {
+    /* Purple Theme Palette */
+    --primary-color: #9370DB; /* Medium Purple */
+    --primary-hover: #8A2BE2; /* Blue Violet */
+    --primary-light: #F3E5F5; /* Light Purple for backgrounds */
+    --secondary-color: #BA68C8; /* Orchid */
+    
+    --bg-body: #F8F5FB; /* Very light purple/gray */
+    --bg-surface: #FFFFFF;
+    --bg-sidebar: #FFFFFF;
+    
+    --text-main: #333333;
+    --text-secondary: #666666;
+    --text-light: #999999;
+    
+    --border-color: #E0E0E0;
+    --border-radius: 12px;
+    --border-radius-sm: 8px;
+    
+    --shadow-sm: 0 2px 8px rgba(147, 112, 219, 0.1);
+    --shadow-md: 0 8px 24px rgba(147, 112, 219, 0.15);
+    --shadow-lg: 0 16px 32px rgba(147, 112, 219, 0.2);
+    
+    --transition: all 0.3s ease;
+
+    /* Chat Variable Overrides - redefining chat.css variables */
+    --chat-bg-primary: #FFFFFF;
+    --chat-bg-secondary: #F8F5FB; /* Match body bg */
+    --chat-border: #E0E0E0;
+    --chat-accent: #9370DB; /* Match primary */
+    --chat-accent-hover: #8A2BE2;
+    --chat-text-primary: #333333;
+    --chat-text-secondary: #666666;
+    --chat-bubble-user: #9370DB;
+    --chat-bubble-ai: #F3E5F5; /* Use primary light instead of gray */
+    --chat-shadow: 0 8px 24px rgba(147, 112, 219, 0.15);
+}
+
+/* Global Reset & Typography */
+body {
+    background-color: var(--bg-body) !important;
+    color: var(--text-main);
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+}
+
+/* Navbar Optimization */
+.navbar {
+    background-color: rgba(255, 255, 255, 0.95) !important;
+    backdrop-filter: blur(10px);
+    border-bottom: 1px solid rgba(147, 112, 219, 0.1) !important;
+    box-shadow: var(--shadow-sm) !important;
+    height: 64px;
+}
+
+.navbar-brand {
+    color: var(--primary-color) !important;
+    font-weight: 700;
+}
+
+.nav-tab {
+    border-radius: var(--border-radius-sm) !important;
+    color: var(--text-secondary);
+    font-weight: 500;
+    transition: var(--transition);
+    border: none !important;
+}
+
+.nav-tab:hover {
+    background-color: var(--primary-light) !important;
+    color: var(--primary-color) !important;
+}
+
+.nav-tab.active {
+    background-color: var(--primary-color) !important;
+    color: white !important;
+    box-shadow: var(--shadow-sm);
+}
+
+/* Sidebar Optimization */
+.sidebar {
+    background-color: var(--bg-sidebar) !important;
+    border-right: 1px solid rgba(0,0,0,0.05) !important;
+}
+
+.sidebar-header {
+    border-bottom: none !important;
+    padding: 20px !important;
+}
+
+.category-item {
+    border-radius: var(--border-radius-sm) !important;
+    margin-bottom: 2px;
+    border: none !important;
+}
+
+.category-item:hover {
+    background: var(--primary-light) !important;
+    color: var(--primary-color) !important;
+}
+
+.category-item.selected {
+    background: var(--primary-color) !important;
+    color: white !important;
+    box-shadow: var(--shadow-sm);
+}
+
+.category-item.selected:hover {
+    background: var(--primary-hover) !important;
+}
+
+/* Button Optimization */
+.btn {
+    border-radius: var(--border-radius-sm) !important;
+    font-weight: 500;
+    transition: var(--transition);
+    border: none !important;
+    box-shadow: none;
+    /* Added for alignment */
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 8px !important;
+}
+
+.btn-primary {
+    background: linear-gradient(135deg, var(--primary-color), var(--primary-hover)) !important;
+    box-shadow: var(--shadow-sm) !important;
+    color: white !important;
+}
+
+.btn-primary:hover {
+    box-shadow: var(--shadow-md) !important;
+    transform: translateY(-1px);
+}
+
+.btn-secondary {
+    background-color: #f0f0f0 !important;
+    color: var(--text-main) !important;
+    border: 1px solid transparent !important;
+}
+
+.btn-secondary:hover {
+    background-color: #e0e0e0 !important;
+}
+
+.btn-add {
+    background: linear-gradient(135deg, var(--primary-color), var(--primary-hover)) !important;
+    color: white !important;
+    box-shadow: var(--shadow-sm) !important;
+}
+
+/* Card/Panel Optimization */
+.setting-card, .daily-arxiv-card, .info-panel, .main-content {
+    border: none !important;
+    /* box-shadow: var(--shadow-sm); */ /* main-content shouldn't have shadow usually */
+    background-color: var(--bg-surface);
+}
+
+.daily-arxiv-card {
+    box-shadow: var(--shadow-sm) !important;
+    border-radius: var(--border-radius) !important;
+    transition: var(--transition);
+}
+
+.daily-arxiv-card:hover {
+    box-shadow: var(--shadow-md) !important;
+    transform: translateY(-4px);
+}
+
+/* Input Optimization */
+input[type="text"], input[type="search"], input[type="password"], input[type="email"], textarea, select {
+    border: 1px solid var(--border-color) !important;
+    border-radius: var(--border-radius-sm) !important;
+    padding: 10px 12px !important;
+    transition: var(--transition);
+    background-color: #FAFAFA !important;
+}
+
+input:focus, textarea:focus, select:focus {
+    border-color: var(--primary-color) !important;
+    background-color: #FFFFFF !important;
+    box-shadow: 0 0 0 3px rgba(147, 112, 219, 0.15) !important;
+    outline: none !important;
+}
+
+/* Scrollbar Styling */
+::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+    background: #D1C4E9;
+    border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: #B39DDB;
+}
+
+/* Specific overrides for existing elements */
+.ti-item {
+    border-radius: 20px !important; /* Pill shape */
+    border: 1px solid transparent !important;
+}
+
+.ti-item:hover {
+    background-color: var(--primary-light) !important;
+    color: var(--primary-color) !important;
+}
+
+.ti-item.active {
+    background-color: var(--primary-color) !important;
+    border-color: var(--primary-color) !important;
+    color: white !important;
+}
+
+/* Chat Overrides - Specific Selectors */
+.chat-session-item.active {
+    background-color: var(--primary-light) !important;
+    border-color: transparent !important;
+    color: var(--primary-color) !important;
+}
+
+.chat-session-item.active .session-title {
+    color: var(--primary-color) !important;
+}
+
+.message-row.user .message-bubble {
+    background: linear-gradient(135deg, var(--primary-color), var(--secondary-color)) !important;
+    box-shadow: var(--shadow-sm);
+}
+
+.message-avatar {
+    box-shadow: var(--shadow-sm);
+}
+
+.message-row.ai .message-bubble {
+    background-color: var(--chat-bubble-ai) !important;
+    color: var(--text-main) !important;
+}
+
+.chat-input-container {
+    border-radius: 16px !important;
+    border: 1px solid rgba(147, 112, 219, 0.2) !important;
+    box-shadow: var(--shadow-sm) !important;
+}
+
+.chat-input-container:focus-within {
+    box-shadow: 0 4px 16px rgba(147, 112, 219, 0.15) !important;
+    border-color: var(--primary-color) !important;
+}
+
+.new-chat-btn {
+    border-radius: 20px !important;
+    border: 1px dashed var(--primary-color) !important;
+    color: var(--primary-color) !important;
+    background: var(--bg-surface) !important;
+}
+
+.new-chat-btn:hover {
+    background: var(--primary-light) !important;
+    box-shadow: var(--shadow-sm) !important;
+}
+
+#chat-send-btn {
+    background-color: var(--primary-color) !important;
+    border-radius: 12px !important;
+}
+
+#chat-send-btn:hover {
+    background-color: var(--primary-hover) !important;
+    transform: scale(1.05);
+}
+
+/* Reading List Count */
+.ti-count {
+    background-color: var(--secondary-color) !important;
+    color: white !important;
+}
+
+/* Paper Item Selected */
+.paper-item.selected {
+    background-color: var(--primary-light) !important;
+    border-left-color: var(--primary-color) !important;
+}
+
+/* Modal */
+.modal-content {
+    border-radius: var(--border-radius) !important;
+    border: none !important;
+    box-shadow: var(--shadow-lg) !important;
+}
+
+.modal-header {
+    background: linear-gradient(135deg, var(--primary-color), var(--primary-hover)) !important;
+    color: white !important;
+    border-radius: var(--border-radius) var(--border-radius) 0 0 !important;
+}
+
+.modal-header h4, .modal-header .close {
+    color: white !important;
+}
+
+/* Icons */
+.sidebar-header h3 i, .nav-tab i {
+    color: inherit;
+}
+
+/* Toggle Switch */
+input:checked + .slider {
+    background-color: var(--primary-color) !important;
+}
+
+input:focus + .slider {
+    box-shadow: 0 0 1px var(--primary-color) !important;
+}
+
+/* Login Overlay */
+.login-overlay {
+    background: rgba(243, 229, 245, 0.95) !important; /* Light purple overlay */
+}
+
+.login-card {
+    border-top: 4px solid var(--primary-color) !important;
+}
+
+.btn-link {
+    color: var(--primary-color) !important;
+}
+
+/* Stats Cards */
+.stat-icon {
+    background-color: var(--primary-light) !important;
+    color: var(--primary-color) !important;
+    border-color: transparent !important;
+}
+
+.nav-avatar:hover {
+    border-color: var(--primary-color) !important;
+    box-shadow: 0 0 0 3px rgba(147, 112, 219, 0.2) !important;
+}
+
+/* Daily Arxiv Header */
+.daily-arxiv-header {
+    border-bottom: 1px solid rgba(0,0,0,0.05) !important;
+}
+
+.daily-arxiv-title h2 i {
+    color: var(--primary-color) !important;
+}
+
+/* Progress Bar */
+.progress-bar {
+    background: linear-gradient(90deg, var(--primary-color), var(--secondary-color)) !important;
+}
+
+/* Filter Panel */
+.daily-arxiv-filter-panel {
+    border-color: rgba(0,0,0,0.05) !important;
+    box-shadow: var(--shadow-sm) !important;
+}
+
+.filter-section-title i:not(.filter-toggle-icon) {
+    color: var(--primary-color) !important;
+}
+
+.daily-arxiv-category-tag.active {
+    background-color: var(--primary-color) !important;
+}
+
+/* Import/Export */
+.import-type-tab.active {
+    color: var(--primary-color) !important;
+    border-bottom-color: var(--primary-color) !important;
+}
+
+.step-number {
+    background-color: var(--primary-color) !important;
+}
+
+.import-drop-zone:hover {
+    border-color: var(--primary-color) !important;
+    background-color: var(--primary-light) !important;
+}
+
+.import-progress-fill {
+    background: linear-gradient(90deg, var(--primary-color), var(--secondary-color)) !important;
+}
+
+/* ==========================================================================
+   Fixes for UI Issues
+   ========================================================================== */
+
+/* 1. Fix Daily arXiv Search Box Width */
+.daily-arxiv-search-box {
+    min-width: 450px !important;
+    max-width: 650px !important;
+    width: 100%;
+}
+
+/* 2. Fix 'Open settings' button in Empty State */
+.daily-arxiv-empty .btn-primary {
+    padding: 12px 32px !important;
+    font-size: 15px !important;
+    margin-top: 12px;
+}
+
+/* Fix icon margin inheritance issue that caused misalignment */
+.daily-arxiv-empty .btn-primary i {
+    margin-bottom: 0 !important;
+    color: inherit !important;
+}
+
+/* 3. Fix Daily arXiv Header Actions Alignment */
+.daily-arxiv-actions {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    justify-content: center !important;
+    /* Removed flex: 1 to allow parent space-between to push this block to the right */
+    gap: 8px !important;
+}
+
+.daily-arxiv-actions-top {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+/* Ensure categories inside align left (relative to the container) */
+.daily-arxiv-categories {
+    justify-content: flex-start !important;
+    width: 100%;
+}

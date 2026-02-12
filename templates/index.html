@@ -9,6 +9,7 @@
     <link rel="alternate icon" type="image/png" href="{{ url_for('static', filename='images/website_logo.png') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}?v=1.1">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/chat.css') }}?v=1.0">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/theme-purple.css') }}?v=1.0">
     <!-- PDF.js (CDN) for client-side PDF metadata parsing -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js"></script>
@@ -203,21 +204,23 @@
                 </div>
             </div>
             <div class="daily-arxiv-actions">
-                <!-- Daily arXiv search: title / authors / institution / abstract -->
-                <div class="daily-arxiv-search-box">
-                    <input id="daily-arxiv-search" type="text"
-                        placeholder="Search title / author / institution / abstract..." />
-                    <i class="fas fa-search"></i>
+                <div class="daily-arxiv-actions-top">
+                    <!-- Daily arXiv search: title / authors / institution / abstract -->
+                    <div class="daily-arxiv-search-box">
+                        <input id="daily-arxiv-search" type="text"
+                            placeholder="Search title / author / institution / abstract..." />
+                        <i class="fas fa-search"></i>
+                    </div>
+                    <button class="btn btn-outline" id="daily-arxiv-filter" title="Filter current papers">
+                        <i class="fas fa-filter"></i> Filter
+                    </button>
+                    <button class="btn btn-secondary" id="daily-arxiv-settings" title="Configure arXiv categories">
+                        <i class="fas fa-cog"></i> Settings
+                    </button>
                 </div>
-                <button class="btn btn-outline" id="daily-arxiv-filter" title="Filter current papers">
-                    <i class="fas fa-filter"></i> Filter
-                </button>
                 <div class="daily-arxiv-categories" id="daily-arxiv-categories">
                     <!-- Category tags will be rendered here -->
                 </div>
-                <button class="btn btn-secondary" id="daily-arxiv-settings" title="Configure arXiv categories">
-                    <i class="fas fa-cog"></i> Settings
-                </button>
             </div>
         </div>
 

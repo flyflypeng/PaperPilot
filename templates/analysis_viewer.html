@@ -7,6 +7,8 @@
     <title>AI Interpretation - PaperPilot</title>
     <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='images/website_logo.svg') }}">
     <link rel="alternate icon" type="image/png" href="{{ url_for('static', filename='images/website_logo.png') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/theme-purple.css') }}">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github.min.css">
     <script src="https://cdn.jsdelivr.net/npm/marked@15.0.12/marked.min.js"
@@ -113,11 +115,10 @@
         }
 
         .container {
-            min-height: calc(100vh - 64px);
+            height: calc(100vh - 64px);
             overflow-y: auto;
             padding: 48px 32px;
-            display: flex;
-            justify-content: center;
+            display: block;
         }
 
         .content {
@@ -127,6 +128,8 @@
             padding: 48px 56px;
             box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
             animation: fadeIn 0.5s ease-out;
+            margin: 0 auto;
+            min-height: min-content;
         }
 
         @keyframes fadeIn {
