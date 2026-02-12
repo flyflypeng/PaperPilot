@@ -122,6 +122,14 @@
    ```
 
 4. **启动应用**
+
+   在启动应用之前，如果需要鉴权功能，请准备好 Supabase 项目的 URL 和 ANON_KEY，并写入项目根目录下的 `.env` 文件中：
+   ```bash
+   cp .env.example .env
+   # 编辑 .env 文件填入 SUPABASE_URL 和 SUPABASE_ANON_KEY
+   ```
+
+   然后启动应用：
    ```bash
    python app.py
    ```
@@ -168,13 +176,6 @@ PaperPilot 支持通过 Web UI 直接进行配置。
 - **领域 (Categories)**：选择需要监控的 ArXiv 分类。
 - **关键词 (Keywords)**：定义筛选和高亮的关键词。
 - **计划任务**：设置自动抓取的时间间隔。
-
-### 环境变量
-如需高级配置（如 Supabase 集成），请创建 `.env` 文件：
-```env
-SUPABASE_URL=your_supabase_url
-SUPABASE_ANON_KEY=your_supabase_key
-```
 
 ## 📄 许可证
 

@@ -7,6 +7,10 @@ from datetime import datetime
 from functools import partial
 from typing import Optional
 
+from dotenv import load_dotenv
+
+load_dotenv()
+
 import requests
 from flask import Flask, g, jsonify, render_template, request
 

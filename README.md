@@ -122,6 +122,14 @@ We recommend using [uv](https://github.com/astral-sh/uv) for fast and reliable d
    ```
 
 4. **Run the Application**
+   
+   Before running the application, if you need authentication features, please prepare your Supabase project's URL and ANON_KEY and write them into the `.env` file in the project root directory:
+   ```bash
+   cp .env.example .env
+   # Edit .env and fill in SUPABASE_URL and SUPABASE_ANON_KEY
+   ```
+
+   Then start the application:
    ```bash
    python app.py
    ```
@@ -169,12 +177,6 @@ Configure your research interests:
 - **Keywords**: Define keywords for filtering and highlighting.
 - **Schedule**: Set the automatic fetch interval.
 
-### Environment Variables
-For advanced configuration (e.g., Supabase integration), create a `.env` file:
-```env
-SUPABASE_URL=your_supabase_url
-SUPABASE_ANON_KEY=your_supabase_key
-```
 
 ## 📄 License
 

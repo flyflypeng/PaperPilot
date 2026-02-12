@@ -31,7 +31,8 @@ dependencies = [
     "Pillow==11.3.0",
     "mineru==2.5.3",
     "BabelDOC==0.5.13",
-    "mineru_vl_utils==0.1.16"
+    "mineru_vl_utils==0.1.16",
+    "python-dotenv>=1.2.1",
 ]
 
 [project.optional-dependencies]
