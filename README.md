@@ -177,15 +177,43 @@ Configure your research interests:
 - **Keywords**: Define keywords for filtering and highlighting.
 - **Schedule**: Set the automatic fetch interval.
 
-
-## 📄 License
-
-This project is licensed under the **CC BY-NC 4.0** License. See the [LICENSE](LICENSE) file for details.
-
 ## ⚠️ Important Notes
 
 - **Multi-User Support**: The current version of PaperPilot is designed for individuals or small teams and does not yet fully support multi-tenancy. While it supports authentication via Supabase, all users share the same backend configuration and paper library. It is recommended to deploy in a private network or trusted environment.
 - **BabelDOC Translation**: The English-Chinese parallel translation feature based on BabelDOC has high memory consumption and a long processing time. It is recommended to use this feature primarily for papers that require intensive reading.
+
+## 🗺️ Roadmap
+
+> Contributions are welcome! This roadmap is a living document and will evolve with user needs and available time.
+
+### Near-Term (Next)
+- [ ] Reading annotations: highlights, comments, bookmarks, and one-click quote snippets
+- [ ] Paper chat improvements: grounded answers with page/paragraph/snippet references
+- [ ] Daily ArXiv rules upgrade: keyword combinations, exclusions, regex
+- [ ] Deployment & ops: Docker Compose, automated backup/restore, health checks
+
+### Mid-Term (Mid)
+- [ ] Semantic search: local embeddings index (optional vector store) with cross-library search
+- [ ] Personal knowledge base: turn notes/summaries into a queryable research log (topics/timeline)
+- [ ] Job queue & progress center: unified queue for translation/interpretation/indexing with retries and priorities
+
+### Long-Term (Future)
+- [ ] Multi-tenancy: isolate libraries and settings per user/team
+- [ ] Paper recommendations & graph: citation-network and reading-behavior signals
+- [ ] Collaborative workspace: shared folders, team annotations, access control
+- [ ] Multimodal understanding: structured extraction for figures/equations/tables and searchability
+- [ ] Mobile/PWA: offline reading and cross-device sync
+
+### Performance & UX (Ongoing)
+- [ ] Faster PDF rendering, page cache, and on-demand loading for long documents
+- [ ] Incremental indexing for global search (avoid full rescans)
+- [ ] Configuration validation and one-click diagnostics (LLM/MinerU/BabelDOC)
+- [ ] Observability: job timings, failure reasons, and basic metrics
+
+
+## 📄 License
+
+This project is licensed under the **CC BY-NC 4.0** License. See the [LICENSE](LICENSE) file for details.
 
 ---
 <div align="center">
