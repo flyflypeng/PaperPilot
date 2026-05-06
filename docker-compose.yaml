@@ -2,18 +2,7 @@ version: "3.8"
 
 services:
   paperpilot:
-    build:
-      context: .
-      dockerfile: Dockerfile
-      args:
-        HTTP_PROXY: ${HTTP_PROXY:-}
-        HTTPS_PROXY: ${HTTPS_PROXY:-}
-        NO_PROXY: ${NO_PROXY:-}
-        ALL_PROXY: ${ALL_PROXY:-}
-        http_proxy: ${HTTP_PROXY:-}
-        https_proxy: ${HTTPS_PROXY:-}
-        no_proxy: ${NO_PROXY:-}
-        all_proxy: ${ALL_PROXY:-}
+    image: ghcr.io/flyflypeng/paperpilot:latest
     container_name: paperpilot
     ports:
       - "7191:7191"
@@ -29,6 +18,8 @@ services:
       - no_proxy=${NO_PROXY}
       - all_proxy=${ALL_PROXY}
     volumes:
+      # Runtime env file loaded by python-dotenv inside the container
+      - ./.env:/app/.env:ro
       # SQLite database and app-managed metadata
       - ./data/db:/app/db
       # Uploaded papers and generated artifacts
