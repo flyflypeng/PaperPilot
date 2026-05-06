@@ -24,6 +24,7 @@ from paperpilot.tools.basic_tools.daily_arxiv import (
     extract_pdf_first_page_text,
     get_manager,
     get_today_arxiv_date,
+    normalize_daily_arxiv_settings,
 )
 from paperpilot.tools.basic_tools.upload_paper import fetch_bibtex_from_dblp
 
@@ -251,7 +252,7 @@ def register_daily_arxiv_routes(
         if request.method == "GET":
             try:
                 with open(daily_arxiv_settings_file, "r", encoding="utf-8") as fp:
-                    settings = json.load(fp)
+                    settings = normalize_daily_arxiv_settings(json.load(fp))
             except FileNotFoundError:
                 settings = {}
             except Exception as exc:
@@ -271,6 +272,7 @@ def register_daily_arxiv_routes(
         # POST: Save settings
         data = request.json or {}
         try:
+            data = normalize_daily_arxiv_settings(data)
             with open(daily_arxiv_settings_file, "w", encoding="utf-8") as fp:
                 json.dump(data, fp, ensure_ascii=False, indent=2)
             return jsonify({"success": True})

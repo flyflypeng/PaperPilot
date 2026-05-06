@@ -10548,7 +10548,7 @@ function addDailyArxivCategory() {
     const input = document.getElementById('daily-arxiv-new-category');
     if (!input) return;
 
-    const category = input.value.trim().toLowerCase();
+    const category = input.value.trim();
     if (!category) {
         showMessage('Please enter a partition name', 'warning');
         return;

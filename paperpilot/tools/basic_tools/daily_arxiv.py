@@ -62,6 +62,51 @@ def _normalize_keyword_match_text(text: str) -> str:
     return re.sub(r"\s+", " ", text).strip()
 
 
+def normalize_arxiv_category(category: str) -> str:
+    if not isinstance(category, str):
+        return ""
+    category = category.strip()
+    if not category:
+        return ""
+    if "." in category:
+        prefix, suffix = category.split(".", 1)
+        return f"{prefix.lower()}.{suffix.upper()}"
+    return category.lower()
+
+
+def normalize_arxiv_category_list(categories: Any) -> List[str]:
+    if not isinstance(categories, list):
+        return []
+
+    normalized: List[str] = []
+    seen = set()
+    for category in categories:
+        normalized_category = normalize_arxiv_category(category)
+        if not normalized_category or normalized_category in seen:
+            continue
+        seen.add(normalized_category)
+        normalized.append(normalized_category)
+    return normalized
+
+
+def normalize_daily_arxiv_settings(settings: Dict[str, Any]) -> Dict[str, Any]:
+    if not isinstance(settings, dict):
+        return {}
+
+    normalized = dict(settings)
+    normalized["categories"] = normalize_arxiv_category_list(
+        normalized.get("categories", [])
+    )
+
+    keyword_list = normalized.get("keywordList", [])
+    if isinstance(keyword_list, list):
+        normalized["keywordList"] = [
+            kw.strip() for kw in keyword_list if isinstance(kw, str) and kw.strip()
+        ]
+
+    return normalized
+
+
 def match_any_keyword_in_title_or_abstract(
     title: str, abstract: str, keyword_list: List[str]
 ) -> List[str]:
@@ -504,7 +549,7 @@ class DailyArxivManager:
         """Get settings"""
         try:
             with open(self.settings_file, "r", encoding="utf-8") as f:
-                return json.load(f)
+                return normalize_daily_arxiv_settings(json.load(f))
         except:
             return {}
 
@@ -611,9 +656,10 @@ class DailyArxivManager:
             # Get enough papers at once (up to 500 articles) and then filter for papers with target date
             max_fetch = 500
             target_date = datetime.strptime(date_str, "%Y-%m-%d").date()
+            normalized_category = normalize_arxiv_category(category)
 
             search = arxiv.Search(
-                query=f"cat:{category}",
+                query=f"cat:{normalized_category}",
                 max_results=max_fetch,
                 sort_by=arxiv.SortCriterion.SubmittedDate,
                 sort_order=arxiv.SortOrder.Descending,

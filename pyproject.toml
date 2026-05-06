@@ -45,6 +45,15 @@ server = [
     "huggingface-hub>=0.20.0",
     "modelscope>=1.17.0",
 ]
+test = [
+    "pytest>=8.0.0",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+markers = [
+    "integration: tests that hit live external services such as arXiv",
+]
 
 [build-system]
 requires = ["hatchling"]
@@ -52,4 +61,3 @@ build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
 packages = ["paperpilot"]
-

@@ -197,6 +197,30 @@ We recommend using [uv](https://github.com/astral-sh/uv) for fast and reliable d
      python app.py --host 127.0.0.1
      ```
 
+## 🧪 Testing
+
+Install the test dependencies:
+```bash
+uv pip install -e ".[test]"
+```
+
+Run the fast unit tests, including mocked arXiv behavior:
+```bash
+uv run pytest -q -m "not integration"
+```
+
+Run only the tests that access the live arXiv API and validate the real response format:
+```bash
+uv run pytest -q -m integration
+```
+
+Run the arXiv-related tests directly:
+```bash
+uv run pytest -q tests/test_arxiv_api_interactions.py
+```
+
+The `integration` tests require network access and depend on arXiv availability. If arXiv is temporarily unavailable or rate-limited, rerun them later.
+
 ## ⚙️ Configuration
 
 PaperPilot is designed to be configurable directly from the Web UI.

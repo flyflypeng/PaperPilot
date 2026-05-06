@@ -125,7 +125,7 @@
    uv pip install -e ".[server]"
    ```
 
-5. **Supabase Auth 鉴权（可选）**
+4. **Supabase Auth 鉴权（可选）**
    PaperPilot 的登录/注册基于 Supabase Auth（邮箱+密码）。启用后，前端会在浏览器中通过 `supabase-js` 获取会话令牌，并在请求 `/api/*` 时携带 `Authorization: Bearer <access_token>`；后端会用 Supabase 的 `/auth/v1/user` 接口校验令牌有效性。
    若未配置 `SUPABASE_URL` 与 `SUPABASE_ANON_KEY`，系统将默认关闭鉴权：前端不会显示登录界面，后端 `/api/*` 接口不要求 `Authorization` 头，直接进入管理界面。
 
@@ -161,7 +161,7 @@
    - 仅使用 `anon public` key；不要把 `service_role` key 放进 `.env` 或发到前端
    - 本项目会把 `SUPABASE_URL` 与 `SUPABASE_ANON_KEY` 注入到页面中（用于浏览器侧登录），这是预期行为
 
-4. **启动应用**
+5. **启动应用**
 
    ```bash
    python app.py
@@ -194,6 +194,30 @@
      ```bash
      python app.py --host 127.0.0.1
      ```
+
+## 🧪 测试
+
+安装测试依赖：
+```bash
+uv pip install -e ".[test]"
+```
+
+运行快速单元测试，包括通过 mock 验证 arXiv 相关功能逻辑：
+```bash
+uv run pytest -q -m "not integration"
+```
+
+仅运行会真实访问 arXiv API、校验真实返回格式的集成测试：
+```bash
+uv run pytest -q -m integration
+```
+
+只运行 arXiv 相关测试：
+```bash
+uv run pytest -q tests/test_arxiv_api_interactions.py
+```
+
+`integration` 测试需要联网，并依赖 arXiv 服务可用性。如果遇到 arXiv 临时不可用或限流，请稍后重试。
 
 ## ⚙️ 配置说明
 
