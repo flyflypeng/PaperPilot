@@ -1,0 +1,36 @@
+version: "3.8"
+
+services:
+  paperpilot:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        HTTP_PROXY: ${HTTP_PROXY:-}
+        HTTPS_PROXY: ${HTTPS_PROXY:-}
+        NO_PROXY: ${NO_PROXY:-}
+        ALL_PROXY: ${ALL_PROXY:-}
+        http_proxy: ${HTTP_PROXY:-}
+        https_proxy: ${HTTPS_PROXY:-}
+        no_proxy: ${NO_PROXY:-}
+        all_proxy: ${ALL_PROXY:-}
+    container_name: paperpilot
+    ports:
+      - "7191:7191"
+    environment:
+      - SUPABASE_URL=${SUPABASE_URL}
+      - SUPABASE_ANON_KEY=${SUPABASE_ANON_KEY}
+      - HTTP_PROXY=${HTTP_PROXY}
+      - HTTPS_PROXY=${HTTPS_PROXY}
+      - NO_PROXY=${NO_PROXY}
+      - ALL_PROXY=${ALL_PROXY}
+      - http_proxy=${HTTP_PROXY}
+      - https_proxy=${HTTPS_PROXY}
+      - no_proxy=${NO_PROXY}
+      - all_proxy=${ALL_PROXY}
+    volumes:
+      # SQLite database and app-managed metadata
+      - ./data/db:/app/db
+      # Uploaded papers and generated artifacts
+      - ./data/papers:/data/papers
+    restart: unless-stopped
