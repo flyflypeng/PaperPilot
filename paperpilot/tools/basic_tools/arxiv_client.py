@@ -13,6 +13,8 @@ from typing import Optional
 import arxiv
 import requests
 
+from paperpilot.tools.basic_tools.arxiv_network import arxiv_urlopen
+
 
 def _extract_author_names(authors_str: str, max_authors: int = 3) -> str:
     """
@@ -134,7 +136,7 @@ def get_bibtex_enhanced(
     if arxiv_id:
         try:
             bibtex_url = f"https://arxiv.org/bibtex/{arxiv_id}"
-            with urllib.request.urlopen(bibtex_url, timeout=10) as response:
+            with arxiv_urlopen(bibtex_url, timeout=10) as response:
                 bibtex = response.read().decode("utf-8")
                 if bibtex and not bibtex.startswith("Error"):
                     print(f"[arXiv] successfully obtained BibTeX (ID: {arxiv_id})")

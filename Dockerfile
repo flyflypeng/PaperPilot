@@ -8,6 +8,10 @@ ARG http_proxy=
 ARG https_proxy=
 ARG no_proxy=
 ARG all_proxy=
+ARG ARXIV_PROXY=
+ARG ARXIV_API_PROXY=
+ARG ARXIV_HTTP_PROXY=
+ARG ARXIV_HTTPS_PROXY=
 
 ENV HTTP_PROXY=${HTTP_PROXY}
 ENV HTTPS_PROXY=${HTTPS_PROXY}
@@ -17,6 +21,10 @@ ENV http_proxy=${http_proxy}
 ENV https_proxy=${https_proxy}
 ENV no_proxy=${no_proxy}
 ENV all_proxy=${all_proxy}
+ENV ARXIV_PROXY=${ARXIV_PROXY}
+ENV ARXIV_API_PROXY=${ARXIV_API_PROXY}
+ENV ARXIV_HTTP_PROXY=${ARXIV_HTTP_PROXY}
+ENV ARXIV_HTTPS_PROXY=${ARXIV_HTTPS_PROXY}
 ENV DEBIAN_FRONTEND=noninteractive
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
@@ -47,10 +55,19 @@ RUN uv sync --frozen --no-dev
 
 FROM ubuntu:24.04 AS runtime
 
+ARG ARXIV_PROXY=
+ARG ARXIV_API_PROXY=
+ARG ARXIV_HTTP_PROXY=
+ARG ARXIV_HTTPS_PROXY=
+
 ENV DEBIAN_FRONTEND=noninteractive
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
 ENV PATH=/opt/venv/bin:$PATH
+ENV ARXIV_PROXY=${ARXIV_PROXY}
+ENV ARXIV_API_PROXY=${ARXIV_API_PROXY}
+ENV ARXIV_HTTP_PROXY=${ARXIV_HTTP_PROXY}
+ENV ARXIV_HTTPS_PROXY=${ARXIV_HTTPS_PROXY}
 
 RUN apt-get -o Acquire::http::Proxy="false" -o Acquire::https::Proxy="false" update && \
     apt-get -o Acquire::http::Proxy="false" -o Acquire::https::Proxy="false" install -y --no-install-recommends \

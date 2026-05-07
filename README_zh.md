@@ -219,6 +219,28 @@ uv run pytest -q tests/test_arxiv_api_interactions.py
 
 `integration` 测试需要联网，并依赖 arXiv 服务可用性。如果遇到 arXiv 临时不可用或限流，请稍后重试。
 
+## ⚙️ 配置
+
+PaperPilot 主要通过 Web UI 配置。
+
+### 仅对 arXiv 使用代理
+
+如果只有 arXiv 元数据和 PDF 下载需要走代理，可以设置：
+
+```bash
+ARXIV_PROXY=http://127.0.0.1:7890
+```
+
+也可以使用按协议区分的变量：`ARXIV_HTTP_PROXY` 和
+`ARXIV_HTTPS_PROXY`。这些变量只会应用到 `arxiv.org` 和
+`export.arxiv.org`，不会影响 DBLP、LLM 服务、Supabase、MinerU 或其他后端请求。
+
+Docker 构建时如需写入镜像默认值：
+
+```bash
+docker build --build-arg ARXIV_PROXY=http://host.docker.internal:7890 -t paperpilot .
+```
+
 ## ⚙️ 配置说明
 
 PaperPilot 支持通过 Web UI 直接进行配置。

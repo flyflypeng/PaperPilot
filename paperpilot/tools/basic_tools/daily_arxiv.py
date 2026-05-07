@@ -25,6 +25,11 @@ import arxiv
 
 from paperpilot.database.dao.paper_dao import PaperDAO
 from paperpilot.database.dao.daily_arxiv_dao import DailyArxivDAO
+from paperpilot.tools.basic_tools.arxiv_network import (
+    arxiv_urlopen,
+    configure_arxiv_client,
+    new_arxiv_requests_session,
+)
 from paperpilot.tools.basic_tools.daily_arxiv_quality import normalize_quality_config
 
 DEFAULT_MAX_DAILY_PAPERS = 50
@@ -112,6 +117,10 @@ def normalize_arxiv_category_list(categories: Any) -> List[str]:
         seen.add(normalized_category)
         normalized.append(normalized_category)
     return normalized
+
+
+def _make_arxiv_client(*args, **kwargs) -> arxiv.Client:
+    return configure_arxiv_client(arxiv.Client(*args, **kwargs))
 
 
 def get_arxiv_category_weight(category: str) -> float:
@@ -630,7 +639,7 @@ class DailyArxivManager:
         os.makedirs(base_dir, exist_ok=True)
 
         # arXiv client
-        self.client = arxiv.Client(
+        self.client = _make_arxiv_client(
             page_size=50,
             delay_seconds=3.0,
             num_retries=3,
@@ -1437,10 +1446,8 @@ Now the input abstract is:
                 # if it is already export.arxiv.org, remain unchanged
                 pass
 
-            # Try using it first requests library (if available), which usually handles the anti-crawling mechanism better
+            # Try using requests first, which usually handles redirects better.
             try:
-                import requests
-
                 # use requests Library, add complete browser request headers
                 headers = {
                     "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
@@ -1452,13 +1459,14 @@ Now the input abstract is:
                 }
 
                 # download PDF(use export.arxiv.org, no need to visit the home page first)
-                response = requests.get(
-                    pdf_url,
-                    headers=headers,
-                    timeout=30,
-                    stream=True,
-                    allow_redirects=True,
-                )
+                with new_arxiv_requests_session(pdf_url) as session:
+                    response = session.get(
+                        pdf_url,
+                        headers=headers,
+                        timeout=30,
+                        stream=True,
+                        allow_redirects=True,
+                    )
 
                 if response.status_code == 200:
                     chunk_count = 0
@@ -1514,7 +1522,7 @@ Now the input abstract is:
                 )
 
                 # Download file (urllib It is a one-time read and the progress cannot be updated during the download process)
-                with urllib.request.urlopen(req, timeout=30) as response:
+                with arxiv_urlopen(req, timeout=30) as response:
                     with open(pdf_path, "wb") as out_file:
                         out_file.write(response.read())
 
@@ -2438,7 +2446,7 @@ class DailyArxivFetcher:
 
     def __init__(self, temp_dir: str):
         self.temp_dir = temp_dir
-        self.client = arxiv.Client(
+        self.client = _make_arxiv_client(
             page_size=50,
             delay_seconds=3.0,
             num_retries=3,

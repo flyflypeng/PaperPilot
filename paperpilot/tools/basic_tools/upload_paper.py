@@ -23,10 +23,10 @@ from typing import Any, Dict, Optional
 import arxiv
 import PyPDF2
 import html
-import requests
 import xml.etree.ElementTree as ET
 
 from paperpilot.tools.basic_tools.arxiv_client import get_bibtex_enhanced
+from paperpilot.tools.basic_tools.arxiv_network import arxiv_get, configure_arxiv_client
 from paperpilot.tools.basic_tools.pdf_extractor import (
     extract_title_by_fontsize,
     extract_title_from_text,
@@ -36,6 +36,10 @@ from paperpilot.tools.basic_tools.pdf_extractor import (
 # ============================================================================
 # Utility function
 # ============================================================================
+
+
+def _make_arxiv_client(*args: Any, **kwargs: Any) -> arxiv.Client:
+    return configure_arxiv_client(arxiv.Client(*args, **kwargs))
 
 
 def _normalize_arxiv_id(arxiv_id: str) -> str:
@@ -155,7 +159,7 @@ def fetch_paper_by_arxiv_id_fast(arxiv_id: str) -> Optional[Dict[str, Any]]:
 
                 for api_url in api_urls:
                     try:
-                        response = requests.get(
+                        response = arxiv_get(
                             api_url,
                             params={"id_list": normalized_arxiv_id},
                             headers=headers,
@@ -224,7 +228,7 @@ def fetch_paper_by_arxiv_id_fast(arxiv_id: str) -> Optional[Dict[str, Any]]:
         def _fetch_via_abs_page(normalized_arxiv_id: str) -> Optional[Dict[str, Any]]:
             try:
                 abs_url = f"https://arxiv.org/abs/{normalized_arxiv_id}"
-                response = requests.get(
+                response = arxiv_get(
                     abs_url,
                     headers={"User-Agent": "PaperPilot/1.0"},
                     timeout=20,
@@ -294,7 +298,7 @@ def fetch_paper_by_arxiv_id_fast(arxiv_id: str) -> Optional[Dict[str, Any]]:
         result: Optional[Dict[str, Any]] = None
 
         try:
-            client = arxiv.Client()
+            client = _make_arxiv_client()
             search = arxiv.Search(id_list=[arxiv_id])
 
             paper = next(client.results(search), None)
@@ -506,7 +510,7 @@ def search_arxiv_by_title_and_author_fast(
         print(f"[Way2.3 Fast] Use titles+Author search arXiv: [{query}]")
 
         # use arxiv library search
-        client = arxiv.Client()
+        client = _make_arxiv_client()
         search = arxiv.Search(
             query=query, max_results=1, sort_by=arxiv.SortCriterion.Relevance
         )
@@ -563,7 +567,7 @@ def search_arxiv_by_title_only_fast(title: str) -> Optional[Dict[str, Any]]:
         print(f"[Way2.4 Fast] Search using titles arXiv: {title[:50]}...")
 
         # use arxiv library search
-        client = arxiv.Client()
+        client = _make_arxiv_client()
         search = arxiv.Search(
             query=f'ti:"{title}"', max_results=1, sort_by=arxiv.SortCriterion.Relevance
         )

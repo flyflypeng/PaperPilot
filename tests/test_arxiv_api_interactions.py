@@ -7,6 +7,10 @@ import pytest
 import requests
 from unittest.mock import MagicMock, patch
 
+from paperpilot.tools.basic_tools.arxiv_network import (
+    configure_arxiv_client,
+    get_arxiv_requests_proxies,
+)
 from paperpilot.tools.basic_tools.arxiv_client import get_bibtex_enhanced
 from paperpilot.tools.basic_tools.upload_paper import (
     fetch_paper_by_arxiv_id_fast,
@@ -33,6 +37,7 @@ class FakeClient:
     def __init__(self, paper=None):
         self.paper = paper
         self.last_search = None
+        self._session = SimpleNamespace(trust_env=True, proxies={})
 
     def results(self, search):
         self.last_search = search
@@ -85,6 +90,41 @@ class TestArxivApiFormats(unittest.TestCase):
 
 
 class TestArxivApiMockedBehavior(unittest.TestCase):
+    def test_arxiv_proxy_applies_only_to_arxiv_urls(self):
+        with patch.dict(
+            "os.environ",
+            {"ARXIV_PROXY": "http://proxy.internal:7890"},
+            clear=True,
+        ):
+            self.assertEqual(
+                get_arxiv_requests_proxies("https://export.arxiv.org/api/query"),
+                {
+                    "http": "http://proxy.internal:7890",
+                    "https": "http://proxy.internal:7890",
+                },
+            )
+            self.assertIsNone(get_arxiv_requests_proxies("https://dblp.org/search"))
+
+    def test_configure_arxiv_client_ignores_global_proxy_env(self):
+        fake_client = FakeClient()
+        with patch.dict(
+            "os.environ",
+            {
+                "HTTP_PROXY": "http://global-proxy.internal:8080",
+                "HTTPS_PROXY": "http://global-proxy.internal:8080",
+                "ARXIV_HTTPS_PROXY": "http://arxiv-proxy.internal:7890",
+            },
+            clear=True,
+        ):
+            configured = configure_arxiv_client(fake_client)
+
+        self.assertIs(configured, fake_client)
+        self.assertFalse(fake_client._session.trust_env)
+        self.assertEqual(
+            fake_client._session.proxies,
+            {"https": "http://arxiv-proxy.internal:7890"},
+        )
+
     def test_fetch_paper_by_arxiv_id_fast_uses_arxiv_client(self):
         fake_client = FakeClient(make_paper())
         with patch(
@@ -141,12 +181,12 @@ class TestArxivApiMockedBehavior(unittest.TestCase):
             "paperpilot.tools.basic_tools.arxiv_client.get_bibtex_from_dblp",
             return_value="@article{dblp}",
         ), patch(
-            "paperpilot.tools.basic_tools.arxiv_client.urllib.request.urlopen",
-        ) as fake_urlopen:
+            "paperpilot.tools.basic_tools.arxiv_client.arxiv_urlopen",
+        ) as fake_arxiv_urlopen:
             result = get_bibtex_enhanced("A Paper", "Alice Bob", "2502.05383")
 
         self.assertEqual(result, "@article{dblp}")
-        fake_urlopen.assert_not_called()
+        fake_arxiv_urlopen.assert_not_called()
 
     def test_get_bibtex_enhanced_falls_back_to_arxiv(self):
         response = MagicMock()
@@ -155,7 +195,7 @@ class TestArxivApiMockedBehavior(unittest.TestCase):
             "paperpilot.tools.basic_tools.arxiv_client.get_bibtex_from_dblp",
             return_value=None,
         ), patch(
-            "paperpilot.tools.basic_tools.arxiv_client.urllib.request.urlopen",
+            "paperpilot.tools.basic_tools.arxiv_client.arxiv_urlopen",
             return_value=response,
         ):
             result = get_bibtex_enhanced("A Paper", "Alice Bob", "2502.05383")
@@ -169,7 +209,7 @@ class TestArxivApiMockedBehavior(unittest.TestCase):
             "paperpilot.tools.basic_tools.arxiv_client.get_bibtex_from_dblp",
             return_value=None,
         ), patch(
-            "paperpilot.tools.basic_tools.arxiv_client.urllib.request.urlopen",
+            "paperpilot.tools.basic_tools.arxiv_client.arxiv_urlopen",
             return_value=response,
         ):
             result = get_bibtex_enhanced("A Paper", "Alice Bob", "2502.05383")

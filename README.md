@@ -225,6 +225,24 @@ The `integration` tests require network access and depend on arXiv availability.
 
 PaperPilot is designed to be configurable directly from the Web UI.
 
+### arXiv-only proxy
+Set `ARXIV_PROXY` when only arXiv metadata/PDF requests should use a proxy:
+
+```bash
+ARXIV_PROXY=http://127.0.0.1:7890
+```
+
+Scheme-specific overrides are also supported: `ARXIV_HTTP_PROXY` and
+`ARXIV_HTTPS_PROXY`. These variables are applied only to `arxiv.org` and
+`export.arxiv.org`; DBLP, LLM providers, Supabase, MinerU, and other backend
+requests are not proxied by this setting.
+
+When baking the value into a Docker image:
+
+```bash
+docker build --build-arg ARXIV_PROXY=http://host.docker.internal:7890 -t paperpilot .
+```
+
 ### Agentic Settings
 Navigate to the **Settings** tab to configure:
 - **LLM Provider**: Set your API Key, Base URL, and Model Name (e.g., GPT-4, Qwen, DeepSeek).
