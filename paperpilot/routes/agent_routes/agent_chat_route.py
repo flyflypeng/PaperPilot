@@ -19,6 +19,72 @@ CategoryPath = List[str]
 # Initialize ChatHistoryManager
 chat_history_manager = ChatHistoryManager(paper_store)
 
+
+class ThinkTagStreamFilter:
+    """Remove <think>...</think> blocks while preserving normal streamed text."""
+
+    _OPEN_RE = re.compile(r"<think\b[^>]*>", re.IGNORECASE)
+    _CLOSE_RE = re.compile(r"</think\s*>", re.IGNORECASE)
+    _OPEN_PREFIX = "<think"
+
+    def __init__(self) -> None:
+        self._pending = ""
+        self._in_think = False
+
+    def feed(self, text: str) -> str:
+        self._pending += text
+        visible: List[str] = []
+
+        while self._pending:
+            if self._in_think:
+                close_match = self._CLOSE_RE.search(self._pending)
+                if not close_match:
+                    self._pending = self._pending[-16:]
+                    break
+                self._pending = self._pending[close_match.end():]
+                self._in_think = False
+                continue
+
+            open_match = self._OPEN_RE.search(self._pending)
+            if open_match:
+                visible.append(self._pending[:open_match.start()])
+                self._pending = self._pending[open_match.end():]
+                self._in_think = True
+                continue
+
+            keep_len = self._partial_open_suffix_len(self._pending)
+            if keep_len:
+                visible.append(self._pending[:-keep_len])
+                self._pending = self._pending[-keep_len:]
+                break
+
+            visible.append(self._pending)
+            self._pending = ""
+
+        return "".join(visible)
+
+    def flush(self) -> str:
+        if self._in_think:
+            self._pending = ""
+            return ""
+        tail = self._pending
+        self._pending = ""
+        return tail
+
+    def _partial_open_suffix_len(self, text: str) -> int:
+        lowered = text.lower()
+        max_len = min(len(lowered), len(self._OPEN_PREFIX))
+        for length in range(max_len, 0, -1):
+            if self._OPEN_PREFIX.startswith(lowered[-length:]):
+                return length
+        return 0
+
+
+def strip_think_blocks(text: str) -> str:
+    text = re.sub(r"<think\b[^>]*>[\s\S]*?</think\s*>", "", text, flags=re.IGNORECASE)
+    text = re.sub(r"<think\b[^>]*>[\s\S]*$", "", text, flags=re.IGNORECASE)
+    return text
+
 def register_agent_chat_routes(
     app,
     *,
@@ -321,6 +387,7 @@ If the user asks for details that require the paper text, say you don't know and
 
             def generate():
                 full_response = ""
+                think_filter = ThinkTagStreamFilter()
                 try:
                     stream = client.chat.completions.create(
                         model=llm_model,
@@ -335,11 +402,23 @@ If the user asks for details that require the paper text, say you don't know and
                     for chunk in stream:
                         if chunk.choices[0].delta.content:
                             content = chunk.choices[0].delta.content
-                            full_response += content
-                            yield content
+                            visible_content = think_filter.feed(content)
+                            if visible_content:
+                                full_response += visible_content
+                                yield visible_content
+
+                    trailing_content = think_filter.flush()
+                    if trailing_content:
+                        full_response += trailing_content
+                        yield trailing_content
                             
                     # Save AI response after stream completes
-                    chat_history_manager.save_message(paper_id, session_id, 'assistant', full_response)
+                    chat_history_manager.save_message(
+                        paper_id,
+                        session_id,
+                        'assistant',
+                        strip_think_blocks(full_response),
+                    )
                             
                 except Exception as e:
                     yield f"Error: {str(e)}"

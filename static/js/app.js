@@ -14226,6 +14226,7 @@ async function checkAndShowOnboarding() {
 
 // Chat Interaction Logic
 let currentChatPaperId = null;
+let currentSessionId = null;
 let chatHistory = [];
 const CHAT_COMMON_PROMPTS_STORAGE_KEY = 'chatCommonPrompts';
 const DEFAULT_CHAT_COMMON_PROMPTS = [
@@ -14569,6 +14570,48 @@ function selectChatPromptByIndex(index) {
     textarea.focus();
 }
 
+function normalizeChatMarkdownText(value) {
+    if (value == null) return '';
+    if (typeof value === 'string') return value;
+    if (typeof value === 'number' || typeof value === 'boolean') return String(value);
+    if (Array.isArray(value)) {
+        return value.map(item => normalizeChatMarkdownText(item)).join('');
+    }
+    if (typeof value === 'object') {
+        if (typeof value.text === 'string') return value.text;
+        if (typeof value.content === 'string') return value.content;
+        try {
+            return JSON.stringify(value, null, 2);
+        } catch (e) {
+            return String(value);
+        }
+    }
+    return String(value);
+}
+
+function stripChatThinkBlocks(value) {
+    const text = normalizeChatMarkdownText(value);
+    return text
+        .replace(/<think\b[^>]*>[\s\S]*?<\/think\s*>/gi, '')
+        .replace(/<think\b[^>]*>[\s\S]*$/i, '');
+}
+
+function renderChatMarkdown(value) {
+    const markdown = stripChatThinkBlocks(value);
+    if (typeof marked === 'undefined') {
+        return escapeHtml(markdown);
+    }
+
+    configureMarked();
+
+    try {
+        return marked.parse(markdown);
+    } catch (error) {
+        console.error('Failed to render chat markdown:', error, { markdown });
+        return `<pre style="white-space: pre-wrap;">${escapeHtml(markdown)}</pre>`;
+    }
+}
+
 // Configure Marked.js with custom renderer
 function configureMarked() {
     if (typeof marked === 'undefined') return;
@@ -14579,20 +14622,28 @@ function configureMarked() {
     const renderer = new marked.Renderer();
     renderer._customized = true; // Flag to prevent re-init
 
-    renderer.code = function (code, language) {
-        const validLang = !!(language && hljs.getLanguage(language));
-        const highlighted = validLang ? hljs.highlight(code, { language }).value : hljs.highlightAuto(code).value;
-        const langLabel = language || 'text';
+    renderer.code = function (codeOrToken, language) {
+        const token = codeOrToken && typeof codeOrToken === 'object' ? codeOrToken : null;
+        const code = normalizeChatMarkdownText(token ? token.text : codeOrToken);
+        const rawLanguage = normalizeChatMarkdownText(token ? token.lang : language).trim();
+        const languageName = rawLanguage.split(/\s+/)[0];
+        const hasHighlight = typeof hljs !== 'undefined';
+        const validLang = !!(hasHighlight && languageName && hljs.getLanguage(languageName));
+        const highlighted = hasHighlight
+            ? (validLang ? hljs.highlight(code, { language: languageName }).value : hljs.highlightAuto(code).value)
+            : escapeHtml(code);
+        const langLabel = rawLanguage || 'text';
+        const langClass = languageName ? languageName.replace(/[^\w-]/g, '') : 'text';
 
         return `
         <div class="code-block-wrapper">
             <div class="code-header">
-                <span class="code-lang">${langLabel}</span>
+                <span class="code-lang">${escapeHtml(langLabel)}</span>
                 <button class="copy-btn" onclick="window.copyChatCode(this)">
                     <i class="fas fa-copy"></i> Copy
                 </button>
             </div>
-            <pre><code class="hljs ${language}">${highlighted}</code><textarea style="display:none">${code}</textarea></pre>
+            <pre><code class="hljs ${langClass}">${highlighted}</code><textarea style="display:none">${escapeHtml(code)}</textarea></pre>
         </div>`;
     };
 
@@ -14786,8 +14837,11 @@ async function switchSession(sessionId) {
                 messages.forEach(msg => {
                     // Map 'assistant' back to 'ai' for UI function if needed, but standard is 'assistant'
                     const role = msg.role === 'assistant' ? 'ai' : msg.role;
-                    appendChatMessage(role, msg.content);
-                    chatHistory.push({ role: msg.role, content: msg.content });
+                    const content = msg.role === 'assistant'
+                        ? stripChatThinkBlocks(msg.content)
+                        : normalizeChatMarkdownText(msg.content);
+                    appendChatMessage(role, content);
+                    chatHistory.push({ role: msg.role, content });
                 });
             }
 
@@ -14956,9 +15010,9 @@ async function sendChatMessage() {
 
             if (typeof marked !== 'undefined') {
                 // Add blinking cursor
-                aiBubble.innerHTML = marked.parse(fullResponse) + '<span class="cursor-blink">|</span>';
+                aiBubble.innerHTML = renderChatMarkdown(fullResponse) + '<span class="cursor-blink">|</span>';
             } else {
-                aiBubble.textContent = fullResponse;
+                aiBubble.textContent = stripChatThinkBlocks(fullResponse);
             }
 
             // Scroll to bottom
@@ -14968,7 +15022,7 @@ async function sendChatMessage() {
 
         // Final render without cursor
         if (typeof marked !== 'undefined') {
-            aiBubble.innerHTML = marked.parse(fullResponse);
+            aiBubble.innerHTML = renderChatMarkdown(fullResponse);
             // Trigger MathJax render if available
             if (window.MathJax && window.MathJax.typesetPromise) {
                 window.MathJax.typesetPromise([aiBubble]).catch(err => console.log('MathJax error:', err));
@@ -14976,7 +15030,7 @@ async function sendChatMessage() {
         }
 
         // Add to history
-        chatHistory.push({ role: 'assistant', content: fullResponse });
+        chatHistory.push({ role: 'assistant', content: stripChatThinkBlocks(fullResponse) });
 
         // Refresh session list title preview
         loadChatSessions(currentChatPaperId);
@@ -15005,13 +15059,15 @@ function appendChatMessage(role, text, isThinking = false) {
 
     if (!isThinking) {
         if (role === 'ai' && typeof marked !== 'undefined' && text) {
-            bubbleDiv.innerHTML = marked.parse(text);
+            bubbleDiv.innerHTML = renderChatMarkdown(text);
             if (window.MathJax && window.MathJax.typesetPromise) {
                 // Defer MathJax to avoid blocking UI during initial render
                 setTimeout(() => window.MathJax.typesetPromise([bubbleDiv]), 0);
             }
         } else {
-            bubbleDiv.textContent = text;
+            bubbleDiv.textContent = role === 'ai'
+                ? stripChatThinkBlocks(text)
+                : normalizeChatMarkdownText(text);
         }
     }
 
