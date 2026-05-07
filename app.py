@@ -49,7 +49,11 @@ from paperpilot.routes.basic_routes.upload_from_pdf_route import (
     register_upload_from_pdf_routes,
 )
 from paperpilot.tools.basic_tools import category_manager, paper_repository
-from paperpilot.tools.basic_tools.daily_arxiv import DEFAULT_MAX_DAILY_PAPERS
+from paperpilot.tools.basic_tools.daily_arxiv import (
+    DEFAULT_MAX_DAILY_PAPERS,
+    DEFAULT_MAX_NEW_PAPERS_PER_CATEGORY_PER_FETCH,
+    DEFAULT_REPLACEMENT_CANDIDATE_LIMIT,
+)
 from paperpilot.tools.basic_tools.daily_arxiv_quality import get_default_quality_config
 
 parser = argparse.ArgumentParser(description="PaperPilot")
@@ -204,6 +208,8 @@ DEFAULT_DAILY_ARXIV_SETTINGS = {
     "checkIntervalMinutes": 30,  # Check interval (minutes)
     "retentionDays": 2,  # Retention days for papers
     "maxDailyPapers": DEFAULT_MAX_DAILY_PAPERS,  # Maximum papers fetched per date
+    "maxNewPapersPerCategoryPerFetch": DEFAULT_MAX_NEW_PAPERS_PER_CATEGORY_PER_FETCH,
+    "replacementCandidateLimit": DEFAULT_REPLACEMENT_CANDIDATE_LIMIT,
     "maxKeywords": 2,  # Maximum number of keywords (1-3)
     "keywordList": [
         "LLM",

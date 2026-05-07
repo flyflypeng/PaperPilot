@@ -8,6 +8,9 @@ from unittest.mock import patch
 from paperpilot.database.dao.paper_dao import PaperDAO
 from paperpilot.tools.basic_tools.daily_arxiv import (
     DailyArxivManager,
+    DEFAULT_MAX_NEW_PAPERS_PER_CATEGORY_PER_FETCH,
+    DEFAULT_REPLACEMENT_CANDIDATE_LIMIT,
+    build_daily_arxiv_replacement_payload,
     calculate_daily_category_quotas,
     get_arxiv_category_weight,
     match_any_keyword_in_title_or_abstract,
@@ -59,6 +62,14 @@ class TestDailyArxivKeywordFilter(unittest.TestCase):
         self.assertEqual(normalized["categories"], ["cs.CV", "cs.AI", "stat.ML"])
         self.assertEqual(normalized["keywordList"], ["Agent", "LLM"])
         self.assertEqual(normalized["maxDailyPapers"], 2)
+        self.assertEqual(
+            normalized["maxNewPapersPerCategoryPerFetch"],
+            DEFAULT_MAX_NEW_PAPERS_PER_CATEGORY_PER_FETCH,
+        )
+        self.assertEqual(
+            normalized["replacementCandidateLimit"],
+            DEFAULT_REPLACEMENT_CANDIDATE_LIMIT,
+        )
         self.assertEqual(sum(normalized["categoryQuotas"].values()), 2)
 
     def test_settings_normalization_clamps_max_daily_papers(self):
@@ -67,6 +78,39 @@ class TestDailyArxivKeywordFilter(unittest.TestCase):
 
         normalized = normalize_daily_arxiv_settings({"maxDailyPapers": 0})
         self.assertEqual(normalized["maxDailyPapers"], 1)
+
+    def test_replacement_payload_includes_institution_tiers(self):
+        payload = build_daily_arxiv_replacement_payload(
+            {
+                "arxiv_id": "2603.00001",
+                "title": "Candidate Paper",
+                "authors": ["Alice"],
+                "abstract": "A useful system paper.",
+                "fetch_category": "cs.OS",
+                "affiliations": ["MIT"],
+            },
+            [
+                {
+                    "arxiv_id": "2603.00000",
+                    "title": "Existing Paper",
+                    "authors": ["Bob"],
+                    "abstract": "An existing paper.",
+                    "fetch_category": "cs.OS",
+                    "affiliations": ["Example Lab"],
+                }
+            ],
+            {
+                "S": ["MIT", " MIT "],
+                "A": ["CMU"],
+                "B": [],
+                "C": ["Other labs"],
+            },
+        )
+
+        self.assertEqual(payload["institution_tiers"]["S"], ["MIT"])
+        self.assertEqual(payload["institution_tiers"]["A"], ["CMU"])
+        self.assertEqual(payload["institution_tiers"]["C"], ["Other labs"])
+        self.assertEqual(payload["candidate"]["affiliations"], ["MIT"])
 
     def test_system_categories_get_higher_quota_weight_than_ai_categories(self):
         self.assertGreater(
@@ -188,7 +232,7 @@ class TestDailyArxivKeywordFilter(unittest.TestCase):
             self.assertEqual(len(papers), 2)
             self.assertEqual(len(saved), 2)
 
-    def test_two_stage_fetch_refills_unused_niche_category_quota(self):
+    def test_incremental_fetch_does_not_force_fill_unused_quota(self):
         class FakeAuthor:
             def __init__(self, name):
                 self.name = name
@@ -222,7 +266,9 @@ class TestDailyArxivKeywordFilter(unittest.TestCase):
             with open(settings_file, "w", encoding="utf-8") as f:
                 f.write(
                     '{"enabled": true, "categories": ["cs.AI", "cs.DC"], '
-                    '"maxDailyPapers": 5}'
+                    '"maxDailyPapers": 5, '
+                    '"maxNewPapersPerCategoryPerFetch": 1, '
+                    '"replacementCandidateLimit": 0}'
                 )
 
             manager = DailyArxivManager(base_dir=tmpdir, settings_file=settings_file)
@@ -261,9 +307,114 @@ class TestDailyArxivKeywordFilter(unittest.TestCase):
                 )
 
             saved_categories = [paper["fetch_category"] for paper in saved]
-            self.assertEqual(len(saved), 5)
+            self.assertEqual(len(saved), 2)
             self.assertEqual(saved_categories.count("cs.DC"), 1)
-            self.assertEqual(saved_categories.count("cs.AI"), 4)
+            self.assertEqual(saved_categories.count("cs.AI"), 1)
+
+    def test_full_quota_can_replace_existing_paper_when_llm_accepts_candidate(self):
+        class FakeAuthor:
+            def __init__(self, name):
+                self.name = name
+
+        class FakeResult:
+            def __init__(self, index):
+                self.entry_id = f"https://arxiv.org/abs/2603.{index:05d}"
+                self.authors = [FakeAuthor("Alice")]
+                self.categories = ["cs.AI"]
+                self.primary_category = "cs.AI"
+                self.published = datetime(2026, 3, 1, 12, 0, 0)
+                self.updated = self.published
+                self.title = f"New Paper {index}"
+                self.summary = "A much more valuable AI paper."
+                self.pdf_url = f"https://arxiv.org/pdf/2603.{index:05d}.pdf"
+                self.comment = None
+                self.journal_ref = None
+
+        class FakeClient:
+            def results(self, _search):
+                return [FakeResult(1)]
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            old_pdf = os.path.join(tmpdir, "old.pdf")
+            with open(old_pdf, "wb") as fp:
+                fp.write(b"%PDF-1.4 old")
+            settings_file = os.path.join(tmpdir, "daily_arxiv_settings.json")
+            with open(settings_file, "w", encoding="utf-8") as f:
+                f.write(
+                    '{"enabled": true, "categories": ["cs.AI"], '
+                    '"maxDailyPapers": 1, "replacementCandidateLimit": 1}'
+                )
+
+            saved = [
+                {
+                    "id": "daily_2603.00000",
+                    "arxiv_id": "2603.00000",
+                    "title": "Old Paper",
+                    "abstract": "Older, less relevant paper.",
+                    "file_path": old_pdf,
+                    "fetch_category": "cs.AI",
+                    "is_daily": True,
+                }
+            ]
+            deleted = []
+
+            manager = DailyArxivManager(base_dir=tmpdir, settings_file=settings_file)
+            manager.client = FakeClient()
+            manager.set_llm_config_callback(
+                lambda: {
+                    "llmBaseUrl": "http://example.test/v1",
+                    "llmApiKey": "token",
+                    "llmModel": "test-model",
+                }
+            )
+
+            def fake_download(paper, _cat_dir, _progress):
+                path = os.path.join(tmpdir, f"{paper.arxiv_id}.pdf")
+                with open(path, "wb") as fp:
+                    fp.write(b"%PDF-1.4 new")
+                return path
+
+            def fake_save(paper_dict, _cat_dir):
+                saved.append(
+                    {
+                        "id": f"daily_{paper_dict['arxiv_id']}",
+                        "arxiv_id": paper_dict["arxiv_id"],
+                        "title": paper_dict["title"],
+                        "abstract": paper_dict["abstract"],
+                        "file_path": paper_dict["local_pdf_path"],
+                        "fetch_category": paper_dict["fetch_category"],
+                        "is_daily": True,
+                    }
+                )
+
+            manager._download_pdf = fake_download
+            manager._generate_thumbnail = lambda *args, **kwargs: None
+            manager._save_paper = fake_save
+
+            with (
+                patch.object(PaperDAO, "get_daily_papers", side_effect=lambda _date: saved),
+                patch.object(PaperDAO, "get_paper_by_arxiv_id", return_value=None),
+                patch.object(PaperDAO, "delete_paper", side_effect=lambda paper_id: deleted.append(paper_id)),
+                patch(
+                    "paperpilot.tools.basic_tools.daily_arxiv.get_arxiv_announce_date",
+                    return_value=datetime(2026, 3, 2),
+                ),
+                patch(
+                    "paperpilot.tools.basic_tools.daily_arxiv.select_daily_arxiv_replacement_with_llm",
+                    return_value={
+                        "accept": True,
+                        "replace_arxiv_id": "2603.00000",
+                        "score": 0.9,
+                        "reason": "candidate is stronger",
+                    },
+                ),
+            ):
+                papers = manager.fetch_papers("cs.AI", date_str="2026-03-02")
+
+            self.assertEqual(len(papers), 1)
+            self.assertEqual(papers[0]["arxiv_id"], "2603.00001")
+            self.assertEqual(deleted, ["daily_2603.00000"])
+            self.assertFalse(os.path.exists(old_pdf))
 
 
 if __name__ == "__main__":

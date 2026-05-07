@@ -35,6 +35,8 @@ from paperpilot.tools.basic_tools.daily_arxiv_quality import normalize_quality_c
 DEFAULT_MAX_DAILY_PAPERS = 50
 MIN_MAX_DAILY_PAPERS = 1
 MAX_MAX_DAILY_PAPERS = 500
+DEFAULT_MAX_NEW_PAPERS_PER_CATEGORY_PER_FETCH = 3
+DEFAULT_REPLACEMENT_CANDIDATE_LIMIT = 5
 DAILY_CATEGORY_RATIO_TOTAL = 100.0
 DAILY_CATEGORY_RATIO_TOLERANCE = 0.0001
 DEFAULT_CATEGORY_WEIGHT = 1.0
@@ -83,6 +85,39 @@ Notice:
 3. direct output JSON, without any other explanation
 
 The summary entered now is:
+"""
+
+DAILY_ARXIV_REPLACEMENT_PROMPT = """You are curating a limited-size Daily arXiv reading feed.
+
+Given one new candidate paper and the papers already kept in the same arXiv category, decide whether the candidate is clearly more valuable than one existing paper and should replace it.
+
+Prefer papers that are likely to be useful for a researcher's daily reading:
+- Important or timely research problem
+- Strong novelty or practical impact
+- Clear method contribution
+- Strong relevance to the configured arXiv category
+- Useful survey, benchmark, system, dataset, or infrastructure contribution
+- The first author's institution tier when available. Use the `institution_tiers` object in the input as the configured Institution tiers: Tier S is strongest, then Tier A, Tier B, Tier C, and unknown/unlisted institutions. Prefer a higher-tier first-author institution only when the paper quality and relevance are otherwise comparable; do not replace a clearly stronger paper solely because of institution tier. If affiliation or tier data is missing, do not guess.
+
+Be conservative. Only replace when the candidate is clearly better than an existing paper. Do not replace just because it is newer.
+
+Return JSON only:
+{
+  "accept": true,
+  "replace_arxiv_id": "existing-paper-arxiv-id",
+  "score": 0.0,
+  "reason": "short reason"
+}
+
+If no replacement should happen, return:
+{
+  "accept": false,
+  "replace_arxiv_id": null,
+  "score": 0.0,
+  "reason": "short reason"
+}
+
+Now evaluate:
 """
 
 
@@ -359,6 +394,18 @@ def normalize_daily_arxiv_settings(settings: Dict[str, Any]) -> Dict[str, Any]:
         normalized.get("maxDailyPapers"),
         DEFAULT_MAX_DAILY_PAPERS,
         MIN_MAX_DAILY_PAPERS,
+        MAX_MAX_DAILY_PAPERS,
+    )
+    normalized["maxNewPapersPerCategoryPerFetch"] = _normalize_int_setting(
+        normalized.get("maxNewPapersPerCategoryPerFetch"),
+        DEFAULT_MAX_NEW_PAPERS_PER_CATEGORY_PER_FETCH,
+        1,
+        MAX_MAX_DAILY_PAPERS,
+    )
+    normalized["replacementCandidateLimit"] = _normalize_int_setting(
+        normalized.get("replacementCandidateLimit"),
+        DEFAULT_REPLACEMENT_CANDIDATE_LIMIT,
+        0,
         MAX_MAX_DAILY_PAPERS,
     )
     normalized["categoryQuotas"] = calculate_daily_category_quotas(
@@ -895,17 +942,22 @@ class DailyArxivManager:
             if paper.get("arxiv_id") or paper.get("id")
         }
 
-    def _get_downloaded_daily_count_for_category(
+    def _get_downloaded_daily_papers_for_category(
         self, date_str: str, category: str
-    ) -> int:
+    ) -> List[Dict]:
         normalized_category = normalize_arxiv_category(category)
-        count = 0
+        matched_papers = []
         for paper in self._get_downloaded_daily_papers_for_date(date_str):
             fetch_category = normalize_arxiv_category(paper.get("fetch_category", ""))
             subject_category = normalize_arxiv_category(paper.get("subject", ""))
             if fetch_category == normalized_category or subject_category == normalized_category:
-                count += 1
-        return count
+                matched_papers.append(paper)
+        return matched_papers
+
+    def _get_downloaded_daily_count_for_category(
+        self, date_str: str, category: str
+    ) -> int:
+        return len(self._get_downloaded_daily_papers_for_category(date_str, category))
 
     def _get_category_daily_quota(self, settings: Dict, category: str) -> int:
         normalized_category = normalize_arxiv_category(category)
@@ -958,11 +1010,11 @@ class DailyArxivManager:
         force: bool = False,
     ) -> Dict[str, List[Dict]]:
         """
-        Fetch a set of categories using a two-stage quota strategy.
+        Fetch a set of categories using incremental weighted quotas.
 
-        Stage 1 respects weighted per-category quotas so niche categories get
-        reserved capacity. Stage 2 redistributes any unused daily capacity to
-        configured categories that still have more matching papers.
+        Each run only admits a limited number of new papers per category.
+        When quotas are full, high-value new candidates may replace lower-value
+        existing Daily arXiv papers after LLM screening.
         """
         if date_str is None:
             date_str = get_today_arxiv_date()
@@ -983,34 +1035,6 @@ class DailyArxivManager:
                 force=force,
                 quota_stage="weighted",
             )
-
-        settings = self.get_settings()
-        max_daily_papers = settings.get("maxDailyPapers", DEFAULT_MAX_DAILY_PAPERS)
-        remaining_capacity = max_daily_papers - len(
-            self._get_downloaded_daily_ids_for_date(date_str)
-        )
-        if remaining_capacity <= 0:
-            return papers_by_category
-
-        fill_categories = self._order_categories_for_fill(normalized_categories, settings)
-        print(
-            f"[DailyArxiv] Stage 2 fill fetch for {date_str}: "
-            f"{remaining_capacity} slots, categories {fill_categories}"
-        )
-        for category in fill_categories:
-            if (
-                max_daily_papers
-                - len(self._get_downloaded_daily_ids_for_date(date_str))
-                <= 0
-            ):
-                break
-            filled_papers = self.fetch_papers(
-                category,
-                date_str=date_str,
-                force=force,
-                quota_stage="fill",
-            )
-            papers_by_category.setdefault(category, []).extend(filled_papers)
 
         return papers_by_category
 
@@ -1053,6 +1077,13 @@ class DailyArxivManager:
             max_daily_papers = settings.get(
                 "maxDailyPapers", DEFAULT_MAX_DAILY_PAPERS
             )
+            max_new_papers_per_fetch = settings.get(
+                "maxNewPapersPerCategoryPerFetch",
+                DEFAULT_MAX_NEW_PAPERS_PER_CATEGORY_PER_FETCH,
+            )
+            replacement_candidate_limit = settings.get(
+                "replacementCandidateLimit", DEFAULT_REPLACEMENT_CANDIDATE_LIMIT
+            )
             existing_daily_ids = self._get_downloaded_daily_ids_for_date(date_str)
             global_remaining_capacity = max_daily_papers - len(existing_daily_ids)
             is_fill_stage = quota_stage == "fill"
@@ -1069,8 +1100,23 @@ class DailyArxivManager:
                 remaining_capacity = min(
                     global_remaining_capacity, category_remaining_capacity
                 )
+                remaining_capacity = min(remaining_capacity, max_new_papers_per_fetch)
 
             if remaining_capacity <= 0:
+                if replacement_candidate_limit > 0:
+                    print(
+                        f"[DailyArxiv] {date_str} quota is full for {category}; "
+                        f"screen up to {replacement_candidate_limit} candidates for replacement"
+                    )
+                    return self._fetch_replacement_candidates(
+                        category=category,
+                        date_str=date_str,
+                        force=force,
+                        limit=replacement_candidate_limit,
+                        existing_daily_ids=existing_daily_ids,
+                        keyword_list=keyword_list,
+                        settings=settings,
+                    )
                 if is_fill_stage:
                     message = f"Daily limit reached ({max_daily_papers} papers)"
                 else:
@@ -1481,6 +1527,227 @@ Now the input abstract is:
             traceback.print_exc()
             progress.set_error(str(e))
             return []
+
+    def _collect_candidate_results(
+        self,
+        category: str,
+        date_str: str,
+        limit: int,
+        existing_daily_ids: set,
+        keyword_list: List[str],
+    ) -> tuple[List[Any], Dict[str, List[str]]]:
+        if limit <= 0:
+            return [], {}
+
+        target_date = datetime.strptime(date_str, "%Y-%m-%d").date()
+        normalized_category = normalize_arxiv_category(category)
+        search = arxiv.Search(
+            query=f"cat:{normalized_category}",
+            max_results=500,
+            sort_by=arxiv.SortCriterion.SubmittedDate,
+            sort_order=arxiv.SortOrder.Descending,
+        )
+
+        candidates = []
+        matched_keywords_by_arxiv_id: Dict[str, List[str]] = {}
+        for result in self.client.results(search):
+            paper_tmp = ArxivPaper.from_arxiv_result(result, fetch_category=category)
+            if paper_tmp.arxiv_id in existing_daily_ids:
+                continue
+
+            paper_date = paper_tmp.announced.date() if paper_tmp.announced else None
+            if paper_date and paper_date < target_date:
+                break
+            if not paper_date or paper_date != target_date:
+                continue
+
+            matched_keywords = (
+                match_any_keyword_in_title_or_abstract(
+                    paper_tmp.title, paper_tmp.abstract, keyword_list
+                )
+                if keyword_list
+                else []
+            )
+            if keyword_list and not matched_keywords:
+                continue
+
+            candidates.append(result)
+            if matched_keywords:
+                matched_keywords_by_arxiv_id[paper_tmp.arxiv_id] = matched_keywords
+            if len(candidates) >= limit:
+                break
+
+        return candidates, matched_keywords_by_arxiv_id
+
+    def _fetch_replacement_candidates(
+        self,
+        *,
+        category: str,
+        date_str: str,
+        force: bool,
+        limit: int,
+        existing_daily_ids: set,
+        keyword_list: List[str],
+        settings: Dict,
+    ) -> List[Dict]:
+        progress = self.progress[category]
+        candidates, matched_keywords_by_arxiv_id = self._collect_candidate_results(
+            category, date_str, limit, existing_daily_ids, keyword_list
+        )
+        if not candidates:
+            progress.set_done("No replacement candidates found")
+            return []
+
+        llm_config = self._get_llm_config() if self._get_llm_config else {}
+        if not (
+            llm_config.get("llmBaseUrl")
+            and llm_config.get("llmApiKey")
+            and llm_config.get("llmModel")
+        ):
+            progress.set_done("Replacement screening skipped: LLM not configured")
+            return []
+
+        existing_category_papers = self._get_downloaded_daily_papers_for_category(
+            date_str, category
+        )
+        if not existing_category_papers:
+            progress.set_done("Replacement screening skipped: no existing papers")
+            return []
+
+        progress.set_processing(len(candidates))
+        accepted_papers = []
+        for index, result in enumerate(candidates):
+            candidate = ArxivPaper.from_arxiv_result(result, fetch_category=category)
+            decision = select_daily_arxiv_replacement_with_llm(
+                candidate.to_dict(),
+                existing_category_papers,
+                llm_config["llmBaseUrl"],
+                llm_config["llmApiKey"],
+                llm_config["llmModel"],
+                prompt=settings.get("replacementPrompt"),
+                institution_tiers=(settings.get("qualityConfig") or {}).get(
+                    "institutionTiers", {}
+                ),
+            )
+            if not decision.get("accept"):
+                progress.update(index + 1, f"[Rejected] {candidate.title[:40]}")
+                continue
+
+            replace_arxiv_id = decision.get("replace_arxiv_id")
+            replace_paper = next(
+                (
+                    paper
+                    for paper in existing_category_papers
+                    if paper.get("arxiv_id") == replace_arxiv_id
+                ),
+                None,
+            )
+            if not replace_paper:
+                progress.update(index + 1, f"[No replacement target] {candidate.title[:40]}")
+                continue
+
+            paper_dict = self._process_single_result(
+                result,
+                category=category,
+                date_str=date_str,
+                force=force,
+                index=index,
+                total=len(candidates),
+                progress=progress,
+                settings=settings,
+                matched_keywords=matched_keywords_by_arxiv_id.get(candidate.arxiv_id, []),
+            )
+            if not paper_dict or not paper_dict.get("pdf_downloaded"):
+                continue
+
+            self._delete_daily_paper_files_and_record(replace_paper)
+            accepted_papers.append(paper_dict)
+            existing_category_papers = [
+                paper
+                for paper in existing_category_papers
+                if paper.get("arxiv_id") != replace_arxiv_id
+            ]
+            existing_category_papers.append(paper_dict)
+            print(
+                f"[DailyArxiv] Replaced {replace_arxiv_id} with "
+                f"{paper_dict.get('arxiv_id')} ({decision.get('reason', '')})"
+            )
+
+        progress.set_done(f"Completed, replaced {len(accepted_papers)} papers")
+        return accepted_papers
+
+    def _delete_daily_paper_files_and_record(self, paper_dict: Dict) -> None:
+        paper_id = paper_dict.get("id")
+        for path_key in ("file_path", "thumbnail_path"):
+            path = paper_dict.get(path_key)
+            if path and os.path.exists(path):
+                try:
+                    os.remove(path)
+                except OSError as exc:
+                    print(f"[DailyArxiv] Failed to delete {path}: {exc}")
+        if paper_id:
+            PaperDAO.delete_paper(paper_id)
+
+    def _process_single_result(
+        self,
+        result: Any,
+        *,
+        category: str,
+        date_str: str,
+        force: bool,
+        index: int,
+        total: int,
+        progress: FetchProgress,
+        settings: Dict,
+        matched_keywords: Optional[List[str]] = None,
+    ) -> Optional[Dict]:
+        # Reuse the existing per-paper processing behavior in fetch_papers.
+        # This method intentionally stays small enough for replacement flow and
+        # delegates full processing to the normal loop by returning through the
+        # same metadata path.
+        paper = ArxivPaper.from_arxiv_result(result, fetch_category=category)
+        if matched_keywords:
+            paper.matched_keywords = matched_keywords
+
+        paper_announce_date = (
+            paper.announced.strftime("%Y-%m-%d") if paper.announced else date_str
+        )
+        paper.fetch_date = paper_announce_date
+        paper_cat_dir = self.get_category_dir(paper_announce_date, category)
+        os.makedirs(paper_cat_dir, exist_ok=True)
+
+        safe_id = paper.arxiv_id.replace("/", "_").replace(":", "_")
+        pdf_path = os.path.join(paper_cat_dir, f"{safe_id}.pdf")
+
+        existing_paper_dict = PaperDAO.get_paper_by_arxiv_id(paper.arxiv_id)
+        if (
+            not force
+            and existing_paper_dict
+            and existing_paper_dict.get("is_daily")
+            and existing_paper_dict.get("file_path")
+            and os.path.exists(existing_paper_dict["file_path"])
+        ):
+            progress.update(index + 1, f"[Already exists] {paper.title[:40]}")
+            return None
+
+        progress.update(index + 1, paper.title[:50], pdf_path=pdf_path)
+        pdf_path = self._download_pdf(paper, paper_cat_dir, progress)
+        if pdf_path:
+            paper.local_pdf_path = pdf_path
+            paper.pdf_downloaded = True
+            thumbnail_path = self._generate_thumbnail(pdf_path, paper_cat_dir)
+            if thumbnail_path:
+                paper.thumbnail_path = thumbnail_path
+        else:
+            paper.pdf_downloaded = False
+
+        paper_dict = paper.to_dict()
+        self._save_paper(paper_dict, paper_cat_dir)
+        progress.add_paper(paper_dict)
+        print(
+            f"[DailyArxiv] Complete processing {index + 1}/{total} papers: {paper.arxiv_id}"
+        )
+        return paper_dict
 
     def _validate_pdf_integrity(self, pdf_path: str) -> bool:
         """verify PDF file integrity
@@ -2585,6 +2852,136 @@ def extract_summary_and_keywords_with_llm(
 
         traceback.print_exc()
         return {"summary": None, "keywords": []}
+
+
+def compact_daily_arxiv_institution_tiers(value: Any) -> Dict[str, List[str]]:
+    if isinstance(value, dict) and isinstance(value.get("institutionTiers"), dict):
+        tiers = value.get("institutionTiers")
+    else:
+        tiers = value
+    if not isinstance(tiers, dict):
+        return {}
+
+    compacted: Dict[str, List[str]] = {}
+    for tier in ["S", "A", "B", "C"]:
+        raw_items = tiers.get(tier, [])
+        if not isinstance(raw_items, list):
+            continue
+        seen = set()
+        items = []
+        for item in raw_items:
+            if not isinstance(item, str):
+                continue
+            cleaned = item.strip()
+            key = cleaned.casefold()
+            if cleaned and key not in seen:
+                seen.add(key)
+                items.append(cleaned)
+        if items:
+            compacted[tier] = items
+    return compacted
+
+
+def build_daily_arxiv_replacement_payload(
+    candidate_paper: Dict[str, Any],
+    existing_papers: List[Dict[str, Any]],
+    institution_tiers: Any = None,
+) -> Dict[str, Any]:
+    def compact_paper(paper: Dict[str, Any]) -> Dict[str, Any]:
+        return {
+            "arxiv_id": paper.get("arxiv_id"),
+            "title": paper.get("title"),
+            "authors": paper.get("authors"),
+            "abstract": paper.get("abstract"),
+            "summary": paper.get("summary"),
+            "keywords": paper.get("keywords"),
+            "category": paper.get("fetch_category") or paper.get("subject"),
+            "published": paper.get("published") or paper.get("arxiv_published_date"),
+            "affiliations": paper.get("affiliations"),
+            "countries": paper.get("countries"),
+        }
+
+    return {
+        "candidate": compact_paper(candidate_paper),
+        "existing_papers": [compact_paper(paper) for paper in existing_papers],
+        "institution_tiers": compact_daily_arxiv_institution_tiers(institution_tiers),
+    }
+
+
+def select_daily_arxiv_replacement_with_llm(
+    candidate_paper: Dict[str, Any],
+    existing_papers: List[Dict[str, Any]],
+    openai_base_url: str,
+    openai_api_key: str,
+    model_name: str,
+    prompt: str = None,
+    institution_tiers: Any = None,
+) -> Dict[str, Any]:
+    try:
+        from openai import OpenAI
+
+        client = OpenAI(api_key=openai_api_key, base_url=openai_base_url)
+
+        payload = build_daily_arxiv_replacement_payload(
+            candidate_paper, existing_papers, institution_tiers
+        )
+        full_prompt = (prompt or DAILY_ARXIV_REPLACEMENT_PROMPT) + json.dumps(
+            payload, ensure_ascii=False
+        )
+
+        chat_completion = client.chat.completions.create(
+            messages=[{"role": "user", "content": full_prompt}],
+            model=model_name,
+            temperature=0.1,
+            max_tokens=700,
+        )
+        result_content = chat_completion.choices[0].message.content.strip()
+
+        if result_content.startswith("{"):
+            result = json.loads(result_content)
+        else:
+            json_match = re.search(r"\{.*\}", result_content, re.DOTALL)
+            if not json_match:
+                return {
+                    "accept": False,
+                    "replace_arxiv_id": None,
+                    "score": 0.0,
+                    "reason": "LLM response did not contain JSON",
+                }
+            result = json.loads(json_match.group())
+
+        accept = bool(result.get("accept"))
+        replace_arxiv_id = result.get("replace_arxiv_id")
+        valid_existing_ids = {
+            paper.get("arxiv_id") for paper in existing_papers if paper.get("arxiv_id")
+        }
+        if not accept or replace_arxiv_id not in valid_existing_ids:
+            return {
+                "accept": False,
+                "replace_arxiv_id": None,
+                "score": 0.0,
+                "reason": result.get("reason", "No valid replacement selected"),
+            }
+
+        try:
+            score = float(result.get("score", 0.0))
+        except (TypeError, ValueError):
+            score = 0.0
+
+        return {
+            "accept": True,
+            "replace_arxiv_id": replace_arxiv_id,
+            "score": score,
+            "reason": result.get("reason", ""),
+        }
+    except Exception as exc:
+        print(f"[DailyArxiv] Replacement LLM screening failed: {exc}")
+        return {
+            "accept": False,
+            "replace_arxiv_id": None,
+            "score": 0.0,
+            "reason": str(exc),
+        }
 
 
 # Global manager instance

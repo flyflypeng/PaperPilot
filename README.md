@@ -254,18 +254,21 @@ Configure your research interests:
 - **Keywords**: Define keywords for filtering and highlighting.
 - **Schedule**: Set the automatic fetch interval.
 - **Max Papers per Day**: Cap the total number of papers fetched per arXiv date. The recommended default is `50`.
+- **Max New Papers per Category per Fetch**: Limit how many new papers each configured category can add in a single sync, so repeated syncs can pick up papers released later in the day.
+- **Replacement Candidate Limit**: When a category quota is already full, screen a small number of newer candidates for possible replacement.
 
 Daily ArXiv can split the daily paper budget in two ways:
 
 - **Custom category ratios**: In **arXiv Categories**, set per-category percentages when you want direct control, for example `cs.CV 60%`, `cs.AI 25%`, `cs.LG 15%`. Custom ratios must total exactly `100%`; PaperPilot will warn you if the total is above or below 100%.
 - **Automatic weighted split**: If no custom ratios are configured, PaperPilot keeps the existing weighted strategy.
 
-The automatic strategy uses a weighted two-stage quota strategy when fetching multiple configured categories:
+The automatic strategy uses incremental weighted quotas when fetching multiple configured categories:
 
 1. **Weighted reservation**: PaperPilot dynamically recalculates a per-category quota from the current **Categories** list every time settings are saved or fetches run. High-volume AI categories such as `cs.AI`, `cs.CV`, and `cs.LG` receive slightly lower weights, while smaller systems/infrastructure categories such as `cs.DC`, `cs.OS`, `cs.NI`, and `cs.PF` receive higher weights so they are not crowded out.
-2. **Fill unused capacity**: If smaller categories have fewer papers than their reserved quota, PaperPilot redistributes the unused daily capacity to configured categories that still have more matching papers, up to **Max Papers per Day**.
+2. **Incremental intake**: Each sync only admits up to **Max New Papers per Category per Fetch** new papers per category. This avoids filling the whole daily budget during an early sync before arXiv has released papers throughout the day.
+3. **LLM replacement screening**: When a category quota is already full, PaperPilot can send newer candidates and the existing papers in that category to the configured LLM. The payload includes paper metadata, abstracts, affiliations, countries, and the current **Institution tiers** configuration. The LLM should replace an existing paper only when the candidate is clearly more valuable; institution tier is used only as one signal when quality and relevance are otherwise comparable.
 
-This keeps niche categories visible while still allowing the daily feed to fill the configured total limit when enough papers are available.
+This keeps niche categories visible, avoids consuming all daily slots too early, and lets later high-value papers replace weaker earlier picks.
 
 ## ⚠️ Important Notes
 
