@@ -25,6 +25,7 @@ from paperpilot.tools.basic_tools.daily_arxiv import (
     get_manager,
     get_today_arxiv_date,
     normalize_daily_arxiv_settings,
+    validate_arxiv_category_ratios,
 )
 from paperpilot.tools.basic_tools.daily_arxiv_quality import get_default_quality_config
 from paperpilot.tools.basic_tools.daily_arxiv_quality import normalize_quality_config
@@ -275,15 +276,23 @@ def register_daily_arxiv_routes(
                     **(merged.get("qualityConfig") or {}),
                 }
             )
+            merged = normalize_daily_arxiv_settings(merged)
             return jsonify(merged)
 
         # POST: Save settings
         data = request.json or {}
         try:
+            ratio_error = validate_arxiv_category_ratios(
+                data.get("categoryRatios", {}), data.get("categories", [])
+            )
+            if ratio_error:
+                return jsonify({"success": False, "error": ratio_error}), 400
             data = normalize_daily_arxiv_settings(data)
             with open(daily_arxiv_settings_file, "w", encoding="utf-8") as fp:
                 json.dump(data, fp, ensure_ascii=False, indent=2)
-            return jsonify({"success": True})
+            return jsonify(
+                {"success": True, "categoryQuotas": data.get("categoryQuotas", {})}
+            )
         except Exception as exc:
             return jsonify({"success": False, "error": str(exc)}), 500
 

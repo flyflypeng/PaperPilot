@@ -255,7 +255,12 @@ Configure your research interests:
 - **Schedule**: Set the automatic fetch interval.
 - **Max Papers per Day**: Cap the total number of papers fetched per arXiv date. The recommended default is `50`.
 
-Daily ArXiv uses a weighted two-stage quota strategy when fetching multiple configured categories:
+Daily ArXiv can split the daily paper budget in two ways:
+
+- **Custom category ratios**: In **arXiv Categories**, set per-category percentages when you want direct control, for example `cs.CV 60%`, `cs.AI 25%`, `cs.LG 15%`. Custom ratios must total exactly `100%`; PaperPilot will warn you if the total is above or below 100%.
+- **Automatic weighted split**: If no custom ratios are configured, PaperPilot keeps the existing weighted strategy.
+
+The automatic strategy uses a weighted two-stage quota strategy when fetching multiple configured categories:
 
 1. **Weighted reservation**: PaperPilot dynamically recalculates a per-category quota from the current **Categories** list every time settings are saved or fetches run. High-volume AI categories such as `cs.AI`, `cs.CV`, and `cs.LG` receive slightly lower weights, while smaller systems/infrastructure categories such as `cs.DC`, `cs.OS`, `cs.NI`, and `cs.PF` receive higher weights so they are not crowded out.
 2. **Fill unused capacity**: If smaller categories have fewer papers than their reserved quota, PaperPilot redistributes the unused daily capacity to configured categories that still have more matching papers, up to **Max Papers per Day**.

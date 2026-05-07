@@ -721,10 +721,13 @@
                         <div class="setting-row full-width">
                             <div class="setting-info">
                                 <label>Configured categories</label>
-                                <small>Add arXiv categories you care about, e.g., cs.CV, cs.AI, cs.LG, etc.</small>
+                                <small>Add arXiv categories you care about. Leave ratios blank to keep the automatic weighted split, or set custom ratios that total 100%.</small>
                             </div>
                             <div class="daily-arxiv-category-list" id="daily-arxiv-category-list">
                                 <!-- Category tags will be rendered here -->
+                            </div>
+                            <div class="daily-arxiv-category-ratio-status" id="daily-arxiv-category-ratio-status">
+                                No custom ratios configured. PaperPilot will keep using the automatic weighted split.
                             </div>
                             <div class="daily-arxiv-add-category">
                                 <input type="text" id="daily-arxiv-new-category"

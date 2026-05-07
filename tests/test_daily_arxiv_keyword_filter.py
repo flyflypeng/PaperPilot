@@ -12,7 +12,9 @@ from paperpilot.tools.basic_tools.daily_arxiv import (
     get_arxiv_category_weight,
     match_any_keyword_in_title_or_abstract,
     normalize_arxiv_category,
+    normalize_arxiv_category_ratios,
     normalize_daily_arxiv_settings,
+    validate_arxiv_category_ratios,
 )
 
 
@@ -87,6 +89,53 @@ class TestDailyArxivKeywordFilter(unittest.TestCase):
         self.assertEqual(sum(updated_quotas.values()), 30)
         self.assertNotIn("cs.OS", updated_quotas)
         self.assertGreater(updated_quotas["cs.DC"], quotas["cs.DC"])
+
+    def test_explicit_category_ratios_override_weighted_quotas(self):
+        quotas = calculate_daily_category_quotas(
+            ["cs.AI", "cs.DC"],
+            10,
+            {"cs.AI": 70, "cs.DC": 30},
+        )
+
+        self.assertEqual(quotas, {"cs.AI": 7, "cs.DC": 3})
+
+    def test_category_ratio_validation_requires_exact_total_when_explicit(self):
+        self.assertIsNone(validate_arxiv_category_ratios({}, ["cs.AI", "cs.DC"]))
+        self.assertIsNone(
+            validate_arxiv_category_ratios(
+                {"cs.AI": 60, "cs.DC": 40}, ["cs.AI", "cs.DC"]
+            )
+        )
+
+        over_total = validate_arxiv_category_ratios(
+            {"cs.AI": 70, "cs.DC": 40}, ["cs.AI", "cs.DC"]
+        )
+        under_total = validate_arxiv_category_ratios(
+            {"cs.AI": 70}, ["cs.AI", "cs.DC"]
+        )
+
+        self.assertIn("exceeds 100%", over_total)
+        self.assertIn("exactly 100%", under_total)
+
+    def test_category_ratios_are_normalized_to_current_categories(self):
+        ratios = normalize_arxiv_category_ratios(
+            {"cs.ai": "65", "cs.DC": 35, "cs.OS": 10},
+            ["cs.AI", "cs.DC"],
+        )
+
+        self.assertEqual(ratios, {"cs.AI": 65.0, "cs.DC": 35.0})
+
+    def test_settings_normalization_applies_explicit_category_ratios(self):
+        normalized = normalize_daily_arxiv_settings(
+            {
+                "categories": ["cs.ai", "cs.DC"],
+                "categoryRatios": {"cs.AI": 80, "cs.DC": 20},
+                "maxDailyPapers": 10,
+            }
+        )
+
+        self.assertEqual(normalized["categoryRatios"], {"cs.AI": 80.0, "cs.DC": 20.0})
+        self.assertEqual(normalized["categoryQuotas"], {"cs.AI": 8, "cs.DC": 2})
 
     def test_fetch_papers_respects_max_daily_papers(self):
         class FakeAuthor:

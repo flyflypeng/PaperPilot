@@ -5160,12 +5160,55 @@ mark {
     display: inline-flex;
     align-items: center;
     gap: 8px;
-    padding: 6px 12px;
+    padding: 6px 10px;
     background: #e0f2fe;
     color: #0369a1;
-    border-radius: 20px;
+    border-radius: 8px;
     font-size: 13px;
     font-weight: 500;
+}
+
+.daily-arxiv-category-name {
+    min-width: 48px;
+}
+
+.daily-arxiv-category-ratio {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    color: #0369a1;
+}
+
+.daily-arxiv-category-ratio-input {
+    width: 70px;
+    height: 28px;
+    padding: 4px 6px;
+    border: 1px solid rgba(3, 105, 161, 0.25);
+    border-radius: 6px;
+    background: rgba(255, 255, 255, 0.85);
+    color: #0f172a;
+    font-size: 13px;
+}
+
+.daily-arxiv-category-ratio-input:focus {
+    outline: none;
+    border-color: #0284c7;
+    box-shadow: 0 0 0 2px rgba(2, 132, 199, 0.15);
+}
+
+.daily-arxiv-category-ratio-status {
+    margin: -8px 0 14px;
+    color: #64748b;
+    font-size: 13px;
+    line-height: 1.4;
+}
+
+.daily-arxiv-category-ratio-status.warning {
+    color: #b45309;
+}
+
+.daily-arxiv-category-ratio-status.success {
+    color: #047857;
 }
 
 .daily-arxiv-category-item .remove-btn {

@@ -9401,6 +9401,7 @@ let dailyArxivCurrentDate = null;  // Currently selected date
 let dailyArxivAvailableDates = [];  // Available date list
 let dailyArxivSettings = {
     categories: [],
+    categoryRatios: {},
     retentionDays: 7,
     checkIntervalMinutes: 10,
     maxDailyPapers: 50,
@@ -10554,6 +10555,105 @@ const autoSaveDailyArxivSettings = debounce(() => {
     saveDailyArxivSettings(true); // silent mode
 }, 500);
 
+function normalizeDailyArxivCategory(category) {
+    if (typeof category !== 'string') return '';
+    const trimmed = category.trim();
+    if (!trimmed) return '';
+    if (!trimmed.includes('.')) return trimmed.toLowerCase();
+    const [prefix, ...rest] = trimmed.split('.');
+    return `${prefix.toLowerCase()}.${rest.join('.').toUpperCase()}`;
+}
+
+function getDailyArxivCategoryRatiosFromInputs() {
+    const ratios = {};
+    document.querySelectorAll('.daily-arxiv-category-ratio-input').forEach(input => {
+        const category = normalizeDailyArxivCategory(input.dataset.category || '');
+        const rawValue = `${input.value || ''}`.trim();
+        if (!category || rawValue === '') return;
+
+        const parsed = parseFloat(rawValue);
+        if (!Number.isFinite(parsed)) return;
+        ratios[category] = Math.max(0, parsed);
+    });
+    return ratios;
+}
+
+function getDailyArxivCategoryRatios() {
+    const renderedInputs = document.querySelectorAll('.daily-arxiv-category-ratio-input');
+    if (renderedInputs.length > 0) {
+        return getDailyArxivCategoryRatiosFromInputs();
+    }
+    return { ...(dailyArxivSettings.categoryRatios || {}) };
+}
+
+function getDailyArxivCategoryRatioTotal(ratios) {
+    return dailyArxivCategories.reduce((total, category) => {
+        const normalizedCategory = normalizeDailyArxivCategory(category);
+        const value = parseFloat(ratios[normalizedCategory]);
+        return total + (Number.isFinite(value) ? value : 0);
+    }, 0);
+}
+
+function formatDailyArxivRatioTotal(total) {
+    return Number.isInteger(total) ? `${total}` : `${Math.round(total * 100) / 100}`;
+}
+
+function getDailyArxivCategoryRatioValidationMessage(ratios) {
+    if (!ratios || Object.keys(ratios).length === 0) return '';
+    const total = getDailyArxivCategoryRatioTotal(ratios);
+    if (total > 100.0001) {
+        return `Configured ratios add up to ${formatDailyArxivRatioTotal(total)}%, which exceeds 100%. Please redistribute the ratios.`;
+    }
+    if (Math.abs(total - 100) > 0.0001) {
+        return `Configured ratios add up to ${formatDailyArxivRatioTotal(total)}%. Please adjust them to exactly 100%.`;
+    }
+    return '';
+}
+
+function renderDailyArxivCategoryRatioStatus() {
+    const container = document.getElementById('daily-arxiv-category-ratio-status');
+    if (!container) return;
+
+    const ratios = getDailyArxivCategoryRatios();
+    if (!ratios || Object.keys(ratios).length === 0) {
+        container.className = 'daily-arxiv-category-ratio-status';
+        container.textContent = 'No custom ratios configured. PaperPilot will keep using the automatic weighted split.';
+        return;
+    }
+
+    const validationMessage = getDailyArxivCategoryRatioValidationMessage(ratios);
+    if (validationMessage) {
+        container.className = 'daily-arxiv-category-ratio-status warning';
+        container.textContent = validationMessage;
+        return;
+    }
+
+    container.className = 'daily-arxiv-category-ratio-status success';
+    container.textContent = 'Custom ratios total 100%. These ratios will be used for per-category daily quotas.';
+}
+
+function onDailyArxivCategoryRatioInput(category, value) {
+    const normalizedCategory = normalizeDailyArxivCategory(category);
+    if (!normalizedCategory) return;
+
+    if (!dailyArxivSettings.categoryRatios || typeof dailyArxivSettings.categoryRatios !== 'object') {
+        dailyArxivSettings.categoryRatios = {};
+    }
+
+    const rawValue = `${value || ''}`.trim();
+    if (rawValue === '') {
+        delete dailyArxivSettings.categoryRatios[normalizedCategory];
+    } else {
+        const parsed = parseFloat(rawValue);
+        if (Number.isFinite(parsed)) {
+            dailyArxivSettings.categoryRatios[normalizedCategory] = Math.max(0, parsed);
+        }
+    }
+
+    renderDailyArxivCategoryRatioStatus();
+    autoSaveDailyArxivSettings();
+}
+
 // load Daily arXiv set up
 async function loadDailyArxivSettings() {
     try {
@@ -10566,6 +10666,7 @@ async function loadDailyArxivSettings() {
                 qualityConfig: cloneDailyArxivQualityConfig(loaded.qualityConfig),
             };
             dailyArxivCategories = dailyArxivSettings.categories || [];
+            dailyArxivSettings.categoryRatios = dailyArxivSettings.categoryRatios || {};
             dailyArxivInstitutionTiers = {
                 ...dailyArxivSettings.qualityConfig.institutionTiers,
             };
@@ -10662,6 +10763,13 @@ async function saveDailyArxivSettings(silent = false) {
         const clampedMaxDailyPapers = Math.max(1, Math.min(500, maxDailyPapers));
         // Limit the maximum number of keywords to 1-3 within range
         const clampedMaxKeywords = Math.max(1, Math.min(3, maxKeywords));
+        const categoryRatios = getDailyArxivCategoryRatios();
+        const ratioValidationMessage = getDailyArxivCategoryRatioValidationMessage(categoryRatios);
+        if (ratioValidationMessage) {
+            renderDailyArxivCategoryRatioStatus();
+            showMessage(ratioValidationMessage, 'warning');
+            return;
+        }
 
         // Get keyword list（rendered fromDOMextracted from）
         const keywordList = [];
@@ -10675,6 +10783,7 @@ async function saveDailyArxivSettings(silent = false) {
 
         dailyArxivSettings.enabled = enabled;
         dailyArxivSettings.categories = dailyArxivCategories;
+        dailyArxivSettings.categoryRatios = categoryRatios;
         dailyArxivSettings.retentionDays = retentionDays;
         dailyArxivSettings.checkIntervalMinutes = checkInterval;
         dailyArxivSettings.maxDailyPapers = clampedMaxDailyPapers;
@@ -10693,12 +10802,17 @@ async function saveDailyArxivSettings(silent = false) {
         });
 
         if (res.ok) {
+            const savedSettings = await res.json();
+            if (savedSettings && savedSettings.categoryQuotas) {
+                dailyArxivSettings.categoryQuotas = savedSettings.categoryQuotas;
+            }
             if (!silent) {
                 showMessage('Daily arXiv Settings saved', 'success');
             }
             renderDailyArxivCategoryTags();
         } else {
-            showMessage('Failed to save settings', 'error');
+            const errorData = await res.json().catch(() => ({}));
+            showMessage(errorData.error || 'Failed to save settings', 'error');
         }
     } catch (err) {
         console.error('keep Daily arXiv Setup failed:', err);
@@ -10711,7 +10825,7 @@ function addDailyArxivCategory() {
     const input = document.getElementById('daily-arxiv-new-category');
     if (!input) return;
 
-    const category = input.value.trim();
+    const category = normalizeDailyArxivCategory(input.value);
     if (!category) {
         showMessage('Please enter a partition name', 'warning');
         return;
@@ -10726,12 +10840,14 @@ function addDailyArxivCategory() {
     input.value = '';
     renderDailyArxivSettingsCategoryList();
     renderDailyArxivCategoryTags();
+    renderDailyArxivCategoryRatioStatus();
     // Auto save
     autoSaveDailyArxivSettings();
 }
 
 // Quickly add partitions
 function addDailyArxivCategoryQuick(category) {
+    category = normalizeDailyArxivCategory(category);
     if (dailyArxivCategories.includes(category)) {
         showMessage('The partition already exists', 'warning');
         return;
@@ -10740,6 +10856,7 @@ function addDailyArxivCategoryQuick(category) {
     dailyArxivCategories.push(category);
     renderDailyArxivSettingsCategoryList();
     renderDailyArxivCategoryTags();
+    renderDailyArxivCategoryRatioStatus();
     // Auto save
     autoSaveDailyArxivSettings();
 }
@@ -10749,8 +10866,12 @@ function removeDailyArxivCategory(category) {
     const index = dailyArxivCategories.indexOf(category);
     if (index > -1) {
         dailyArxivCategories.splice(index, 1);
+        if (dailyArxivSettings.categoryRatios) {
+            delete dailyArxivSettings.categoryRatios[normalizeDailyArxivCategory(category)];
+        }
         renderDailyArxivSettingsCategoryList();
         renderDailyArxivCategoryTags();
+        renderDailyArxivCategoryRatioStatus();
         // Auto save
         autoSaveDailyArxivSettings();
     }
@@ -10763,17 +10884,36 @@ function renderDailyArxivSettingsCategoryList() {
 
     if (dailyArxivCategories.length === 0) {
         container.innerHTML = '';
+        renderDailyArxivCategoryRatioStatus();
         return;
     }
 
-    container.innerHTML = dailyArxivCategories.map(cat => `
+    const ratios = dailyArxivSettings.categoryRatios || {};
+    container.innerHTML = dailyArxivCategories.map(cat => {
+        const normalizedCat = normalizeDailyArxivCategory(cat);
+        const ratioValue = ratios[normalizedCat] ?? '';
+        return `
         <div class="daily-arxiv-category-item">
-            <span>${cat}</span>
+            <span class="daily-arxiv-category-name">${escapeHtml(cat)}</span>
+            <label class="daily-arxiv-category-ratio">
+                <input type="number"
+                    class="daily-arxiv-category-ratio-input"
+                    min="0"
+                    max="100"
+                    step="0.1"
+                    value="${ratioValue}"
+                    data-category="${escapeHtml(normalizedCat)}"
+                    oninput="onDailyArxivCategoryRatioInput('${normalizedCat}', this.value)"
+                    placeholder="auto" />
+                <span>%</span>
+            </label>
             <button class="remove-btn" onclick="removeDailyArxivCategory('${cat}')" title="Remove">
                 <i class="fas fa-times"></i>
             </button>
         </div>
-    `).join('');
+    `;
+    }).join('');
+    renderDailyArxivCategoryRatioStatus();
 }
 
 // Render keyword list
