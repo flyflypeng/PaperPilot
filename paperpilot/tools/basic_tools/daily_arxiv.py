@@ -27,6 +27,30 @@ from paperpilot.database.dao.paper_dao import PaperDAO
 from paperpilot.database.dao.daily_arxiv_dao import DailyArxivDAO
 from paperpilot.tools.basic_tools.daily_arxiv_quality import normalize_quality_config
 
+DEFAULT_MAX_DAILY_PAPERS = 50
+MIN_MAX_DAILY_PAPERS = 1
+MAX_MAX_DAILY_PAPERS = 500
+DEFAULT_CATEGORY_WEIGHT = 1.0
+ARXIV_CATEGORY_WEIGHT_OVERRIDES = {
+    # High-volume AI categories get slightly lower quota weight so they do not
+    # consume the whole daily budget before niche categories run.
+    "cs.AI": 0.85,
+    "cs.CV": 0.9,
+    "cs.LG": 0.9,
+    "cs.CL": 0.95,
+    "stat.ML": 0.95,
+    # Systems/infrastructure categories are typically lower-volume but important
+    # enough to reserve more of the daily budget when configured by the user.
+    "cs.DC": 1.6,
+    "cs.OS": 1.6,
+    "cs.NI": 1.45,
+    "cs.PF": 1.45,
+    "cs.AR": 1.35,
+    "cs.DB": 1.25,
+    "cs.SE": 1.25,
+    "cs.CR": 1.25,
+}
+
 # System prompt words extracted by the organization
 AFFILIATION_EXTRACTION_PROMPT = """I will provide you with the first-page information of a paper. You need to extract all affiliations (institution names) from it and also extract the homepage and github repo url if there is. For affiliations, do not include author names. If an affiliation includes details such as region, department, school, or college, those should be omitted. Only keep the main institution name (e.g., School of Computer Science, Fudan University → Fudan University).
 
@@ -90,6 +114,85 @@ def normalize_arxiv_category_list(categories: Any) -> List[str]:
     return normalized
 
 
+def get_arxiv_category_weight(category: str) -> float:
+    normalized_category = normalize_arxiv_category(category)
+    return ARXIV_CATEGORY_WEIGHT_OVERRIDES.get(
+        normalized_category, DEFAULT_CATEGORY_WEIGHT
+    )
+
+
+def calculate_daily_category_quotas(
+    categories: Any, max_daily_papers: Any
+) -> Dict[str, int]:
+    normalized_categories = normalize_arxiv_category_list(categories)
+    if not normalized_categories:
+        return {}
+
+    total_limit = _normalize_int_setting(
+        max_daily_papers,
+        DEFAULT_MAX_DAILY_PAPERS,
+        MIN_MAX_DAILY_PAPERS,
+        MAX_MAX_DAILY_PAPERS,
+    )
+
+    weighted_categories = [
+        (category, get_arxiv_category_weight(category), index)
+        for index, category in enumerate(normalized_categories)
+    ]
+
+    if total_limit < len(weighted_categories):
+        quotas = {category: 0 for category in normalized_categories}
+        ranked = sorted(weighted_categories, key=lambda item: (-item[1], item[2]))
+        for category, _weight, _index in ranked[:total_limit]:
+            quotas[category] = 1
+        return quotas
+
+    total_weight = sum(weight for _category, weight, _index in weighted_categories)
+    raw_quotas = [
+        (category, total_limit * weight / total_weight, weight, index)
+        for category, weight, index in weighted_categories
+    ]
+
+    quotas = {
+        category: max(1, int(raw_quota))
+        for category, raw_quota, _weight, _index in raw_quotas
+    }
+    assigned = sum(quotas.values())
+
+    if assigned < total_limit:
+        ranked_remainders = sorted(
+            raw_quotas,
+            key=lambda item: (-(item[1] - int(item[1])), -item[2], item[3]),
+        )
+        for category, _raw_quota, _weight, _index in ranked_remainders:
+            if assigned >= total_limit:
+                break
+            quotas[category] += 1
+            assigned += 1
+
+    if assigned > total_limit:
+        ranked_for_reduction = sorted(
+            raw_quotas,
+            key=lambda item: ((item[1] - int(item[1])), item[2], -item[3]),
+        )
+        for category, _raw_quota, _weight, _index in ranked_for_reduction:
+            while assigned > total_limit and quotas[category] > 1:
+                quotas[category] -= 1
+                assigned -= 1
+            if assigned <= total_limit:
+                break
+
+    return quotas
+
+
+def _normalize_int_setting(value: Any, default: int, min_value: int, max_value: int) -> int:
+    try:
+        parsed = int(value)
+    except (TypeError, ValueError):
+        parsed = default
+    return max(min_value, min(max_value, parsed))
+
+
 def normalize_daily_arxiv_settings(settings: Dict[str, Any]) -> Dict[str, Any]:
     if not isinstance(settings, dict):
         return {}
@@ -107,6 +210,15 @@ def normalize_daily_arxiv_settings(settings: Dict[str, Any]) -> Dict[str, Any]:
 
     normalized["qualityConfig"] = normalize_quality_config(
         normalized.get("qualityConfig", {})
+    )
+    normalized["maxDailyPapers"] = _normalize_int_setting(
+        normalized.get("maxDailyPapers"),
+        DEFAULT_MAX_DAILY_PAPERS,
+        MIN_MAX_DAILY_PAPERS,
+        MAX_MAX_DAILY_PAPERS,
+    )
+    normalized["categoryQuotas"] = calculate_daily_category_quotas(
+        normalized["categories"], normalized["maxDailyPapers"]
     )
 
     return normalized
@@ -622,11 +734,124 @@ class DailyArxivManager:
             self.progress[category] = FetchProgress()
         return self.progress[category].to_dict()
 
+    def _get_downloaded_daily_papers_for_date(self, date_str: str) -> List[Dict]:
+        downloaded_papers = []
+        for paper in PaperDAO.get_daily_papers(date_str):
+            file_path = paper.get("file_path")
+            if file_path and os.path.exists(file_path):
+                downloaded_papers.append(paper)
+        return downloaded_papers
+
+    def _get_downloaded_daily_ids_for_date(self, date_str: str) -> set:
+        return {
+            paper.get("arxiv_id") or paper.get("id")
+            for paper in self._get_downloaded_daily_papers_for_date(date_str)
+            if paper.get("arxiv_id") or paper.get("id")
+        }
+
+    def _get_downloaded_daily_count_for_category(
+        self, date_str: str, category: str
+    ) -> int:
+        normalized_category = normalize_arxiv_category(category)
+        count = 0
+        for paper in self._get_downloaded_daily_papers_for_date(date_str):
+            fetch_category = normalize_arxiv_category(paper.get("fetch_category", ""))
+            subject_category = normalize_arxiv_category(paper.get("subject", ""))
+            if fetch_category == normalized_category or subject_category == normalized_category:
+                count += 1
+        return count
+
+    def _get_category_daily_quota(self, settings: Dict, category: str) -> int:
+        normalized_category = normalize_arxiv_category(category)
+        configured_categories = settings.get("categories") or [normalized_category]
+        quotas = calculate_daily_category_quotas(
+            configured_categories,
+            settings.get("maxDailyPapers", DEFAULT_MAX_DAILY_PAPERS),
+        )
+        return quotas.get(normalized_category, settings.get("maxDailyPapers", 0))
+
+    def _order_categories_for_fill(self, categories: List[str]) -> List[str]:
+        normalized_categories = normalize_arxiv_category_list(categories)
+        indexed_categories = [
+            (category, get_arxiv_category_weight(category), index)
+            for index, category in enumerate(normalized_categories)
+        ]
+        return [
+            category
+            for category, _weight, _index in sorted(
+                indexed_categories, key=lambda item: (-item[1], item[2])
+            )
+        ]
+
+    def fetch_categories_for_date(
+        self,
+        categories: List[str],
+        date_str: str = None,
+        force: bool = False,
+    ) -> Dict[str, List[Dict]]:
+        """
+        Fetch a set of categories using a two-stage quota strategy.
+
+        Stage 1 respects weighted per-category quotas so niche categories get
+        reserved capacity. Stage 2 redistributes any unused daily capacity to
+        configured categories that still have more matching papers.
+        """
+        if date_str is None:
+            date_str = get_today_arxiv_date()
+
+        normalized_categories = normalize_arxiv_category_list(categories)
+        papers_by_category: Dict[str, List[Dict]] = {}
+        if not normalized_categories:
+            return papers_by_category
+
+        print(
+            f"[DailyArxiv] Stage 1 weighted quota fetch for {date_str}: "
+            f"{normalized_categories}"
+        )
+        for category in normalized_categories:
+            papers_by_category[category] = self.fetch_papers(
+                category,
+                date_str=date_str,
+                force=force,
+                quota_stage="weighted",
+            )
+
+        settings = self.get_settings()
+        max_daily_papers = settings.get("maxDailyPapers", DEFAULT_MAX_DAILY_PAPERS)
+        remaining_capacity = max_daily_papers - len(
+            self._get_downloaded_daily_ids_for_date(date_str)
+        )
+        if remaining_capacity <= 0:
+            return papers_by_category
+
+        fill_categories = self._order_categories_for_fill(normalized_categories)
+        print(
+            f"[DailyArxiv] Stage 2 fill fetch for {date_str}: "
+            f"{remaining_capacity} slots, categories {fill_categories}"
+        )
+        for category in fill_categories:
+            if (
+                max_daily_papers
+                - len(self._get_downloaded_daily_ids_for_date(date_str))
+                <= 0
+            ):
+                break
+            filled_papers = self.fetch_papers(
+                category,
+                date_str=date_str,
+                force=force,
+                quota_stage="fill",
+            )
+            papers_by_category.setdefault(category, []).extend(filled_papers)
+
+        return papers_by_category
+
     def fetch_papers(
         self,
         category: str,
         date_str: str = None,
         force: bool = False,
+        quota_stage: str = "weighted",
     ) -> List[Dict]:
         """
         Fetch papers (automatically fetch all papers today)
@@ -657,6 +882,49 @@ class DailyArxivManager:
             settings = self.get_settings()
             keyword_list = settings.get("keywordList", []) or []
             keyword_list = [k for k in keyword_list if isinstance(k, str) and k.strip()]
+            max_daily_papers = settings.get(
+                "maxDailyPapers", DEFAULT_MAX_DAILY_PAPERS
+            )
+            existing_daily_ids = self._get_downloaded_daily_ids_for_date(date_str)
+            global_remaining_capacity = max_daily_papers - len(existing_daily_ids)
+            is_fill_stage = quota_stage == "fill"
+
+            category_quota = max_daily_papers
+            category_existing_count = self._get_downloaded_daily_count_for_category(
+                date_str, category
+            )
+            if is_fill_stage:
+                remaining_capacity = global_remaining_capacity
+            else:
+                category_quota = self._get_category_daily_quota(settings, category)
+                category_remaining_capacity = category_quota - category_existing_count
+                remaining_capacity = min(
+                    global_remaining_capacity, category_remaining_capacity
+                )
+
+            if remaining_capacity <= 0:
+                if is_fill_stage:
+                    message = f"Daily limit reached ({max_daily_papers} papers)"
+                else:
+                    message = (
+                        f"Daily category limit reached "
+                        f"({category}: {category_quota}, total: {max_daily_papers})"
+                    )
+                print(f"[DailyArxiv] {date_str} {message}, skip crawling {category}")
+                progress.set_done(message)
+                return []
+
+            if is_fill_stage:
+                print(
+                    f"[DailyArxiv] {date_str} fill stage for {category}: "
+                    f"daily total {len(existing_daily_ids)}/{max_daily_papers}"
+                )
+            else:
+                print(
+                    f"[DailyArxiv] {date_str} quota for {category}: "
+                    f"{category_existing_count}/{category_quota}, "
+                    f"daily total {len(existing_daily_ids)}/{max_daily_papers}"
+                )
 
             # Get enough papers at once (up to 500 articles) and then filter for papers with target date
             max_fetch = 500
@@ -687,6 +955,8 @@ class DailyArxivManager:
                     result, fetch_category=category
                 )
                 paper_date = paper_tmp.announced.date() if paper_tmp.announced else None
+                if paper_tmp.arxiv_id in existing_daily_ids:
+                    continue
 
                 if paper_date and paper_date == target_date:
                     matched_keywords = (
@@ -702,6 +972,20 @@ class DailyArxivManager:
                     if matched_keywords:
                         matched_keywords_by_arxiv_id[paper_tmp.arxiv_id] = matched_keywords
                     consecutive_older_count = 0  # Reset consecutive earlier date count
+                    if len(all_results) >= remaining_capacity:
+                        if is_fill_stage:
+                            print(
+                                f"[DailyArxiv] reached daily fill limit for {date_str}: "
+                                f"{len(existing_daily_ids)} existing + {len(all_results)} new "
+                                f">= {max_daily_papers}"
+                            )
+                        else:
+                            print(
+                                f"[DailyArxiv] reached quota for {date_str} {category}: "
+                                f"{category_existing_count} existing + {len(all_results)} new "
+                                f">= {category_quota}"
+                            )
+                        break
                 elif paper_date and paper_date < target_date:
                     # Papers older than target date found
                     consecutive_older_count += 1
@@ -1635,17 +1919,18 @@ Now the input abstract is:
 
             # Fetch each date in order (newest first)
             for date_str in dates_to_fetch:
-                for category in categories:
-                    try:
-                        print(
-                            f"[DailyArxiv] crawl {category} Partition {date_str} thesis..."
-                        )
-                        self.fetch_papers(category, date_str=date_str, force=False)
-                    except Exception as e:
-                        print(f"[DailyArxiv] crawl {category} {date_str} fail: {e}")
+                try:
+                    print(f"[DailyArxiv] crawl categories for {date_str} thesis...")
+                    self.fetch_categories_for_date(
+                        categories,
+                        date_str=date_str,
+                        force=False,
+                    )
+                except Exception as e:
+                    print(f"[DailyArxiv] crawl categories {date_str} fail: {e}")
 
-                    # Interval between partitions to prevent requests from being too fast
-                    time.sleep(2)
+                # Interval between dates to prevent requests from being too fast
+                time.sleep(2)
         else:
             print(
                 f"[DailyArxiv] All required dates are complete, no additions are needed"

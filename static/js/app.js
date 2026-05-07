@@ -9403,6 +9403,7 @@ let dailyArxivSettings = {
     categories: [],
     retentionDays: 7,
     checkIntervalMinutes: 10,
+    maxDailyPapers: 50,
     qualityConfig: {
         strategy: 'balanced',
         strategies: {
@@ -10573,6 +10574,7 @@ async function loadDailyArxivSettings() {
             const enabledEl = document.getElementById('daily-arxiv-enabled');
             const retentionDaysEl = document.getElementById('daily-arxiv-retention-days');
             const checkIntervalEl = document.getElementById('daily-arxiv-check-interval');
+            const maxDailyPapersEl = document.getElementById('daily-arxiv-max-daily-papers');
             const maxKeywordsEl = document.getElementById('daily-arxiv-max-keywords');
             const qualityStrategyEl = document.getElementById('daily-arxiv-quality-strategy');
 
@@ -10588,6 +10590,10 @@ async function loadDailyArxivSettings() {
             if (checkIntervalEl) {
                 checkIntervalEl.value = dailyArxivSettings.checkIntervalMinutes || 10;
                 checkIntervalEl.addEventListener('change', autoSaveDailyArxivSettings);
+            }
+            if (maxDailyPapersEl) {
+                maxDailyPapersEl.value = dailyArxivSettings.maxDailyPapers || 50;
+                maxDailyPapersEl.addEventListener('change', autoSaveDailyArxivSettings);
             }
             if (maxKeywordsEl) {
                 maxKeywordsEl.value = dailyArxivSettings.maxKeywords || 1;
@@ -10648,9 +10654,12 @@ async function saveDailyArxivSettings(silent = false) {
         const enabled = document.getElementById('daily-arxiv-enabled')?.checked;
         const retentionDays = parseInt(document.getElementById('daily-arxiv-retention-days')?.value) || 7;
         const checkInterval = parseInt(document.getElementById('daily-arxiv-check-interval')?.value) || 10;
+        const maxDailyPapers = parseInt(document.getElementById('daily-arxiv-max-daily-papers')?.value) || 50;
         const maxKeywords = parseInt(document.getElementById('daily-arxiv-max-keywords')?.value) || 1;
         const qualityStrategy = document.getElementById('daily-arxiv-quality-strategy')?.value || 'balanced';
 
+        // Limit the maximum daily papers to 1-500 within range
+        const clampedMaxDailyPapers = Math.max(1, Math.min(500, maxDailyPapers));
         // Limit the maximum number of keywords to 1-3 within range
         const clampedMaxKeywords = Math.max(1, Math.min(3, maxKeywords));
 
@@ -10668,6 +10677,7 @@ async function saveDailyArxivSettings(silent = false) {
         dailyArxivSettings.categories = dailyArxivCategories;
         dailyArxivSettings.retentionDays = retentionDays;
         dailyArxivSettings.checkIntervalMinutes = checkInterval;
+        dailyArxivSettings.maxDailyPapers = clampedMaxDailyPapers;
         dailyArxivSettings.maxKeywords = clampedMaxKeywords;
         dailyArxivSettings.keywordList = keywordList;
         dailyArxivSettings.qualityConfig = cloneDailyArxivQualityConfig({

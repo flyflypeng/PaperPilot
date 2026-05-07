@@ -30,7 +30,7 @@ class TestDailyArxivSchedulerNoLLM(unittest.TestCase):
             manager.get_available_dates = lambda: []
             manager.cleanup_old_papers = lambda retention_days=7: None
 
-            def fake_fetch_papers(category, date_str=None, force=False):
+            def fake_fetch_papers(category, date_str=None, force=False, **_kwargs):
                 called.append((category, date_str, force))
                 return []
 
@@ -44,4 +44,3 @@ class TestDailyArxivSchedulerNoLLM(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
-

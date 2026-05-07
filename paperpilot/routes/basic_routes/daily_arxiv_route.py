@@ -530,12 +530,11 @@ def register_daily_arxiv_routes(
 
             # Execute the crawl in a background thread
             def do_fetch_all():
-                for cat in categories:
-                    manager.fetch_papers(
-                        cat,
-                        date_str=date_str,
-                        force=force,
-                    )
+                manager.fetch_categories_for_date(
+                    categories,
+                    date_str=date_str,
+                    force=force,
+                )
                 # Clear all thumbnail caches after crawling is complete
                 with _thumbnail_cache_lock:
                     _thumbnail_cache.clear()

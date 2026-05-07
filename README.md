@@ -235,6 +235,14 @@ Configure your research interests:
 - **Categories**: Select ArXiv categories to monitor.
 - **Keywords**: Define keywords for filtering and highlighting.
 - **Schedule**: Set the automatic fetch interval.
+- **Max Papers per Day**: Cap the total number of papers fetched per arXiv date. The recommended default is `50`.
+
+Daily ArXiv uses a weighted two-stage quota strategy when fetching multiple configured categories:
+
+1. **Weighted reservation**: PaperPilot dynamically recalculates a per-category quota from the current **Categories** list every time settings are saved or fetches run. High-volume AI categories such as `cs.AI`, `cs.CV`, and `cs.LG` receive slightly lower weights, while smaller systems/infrastructure categories such as `cs.DC`, `cs.OS`, `cs.NI`, and `cs.PF` receive higher weights so they are not crowded out.
+2. **Fill unused capacity**: If smaller categories have fewer papers than their reserved quota, PaperPilot redistributes the unused daily capacity to configured categories that still have more matching papers, up to **Max Papers per Day**.
+
+This keeps niche categories visible while still allowing the daily feed to fill the configured total limit when enough papers are available.
 
 ## ⚠️ Important Notes
 
