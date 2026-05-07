@@ -5329,6 +5329,155 @@ mark {
     flex: 1;
 }
 
+.daily-arxiv-strategy-help {
+    margin-top: 12px;
+    padding: 12px 14px;
+    border: 1px solid #dbe4f0;
+    border-radius: 8px;
+    background: #f8fbff;
+    color: #334155;
+    font-size: 13px;
+    line-height: 1.5;
+}
+
+.daily-arxiv-strategy-help .strategy-title {
+    display: block;
+    font-size: 14px;
+    font-weight: 700;
+    color: #0f172a;
+    margin-bottom: 4px;
+}
+
+.daily-arxiv-tier-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 12px;
+    width: 100%;
+}
+
+.daily-arxiv-tier-column {
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    background: #fff;
+    min-height: 220px;
+    padding: 10px;
+}
+
+.daily-arxiv-tier-column-header {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 8px;
+    margin-bottom: 10px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid #eef2f7;
+}
+
+.daily-arxiv-tier-column-header strong {
+    font-size: 14px;
+    color: #0f172a;
+}
+
+.daily-arxiv-tier-column-header span {
+    font-size: 12px;
+    color: #64748b;
+}
+
+.daily-arxiv-tier-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    min-height: 140px;
+    align-content: flex-start;
+    border: 1px dashed transparent;
+    border-radius: 8px;
+    padding: 4px;
+    transition: border-color 0.15s ease, background-color 0.15s ease;
+}
+
+.daily-arxiv-tier-list.drag-over {
+    border-color: #60a5fa;
+    background: #eff6ff;
+}
+
+.daily-arxiv-tier-empty {
+    color: #94a3b8;
+    font-size: 12px;
+    padding: 6px 0;
+}
+
+.daily-arxiv-tier-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 10px;
+    border-radius: 999px;
+    border: 1px solid transparent;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    user-select: none;
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.daily-arxiv-tier-item:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 2px 10px rgba(15, 23, 42, 0.08);
+}
+
+.daily-arxiv-tier-item.dragging {
+    opacity: 0.55;
+    transform: scale(0.98);
+}
+
+.daily-arxiv-tier-item .fa-grip-vertical {
+    opacity: 0.65;
+    cursor: grab;
+}
+
+.daily-arxiv-tier-item .tier-remove {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.22);
+    cursor: pointer;
+    font-size: 10px;
+    color: inherit;
+}
+
+.daily-arxiv-tier-item .tier-remove:hover {
+    background: rgba(255, 255, 255, 0.42);
+}
+
+.daily-arxiv-tier-add {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 8px;
+    margin-top: 10px;
+    width: 100%;
+}
+
+.daily-arxiv-tier-add input {
+    width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
+    white-space: normal;
+    text-overflow: ellipsis;
+}
+
+.daily-arxiv-tier-add button {
+    width: 100%;
+    justify-content: center;
+    min-width: 0;
+}
+
+.daily-arxiv-strategy-help .strategy-body {
+    margin-top: 6px;
+}
+
 .daily-arxiv-add-category input {
     flex: 1;
 }

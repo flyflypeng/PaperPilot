@@ -26,6 +26,8 @@ from paperpilot.tools.basic_tools.daily_arxiv import (
     get_today_arxiv_date,
     normalize_daily_arxiv_settings,
 )
+from paperpilot.tools.basic_tools.daily_arxiv_quality import get_default_quality_config
+from paperpilot.tools.basic_tools.daily_arxiv_quality import normalize_quality_config
 from paperpilot.tools.basic_tools.upload_paper import fetch_bibtex_from_dblp
 
 
@@ -267,6 +269,12 @@ def register_daily_arxiv_routes(
                         merged[key] = value
                 else:
                     merged[key] = value
+            merged["qualityConfig"] = normalize_quality_config(
+                {
+                    **get_default_quality_config(),
+                    **(merged.get("qualityConfig") or {}),
+                }
+            )
             return jsonify(merged)
 
         # POST: Save settings

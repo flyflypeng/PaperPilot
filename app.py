@@ -49,6 +49,7 @@ from paperpilot.routes.basic_routes.upload_from_pdf_route import (
     register_upload_from_pdf_routes,
 )
 from paperpilot.tools.basic_tools import category_manager, paper_repository
+from paperpilot.tools.basic_tools.daily_arxiv_quality import get_default_quality_config
 
 parser = argparse.ArgumentParser(description="PaperPilot")
 parser.add_argument(
@@ -215,6 +216,7 @@ DEFAULT_DAILY_ARXIV_SETTINGS = {
         "Audio & Speech",
         "ML Fundamentals & RL",
     ],  # Keyword list
+    "qualityConfig": get_default_quality_config(),
     "affiliationPrompt": """I will provide you with the first-page information of a paper. You need to extract all affiliations (institution names) from it and also extract the homepage and GitHub repo URL if there is. For affiliations, do not include author names. If an affiliation includes details such as region, department, school, or college, those should be omitted. Only keep the main institution name (e.g., School of Computer Science, Fudan University → Fudan University).
 
 Additional rules:

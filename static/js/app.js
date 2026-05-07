@@ -9403,6 +9403,32 @@ let dailyArxivSettings = {
     categories: [],
     retentionDays: 7,
     checkIntervalMinutes: 10,
+    qualityConfig: {
+        strategy: 'balanced',
+        strategies: {
+            strict: {
+                label: 'Strict',
+                summary: 'Small high-confidence feed for intensive reading.',
+                description: 'Uses Tier S first and Tier A only with strong relevance; Tier B/C and unknown institutions are normally filtered out.',
+            },
+            balanced: {
+                label: 'Balanced',
+                summary: 'Default mode balancing quality, diversity, and recall.',
+                description: 'Prioritizes Tier S/A, accepts Tier B with keyword matches, and allows unknown institutions behind configured tiers.',
+            },
+            discovery: {
+                label: 'Discovery',
+                summary: 'Broader feed for finding emerging work.',
+                description: 'Accepts Tier S/A/B/C plus unknown institutions when keywords match, with tiers used mainly for ranking.',
+            },
+        },
+        institutionTiers: {
+            S: ['MIT', 'Stanford', 'UC Berkeley', 'CMU', 'Princeton', 'Harvard', 'Caltech', 'Oxford', 'Cambridge', 'ETH Zurich', 'EPFL', 'Tsinghua', 'Peking', 'Google', 'Google DeepMind', 'Meta AI', 'OpenAI', 'Microsoft Research', 'NVIDIA'],
+            A: ['Cornell', 'Columbia', 'UIUC', 'University of Washington', 'UMich', 'UCLA', 'UCSD', 'UT Austin', 'University of Toronto', 'MILA', 'NYU', 'Georgia Tech', 'University of Maryland', 'Yale', 'UPenn', 'Imperial College London', 'UCL', 'University of Edinburgh', 'SJTU', 'Fudan', 'Zhejiang University', 'USTC', 'NUS', 'NTU', 'AWS AI', 'Amazon', 'Apple', 'Adobe Research', 'IBM Research', 'Huawei', 'Tencent AI Lab', 'Alibaba', 'ByteDance'],
+            B: ['Duke', 'Brown', 'JHU', 'Northwestern', 'UChicago', 'Rice', 'Dartmouth', 'Vanderbilt', 'Notre Dame', 'WashU', 'University of Wisconsin-Madison', 'University of Waterloo', 'KAIST', 'POSTECH', 'HKUST', 'CUHK', 'CityU Hong Kong', 'PolyU Hong Kong', 'HIT', 'Nanjing University', 'Renmin University', 'Sun Yat-sen University', 'Southeast University', 'Beihang University', 'Baidu Research', 'Salesforce Research', 'Intel Labs', 'Samsung Research', 'Sony AI'],
+            C: ['Other reputable universities', 'Other national labs', 'Other industrial research labs'],
+        },
+    },
 };
 let dailyArxivEmptyDefaultHtml = null;
 let dailyArxivProgressIntervals = {};  // Progress polling timer for each partition: {category: intervalId}
@@ -9417,12 +9443,114 @@ let dailyArxivExcludedAffiliations = new Set(); // Excluded units（Reverse filt
 let dailyArxivExcludedCountries = new Set(); // Excluded areas（Reverse filtering）
 let dailyArxivExcludedKeywords = new Set(); // Excluded keywords（Reverse filtering）
 let dailyArxivKnownInstitutions = new Set(); // All known institutions（System default + User defined）
+let dailyArxivInstitutionTiers = {
+    S: [],
+    A: [],
+    B: [],
+    C: [],
+};
+const dailyArxivStrategyHelp = {
+    strict: {
+        title: 'Strict',
+        text: 'Tier S first, Tier A only with strong relevance. Tier B/C and unknown institutions are normally filtered out.',
+    },
+    balanced: {
+        title: 'Balanced',
+        text: 'Tier S/A first, Tier B with keyword matches, Tier C only with strong relevance. Unknown institutions rank behind configured tiers.',
+    },
+    discovery: {
+        title: 'Discovery',
+        text: 'Tier S/A/B/C all accepted when relevant. Unknown institutions are also allowed when keywords match.',
+    },
+};
+let dailyArxivStrategyDocCache = {};
 let dailyArxivFilterFirstAffiliation = false; // Whether to filter the first unit
 let dailyArxivFilterKnownInstitutions = false; // Whether to show only common institutions
 let dailyArxivHideUnknownFirstAffiliation = false; // Whether to hide the first unit belongs to"Other institutions"thesis
 let dailyArxivReadStatus = {};
 let dailyArxivReadPaperIds = new Set();
 let dailyArxivRerenderAfterDetailClose = false;
+
+function cloneDailyArxivQualityConfig(rawConfig) {
+    const defaults = dailyArxivSettings.qualityConfig;
+    const config = rawConfig && typeof rawConfig === 'object' ? rawConfig : {};
+    const strategies = { ...(defaults.strategies || {}), ...(config.strategies || {}) };
+    const sourceTiers = config.institutionTiers && typeof config.institutionTiers === 'object'
+        ? config.institutionTiers
+        : {};
+    const institutionTiers = {};
+    ['S', 'A', 'B', 'C'].forEach(tier => {
+        const values = Array.isArray(sourceTiers[tier]) ? sourceTiers[tier] : [];
+        const deduped = [];
+        const seen = new Set();
+        values.forEach(value => {
+            if (typeof value !== 'string') return;
+            const trimmed = value.trim();
+            if (!trimmed) return;
+            const key = trimmed.toLowerCase();
+            if (seen.has(key)) return;
+            seen.add(key);
+            deduped.push(trimmed);
+        });
+        institutionTiers[tier] = deduped;
+    });
+
+    const strategy = config.strategy && strategies[config.strategy] ? config.strategy : 'balanced';
+    return {
+        strategy,
+        strategies,
+        institutionTiers,
+    };
+}
+
+async function loadDailyArxivStrategyDoc(strategy) {
+    if (dailyArxivStrategyDocCache[strategy] !== undefined) {
+        return dailyArxivStrategyDocCache[strategy];
+    }
+
+    try {
+        const res = await fetch(`/static/docs/daily-arxiv/${strategy}.md`);
+        const text = res.ok ? await res.text() : '';
+        dailyArxivStrategyDocCache[strategy] = text;
+        return text;
+    } catch (error) {
+        dailyArxivStrategyDocCache[strategy] = '';
+        return '';
+    }
+}
+
+function getDailyArxivStrategyConfig(strategy) {
+    const qualityConfig = cloneDailyArxivQualityConfig(dailyArxivSettings.qualityConfig);
+    return qualityConfig.strategies[strategy] || qualityConfig.strategies.balanced || {};
+}
+
+function setDailyArxivQualityConfig(nextConfig) {
+    dailyArxivSettings.qualityConfig = cloneDailyArxivQualityConfig(nextConfig);
+    dailyArxivInstitutionTiers = {
+        ...dailyArxivSettings.qualityConfig.institutionTiers,
+    };
+}
+
+function flattenDailyArxivKnownInstitutions() {
+    const config = cloneDailyArxivQualityConfig(dailyArxivSettings.qualityConfig);
+    const institutions = new Set();
+
+    Object.values(config.institutionTiers || {}).forEach(list => {
+        list.forEach(item => {
+            if (typeof item === 'string' && item.trim()) {
+                institutions.add(item.trim());
+            }
+        });
+    });
+
+    customInstitutions.forEach(inst => {
+        if (inst && inst.abbreviation && inst.abbreviation.trim()) {
+            institutions.add(inst.abbreviation.trim());
+        }
+    });
+
+    return institutions;
+}
 
 function loadDailyArxivReadStatus() {
     try {
@@ -10430,14 +10558,23 @@ async function loadDailyArxivSettings() {
     try {
         const res = await fetch('/api/settings/daily-arxiv');
         if (res.ok) {
-            dailyArxivSettings = await res.json();
+            const loaded = await res.json();
+            dailyArxivSettings = {
+                ...dailyArxivSettings,
+                ...loaded,
+                qualityConfig: cloneDailyArxivQualityConfig(loaded.qualityConfig),
+            };
             dailyArxivCategories = dailyArxivSettings.categories || [];
+            dailyArxivInstitutionTiers = {
+                ...dailyArxivSettings.qualityConfig.institutionTiers,
+            };
 
             // Update settings panel values
             const enabledEl = document.getElementById('daily-arxiv-enabled');
             const retentionDaysEl = document.getElementById('daily-arxiv-retention-days');
             const checkIntervalEl = document.getElementById('daily-arxiv-check-interval');
             const maxKeywordsEl = document.getElementById('daily-arxiv-max-keywords');
+            const qualityStrategyEl = document.getElementById('daily-arxiv-quality-strategy');
 
             if (enabledEl) {
                 enabledEl.checked = dailyArxivSettings.enabled === true; // Default to false
@@ -10456,10 +10593,20 @@ async function loadDailyArxivSettings() {
                 maxKeywordsEl.value = dailyArxivSettings.maxKeywords || 1;
                 maxKeywordsEl.addEventListener('change', autoSaveDailyArxivSettings);
             }
+            if (qualityStrategyEl) {
+                qualityStrategyEl.value = dailyArxivSettings.qualityConfig.strategy || 'balanced';
+                qualityStrategyEl.addEventListener('change', () => {
+                    renderDailyArxivStrategyHelp();
+                    autoSaveDailyArxivSettings();
+                });
+            }
 
             renderDailyArxivCategoryTags();
             renderDailyArxivSettingsCategoryList();
             renderDailyArxivKeywordList();
+            await renderDailyArxivStrategyHelp();
+            renderDailyArxivInstitutionTiers();
+            syncDailyArxivKnownInstitutions();
             setDailyArxivEmptyState(isDailyArxivEnabled() ? 'default' : 'disabled');
         }
 
@@ -10486,7 +10633,7 @@ async function loadKnownInstitutions() {
         if (res.ok) {
             const data = await res.json();
             if (data.success) {
-                dailyArxivKnownInstitutions = new Set(data.institutions || []);
+                dailyArxivKnownInstitutions = flattenDailyArxivKnownInstitutions();
                 console.log(`[DailyArxiv] Loaded ${dailyArxivKnownInstitutions.size} known institutions`);
             }
         }
@@ -10502,6 +10649,7 @@ async function saveDailyArxivSettings(silent = false) {
         const retentionDays = parseInt(document.getElementById('daily-arxiv-retention-days')?.value) || 7;
         const checkInterval = parseInt(document.getElementById('daily-arxiv-check-interval')?.value) || 10;
         const maxKeywords = parseInt(document.getElementById('daily-arxiv-max-keywords')?.value) || 1;
+        const qualityStrategy = document.getElementById('daily-arxiv-quality-strategy')?.value || 'balanced';
 
         // Limit the maximum number of keywords to 1-3 within range
         const clampedMaxKeywords = Math.max(1, Math.min(3, maxKeywords));
@@ -10522,6 +10670,11 @@ async function saveDailyArxivSettings(silent = false) {
         dailyArxivSettings.checkIntervalMinutes = checkInterval;
         dailyArxivSettings.maxKeywords = clampedMaxKeywords;
         dailyArxivSettings.keywordList = keywordList;
+        dailyArxivSettings.qualityConfig = cloneDailyArxivQualityConfig({
+            ...dailyArxivSettings.qualityConfig,
+            strategy: qualityStrategy,
+            institutionTiers: dailyArxivInstitutionTiers,
+        });
 
         const res = await fetch('/api/settings/daily-arxiv', {
             method: 'POST',
@@ -10638,6 +10791,184 @@ function renderDailyArxivKeywordList() {
         </div>
         `;
     }).join('');
+}
+
+async function renderDailyArxivStrategyHelp() {
+    const container = document.getElementById('daily-arxiv-strategy-help');
+    if (!container) return;
+
+    const select = document.getElementById('daily-arxiv-quality-strategy');
+    const strategy = select?.value || dailyArxivSettings.qualityConfig?.strategy || 'balanced';
+    const info = getDailyArxivStrategyConfig(strategy);
+    const label = info.label || strategy;
+    const markdown = await loadDailyArxivStrategyDoc(strategy);
+
+    const body = markdown
+        .split('\n')
+        .map(line => line.trim())
+        .filter(Boolean)
+        .map(line => {
+            if (line.startsWith('# ')) {
+                return `<div class="strategy-title">${escapeHtml(line.slice(2))}</div>`;
+            }
+            if (line.startsWith('- ')) {
+                return `<div>• ${escapeHtml(line.slice(2))}</div>`;
+            }
+            return `<div>${escapeHtml(line)}</div>`;
+        })
+        .join('');
+
+    container.innerHTML = `
+        <span class="strategy-title">${escapeHtml(label)}</span>
+        <div class="strategy-body">${body}</div>
+    `;
+}
+
+function renderDailyArxivInstitutionTiers() {
+    const container = document.getElementById('daily-arxiv-tier-grid');
+    if (!container) return;
+
+    if (!dailyArxivInstitutionTiers || typeof dailyArxivInstitutionTiers !== 'object') {
+        dailyArxivInstitutionTiers = { S: [], A: [], B: [], C: [] };
+    }
+    const tierMeta = {
+        S: 'Top-tier labs and companies',
+        A: 'Strong universities and labs',
+        B: 'Solid research institutions',
+        C: 'Long tail / custom bucket',
+    };
+    const tierColors = {
+        S: ['#eff6ff', '#1d4ed8'],
+        A: ['#ecfeff', '#0f766e'],
+        B: ['#f0fdf4', '#15803d'],
+        C: ['#fff7ed', '#c2410c'],
+    };
+
+    container.innerHTML = ['S', 'A', 'B', 'C'].map(tier => {
+        const items = dailyArxivInstitutionTiers[tier] || [];
+        const [bg, fg] = tierColors[tier];
+        return `
+            <div class="daily-arxiv-tier-column" data-tier="${tier}">
+                <div class="daily-arxiv-tier-column-header">
+                    <strong>${tier}</strong>
+                    <span>${items.length}</span>
+                </div>
+                <div style="font-size: 12px; color: #64748b; margin-bottom: 10px;">${tierMeta[tier]}</div>
+                <div class="daily-arxiv-tier-list" data-tier="${tier}" ondragover="onDailyArxivInstitutionDragOver(event)" ondragleave="onDailyArxivInstitutionDragLeave(event)" ondrop="onDailyArxivInstitutionDrop(event, '${tier}')">
+                    ${items.length === 0 ? '<div class="daily-arxiv-tier-empty">Drop institutions here</div>' : items.map((name, index) => `
+                        <div class="daily-arxiv-tier-item" draggable="true" data-tier="${tier}" data-index="${index}" ondragstart="onDailyArxivInstitutionDragStart(event, '${tier}', ${index})" ondragend="onDailyArxivInstitutionDragEnd(event)" style="background:${bg}; color:${fg};">
+                            <i class="fas fa-grip-vertical" aria-hidden="true"></i>
+                            <span>${escapeHtml(name)}</span>
+                            <span class="tier-remove" onclick="event.stopPropagation(); removeDailyArxivInstitution('${tier}', ${index})" title="Delete institution">
+                                <i class="fas fa-times"></i>
+                            </span>
+                        </div>
+                    `).join('')}
+                </div>
+                <div class="daily-arxiv-tier-add">
+                    <input type="text" class="setting-input" id="daily-arxiv-tier-input-${tier}" placeholder="Add institution to tier ${tier}" />
+                    <button class="btn btn-secondary" onclick="addDailyArxivInstitution('${tier}')">
+                        <i class="fas fa-plus"></i>
+                    </button>
+                </div>
+            </div>
+        `;
+    }).join('');
+}
+
+function syncDailyArxivKnownInstitutions() {
+    dailyArxivKnownInstitutions = flattenDailyArxivKnownInstitutions();
+}
+
+function addDailyArxivInstitution(tier) {
+    const input = document.getElementById(`daily-arxiv-tier-input-${tier}`);
+    if (!input) return;
+
+    const value = input.value.trim();
+    if (!value) {
+        showMessage('Please enter an institution name', 'warning');
+        return;
+    }
+
+    const tiers = dailyArxivInstitutionTiers[tier] || [];
+    if (tiers.some(item => item.toLowerCase() === value.toLowerCase())) {
+        showMessage('The institution already exists in this tier', 'warning');
+        return;
+    }
+
+    tiers.push(value);
+    dailyArxivInstitutionTiers[tier] = tiers;
+    input.value = '';
+    renderDailyArxivInstitutionTiers();
+    syncDailyArxivKnownInstitutions();
+    autoSaveDailyArxivSettings();
+}
+
+function removeDailyArxivInstitution(tier, index) {
+    const tiers = dailyArxivInstitutionTiers[tier] || [];
+    if (index < 0 || index >= tiers.length) return;
+
+    tiers.splice(index, 1);
+    dailyArxivInstitutionTiers[tier] = tiers;
+    renderDailyArxivInstitutionTiers();
+    syncDailyArxivKnownInstitutions();
+    autoSaveDailyArxivSettings();
+}
+
+function moveDailyArxivInstitutionTier(fromTier, index, toTier) {
+    if (!toTier || fromTier === toTier) return;
+    const fromList = dailyArxivInstitutionTiers[fromTier] || [];
+    const toList = dailyArxivInstitutionTiers[toTier] || [];
+    if (index < 0 || index >= fromList.length) return;
+
+    const [item] = fromList.splice(index, 1);
+    if (!item) return;
+    if (!toList.some(entry => entry.toLowerCase() === item.toLowerCase())) {
+        toList.push(item);
+    }
+    dailyArxivInstitutionTiers[fromTier] = fromList;
+    dailyArxivInstitutionTiers[toTier] = toList;
+    renderDailyArxivInstitutionTiers();
+    syncDailyArxivKnownInstitutions();
+    autoSaveDailyArxivSettings();
+}
+
+function onDailyArxivInstitutionDragStart(event, tier, index) {
+    event.dataTransfer.effectAllowed = 'move';
+    event.dataTransfer.setData('text/plain', JSON.stringify({ tier, index }));
+    event.currentTarget.classList.add('dragging');
+}
+
+function onDailyArxivInstitutionDragEnd(event) {
+    event.currentTarget.classList.remove('dragging');
+    document.querySelectorAll('.daily-arxiv-tier-list.drag-over').forEach(el => {
+        el.classList.remove('drag-over');
+    });
+}
+
+function onDailyArxivInstitutionDragOver(event) {
+    event.preventDefault();
+    event.dataTransfer.dropEffect = 'move';
+    event.currentTarget.classList.add('drag-over');
+}
+
+function onDailyArxivInstitutionDragLeave(event) {
+    if (!event.currentTarget.contains(event.relatedTarget)) {
+        event.currentTarget.classList.remove('drag-over');
+    }
+}
+
+function onDailyArxivInstitutionDrop(event, toTier) {
+    event.preventDefault();
+    event.currentTarget.classList.remove('drag-over');
+
+    try {
+        const payload = JSON.parse(event.dataTransfer.getData('text/plain') || '{}');
+        if (!payload.tier || typeof payload.index !== 'number') return;
+        moveDailyArxivInstitutionTier(payload.tier, payload.index, toTier);
+    } catch (error) {
+        console.warn('Failed to move institution tier:', error);
+    }
 }
 
 // Add keywords
@@ -12929,6 +13260,10 @@ async function loadCustomInstitutions(force = false) {
             customInstitutions = data.institutions || [];
             hasLoadedCustomInstitutions = true;
             renderCustomInstitutions();
+            syncDailyArxivKnownInstitutions();
+            if (typeof renderDailyArxivFilterAffiliations === 'function') {
+                renderDailyArxivFilterAffiliations();
+            }
         } else {
             console.error('Failed to load custom organization:', data.error);
         }

@@ -772,6 +772,43 @@
                 </div>
                 <div class="setting-card">
                     <div class="setting-card-header">
+                        <i class="fas fa-bolt"></i>
+                        <span>Quality strategy</span>
+                    </div>
+                    <div class="setting-card-body">
+                        <div class="setting-row">
+                            <div class="setting-info">
+                                <label for="daily-arxiv-quality-strategy">Selection mode</label>
+                                <small>Choose how aggressively Daily arXiv should filter papers before download</small>
+                            </div>
+                            <select id="daily-arxiv-quality-strategy" class="setting-input" style="width: 220px;">
+                                <option value="strict">Strict</option>
+                                <option value="balanced">Balanced</option>
+                                <option value="discovery">Discovery</option>
+                            </select>
+                        </div>
+                        <div class="daily-arxiv-strategy-help" id="daily-arxiv-strategy-help"></div>
+                    </div>
+                </div>
+                <div class="setting-card">
+                    <div class="setting-card-header">
+                        <i class="fas fa-university"></i>
+                        <span>Institution tiers</span>
+                    </div>
+                    <div class="setting-card-body">
+                        <div class="setting-row full-width">
+                            <div class="setting-info">
+                                <label>Built-in institution groups</label>
+                                <small>Move institutions between tiers, delete entries, or add new ones directly here</small>
+                            </div>
+                            <div class="daily-arxiv-tier-grid" id="daily-arxiv-tier-grid">
+                                <!-- Institution tier columns will be rendered here -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="setting-card">
+                    <div class="setting-card-header">
                         <i class="fas fa-key"></i>
                         <span>Keyword list</span>
                     </div>
@@ -801,22 +838,21 @@
                 </div>
                 <div class="setting-card">
                     <div class="setting-card-header">
-                        <i class="fas fa-university"></i>
-                        <span>Additional institution configuration</span>
+                        <i class="fas fa-network-wired"></i>
+                        <span>Institution aliases</span>
                     </div>
                     <div class="setting-card-body">
                         <div class="setting-row full-width">
                             <div class="setting-info">
-                                <label>Configured institutions</label>
-                                <small>Double-click an institution tag to edit abbreviation and full-name
-                                    variants</small>
+                                <label>Alias mappings</label>
+                                <small>Keep extra abbreviation mappings for institution normalization</small>
                             </div>
                             <div class="custom-institution-list" id="custom-institution-list">
                                 <!-- Custom institution tags will be rendered here -->
                             </div>
                             <button class="btn btn-secondary" onclick="showAddInstitutionModal()"
                                 style="margin-top: 12px;">
-                                <i class="fas fa-plus"></i> Add institution
+                                <i class="fas fa-plus"></i> Add alias
                             </button>
                         </div>
                     </div>

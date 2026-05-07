@@ -25,6 +25,7 @@ import arxiv
 
 from paperpilot.database.dao.paper_dao import PaperDAO
 from paperpilot.database.dao.daily_arxiv_dao import DailyArxivDAO
+from paperpilot.tools.basic_tools.daily_arxiv_quality import normalize_quality_config
 
 # System prompt words extracted by the organization
 AFFILIATION_EXTRACTION_PROMPT = """I will provide you with the first-page information of a paper. You need to extract all affiliations (institution names) from it and also extract the homepage and github repo url if there is. For affiliations, do not include author names. If an affiliation includes details such as region, department, school, or college, those should be omitted. Only keep the main institution name (e.g., School of Computer Science, Fudan University → Fudan University).
@@ -103,6 +104,10 @@ def normalize_daily_arxiv_settings(settings: Dict[str, Any]) -> Dict[str, Any]:
         normalized["keywordList"] = [
             kw.strip() for kw in keyword_list if isinstance(kw, str) and kw.strip()
         ]
+
+    normalized["qualityConfig"] = normalize_quality_config(
+        normalized.get("qualityConfig", {})
+    )
 
     return normalized
 
