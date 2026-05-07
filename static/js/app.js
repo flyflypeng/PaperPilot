@@ -14596,6 +14596,24 @@ function stripChatThinkBlocks(value) {
         .replace(/<think\b[^>]*>[\s\S]*$/i, '');
 }
 
+function normalizeChatHistoryMessages(messages) {
+    if (!Array.isArray(messages)) return [];
+    return messages
+        .map(item => {
+            if (item && typeof item === 'object' && !Array.isArray(item)) {
+                const role = item.role === 'user' || item.role === 'assistant' || item.role === 'system'
+                    ? item.role
+                    : 'assistant';
+                const content = role === 'assistant'
+                    ? stripChatThinkBlocks(item.content)
+                    : normalizeChatMarkdownText(item.content);
+                return { role, content };
+            }
+            return { role: 'assistant', content: stripChatThinkBlocks(item) };
+        })
+        .filter(item => item.role !== 'system');
+}
+
 function renderChatMarkdown(value) {
     const markdown = stripChatThinkBlocks(value);
     if (typeof marked === 'undefined') {
@@ -14828,7 +14846,7 @@ async function switchSession(sessionId) {
         chatHistory = [];
 
         if (data.success && data.session) {
-            const messages = data.session.messages || [];
+            const messages = normalizeChatHistoryMessages(data.session.messages);
 
             // Always show greeting for empty sessions
             if (messages.length === 0) {
@@ -14837,11 +14855,8 @@ async function switchSession(sessionId) {
                 messages.forEach(msg => {
                     // Map 'assistant' back to 'ai' for UI function if needed, but standard is 'assistant'
                     const role = msg.role === 'assistant' ? 'ai' : msg.role;
-                    const content = msg.role === 'assistant'
-                        ? stripChatThinkBlocks(msg.content)
-                        : normalizeChatMarkdownText(msg.content);
-                    appendChatMessage(role, content);
-                    chatHistory.push({ role: msg.role, content });
+                    appendChatMessage(role, msg.content);
+                    chatHistory.push({ role: msg.role, content: msg.content });
                 });
             }
 

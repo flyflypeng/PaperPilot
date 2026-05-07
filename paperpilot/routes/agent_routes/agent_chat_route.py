@@ -85,6 +85,49 @@ def strip_think_blocks(text: str) -> str:
     text = re.sub(r"<think\b[^>]*>[\s\S]*$", "", text, flags=re.IGNORECASE)
     return text
 
+
+def normalize_chat_content(value: Any) -> str:
+    if value is None:
+        return ""
+    if isinstance(value, str):
+        return value
+    if isinstance(value, (int, float, bool)):
+        return str(value)
+    try:
+        return json.dumps(value, ensure_ascii=False, indent=2)
+    except Exception:
+        return str(value)
+
+
+def normalize_chat_messages(messages: Any) -> List[Dict[str, Any]]:
+    if not isinstance(messages, list):
+        messages = [messages] if messages else []
+
+    normalized: List[Dict[str, Any]] = []
+    for item in messages:
+        if isinstance(item, dict):
+            role = item.get("role")
+            content = item.get("content")
+            timestamp = item.get("timestamp")
+        else:
+            role = "assistant"
+            content = item
+            timestamp = None
+
+        if role not in {"system", "user", "assistant"}:
+            role = "assistant"
+
+        text = normalize_chat_content(content)
+        if role == "assistant":
+            text = strip_think_blocks(text)
+
+        msg: Dict[str, Any] = {"role": role, "content": text}
+        if timestamp is not None:
+            msg["timestamp"] = timestamp
+        normalized.append(msg)
+
+    return normalized
+
 def register_agent_chat_routes(
     app,
     *,
@@ -120,6 +163,8 @@ def register_agent_chat_routes(
             session = chat_history_manager.get_session(paper_id, session_id)
             if not session:
                 return jsonify({"success": False, "error": "Session not found"}), 404
+
+            session["messages"] = normalize_chat_messages(session.get("messages", []))
                 
             return jsonify({"success": True, "session": session})
         except Exception as e:
