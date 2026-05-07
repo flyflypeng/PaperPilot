@@ -9965,6 +9965,52 @@ function removeNotificationWithAnimation(notificationId = 'daily-arxiv-api-notif
     }
 }
 
+function isDailyArxivSyncing() {
+    return Object.keys(dailyArxivProgressIntervals || {}).length > 0;
+}
+
+function updateDailyArxivSyncButtonState(syncing = isDailyArxivSyncing()) {
+    const syncBtn = document.getElementById('daily-arxiv-sync');
+    if (!syncBtn) return;
+
+    const labelEl = syncBtn.querySelector('span');
+    const disabledBySettings = !isDailyArxivEnabled();
+
+    syncBtn.disabled = syncing || disabledBySettings;
+    syncBtn.classList.toggle('is-syncing', syncing);
+    syncBtn.title = disabledBySettings
+        ? 'Enable Daily arXiv in settings before syncing'
+        : (syncing ? 'Sync in progress' : 'Sync latest papers from arXiv');
+
+    if (labelEl) {
+        labelEl.textContent = syncing ? 'Syncing' : 'Sync';
+    }
+}
+
+async function syncLatestDailyArxivPapers() {
+    if (isDailyArxivSyncing()) {
+        showMessage('Daily arXiv sync is already running', 'info');
+        updateDailyArxivSyncButtonState(true);
+        return;
+    }
+
+    updateDailyArxivSyncButtonState(true);
+    let started = false;
+
+    try {
+        const dateToFetch = dailyArxivCurrentDate || new Date().toISOString().split('T')[0];
+        if (dailyArxivCurrentCategory && dailyArxivCurrentCategory !== 'all') {
+            started = await triggerFetchPapers(false);
+        } else {
+            started = await triggerFetchAllCategories(false, dateToFetch);
+        }
+    } finally {
+        if (!started) {
+            updateDailyArxivSyncButtonState(false);
+        }
+    }
+}
+
 // Restart Daily arXiv crawl（Test first LLM API, and then start crawling）
 async function restartDailyArxivFetch() {
     // Remove existing notifications first（if there is）, give user feedback
@@ -10086,6 +10132,12 @@ async function initDailyArxiv() {
     const filterPanel = document.getElementById('daily-arxiv-filter-panel');
     const filterClearBtn = document.getElementById('daily-arxiv-filter-clear');
     const searchInput = document.getElementById('daily-arxiv-search');
+    const syncBtn = document.getElementById('daily-arxiv-sync');
+
+    if (syncBtn) {
+        syncBtn.addEventListener('click', syncLatestDailyArxivPapers);
+        updateDailyArxivSyncButtonState();
+    }
 
     // Daily arXiv search:title / authors / affiliations / abstract
     if (searchInput) {
@@ -10289,6 +10341,7 @@ function stopAllDailyArxivPolling() {
         clearInterval(dailyArxivProgressIntervals[category]);
         delete dailyArxivProgressIntervals[category];
     });
+    updateDailyArxivSyncButtonState(false);
 }
 
 // Check if there are partitions being fetched, if so start polling
@@ -10715,6 +10768,7 @@ async function loadDailyArxivSettings() {
             renderDailyArxivInstitutionTiers();
             syncDailyArxivKnownInstitutions();
             setDailyArxivEmptyState(isDailyArxivEnabled() ? 'default' : 'disabled');
+            updateDailyArxivSyncButtonState();
         }
 
         // Load list of known institutions
@@ -10810,6 +10864,7 @@ async function saveDailyArxivSettings(silent = false) {
                 showMessage('Daily arXiv Settings saved', 'success');
             }
             renderDailyArxivCategoryTags();
+            updateDailyArxivSyncButtonState();
         } else {
             const errorData = await res.json().catch(() => ({}));
             showMessage(errorData.error || 'Failed to save settings', 'error');
@@ -11369,7 +11424,7 @@ async function triggerFetchPapers(force = false) {
     if (!isDailyArxivEnabled()) {
         showMessage('Daily arXiv is disabled in settings', 'warning');
         setDailyArxivEmptyState('disabled');
-        return;
+        return false;
     }
     // examine LLM Configuration
     if (!dailyArxivLLMConfigured) {
@@ -11381,12 +11436,12 @@ async function triggerFetchPapers(force = false) {
             const agenticBtn = document.querySelector('[data-setting="agentic"]');
             if (agenticBtn) agenticBtn.click();
         }, 100);
-        return;
+        return false;
     }
 
     if (dailyArxivCategories.length === 0) {
         showMessage('Please configure first arXiv Partition', 'warning');
-        return;
+        return false;
     }
 
     if (!dailyArxivCurrentCategory) {
@@ -11412,7 +11467,7 @@ async function triggerFetchPapers(force = false) {
             </button>
         `;
         showRoundedNotification('LLM API Call failed, stop Daily arXiv,Check, please LLM API set up.', 'error', true, 'daily-arxiv-api-notification', actionButton);
-        return;
+        return false;
     }
 
     try {
@@ -11434,12 +11489,15 @@ async function triggerFetchPapers(force = false) {
             showMessage(`Start crawling ${dailyArxivCurrentCategory} paper...`, 'info');
             // Start polling progress
             startProgressPolling(dailyArxivCurrentCategory);
+            return true;
         } else {
             showMessage(data.error || 'Fetch failed', 'error');
+            return false;
         }
     } catch (err) {
         console.error('Failed to trigger crawl:', err);
         showMessage('Failed to trigger crawl', 'error');
+        return false;
     }
 }
 
@@ -11448,7 +11506,7 @@ async function triggerFetchAllCategories(force = false, dateStr = null) {
     if (!isDailyArxivEnabled()) {
         showMessage('Daily arXiv is disabled in settings', 'warning');
         setDailyArxivEmptyState('disabled');
-        return;
+        return false;
     }
     // examine LLM Configuration
     if (!dailyArxivLLMConfigured) {
@@ -11460,12 +11518,12 @@ async function triggerFetchAllCategories(force = false, dateStr = null) {
             const agenticBtn = document.querySelector('[data-setting="agentic"]');
             if (agenticBtn) agenticBtn.click();
         }, 100);
-        return;
+        return false;
     }
 
     if (dailyArxivCategories.length === 0) {
         showMessage('Please configure first arXiv Partition', 'warning');
-        return;
+        return false;
     }
 
     // Test before crawling LLM API
@@ -11487,7 +11545,7 @@ async function triggerFetchAllCategories(force = false, dateStr = null) {
             </button>
         `;
         showRoundedNotification('LLM API Call failed, stop Daily arXiv,Check, please LLM API set up.', 'error', true, 'daily-arxiv-api-notification', actionButton);
-        return;
+        return false;
     }
 
     try {
@@ -11510,12 +11568,15 @@ async function triggerFetchAllCategories(force = false, dateStr = null) {
             dailyArxivCategories.forEach(cat => {
                 startProgressPolling(cat);
             });
+            return true;
         } else {
             showMessage(data.error || 'Fetch failed', 'error');
+            return false;
         }
     } catch (err) {
         console.error('Failed to trigger crawl:', err);
         showMessage('Failed to trigger crawl', 'error');
+        return false;
     }
 }
 
@@ -11528,6 +11589,7 @@ function startProgressPolling(category) {
 
     let idleCount = 0;
     let inFlight = false;
+    updateDailyArxivSyncButtonState(true);
 
     // Start polling
     dailyArxivProgressIntervals[category] = setInterval(async () => {
@@ -11660,6 +11722,7 @@ function stopProgressPolling(category = null) {
             clearInterval(dailyArxivProgressIntervals[category]);
             delete dailyArxivProgressIntervals[category];
         }
+        updateDailyArxivSyncButtonState();
 
         // Reset the slow download prompt status of this partition
         delete dailyArxivSlowDownloadNotified[category];
@@ -11692,6 +11755,7 @@ function stopProgressPolling(category = null) {
             clearInterval(dailyArxivProgressIntervals[cat]);
         });
         dailyArxivProgressIntervals = {};
+        updateDailyArxivSyncButtonState(false);
 
         // Reset slow download prompt status for all partitions
         dailyArxivSlowDownloadNotified = {};

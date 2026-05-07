@@ -3862,6 +3862,13 @@ mark {
     flex-wrap: wrap;
 }
 
+.daily-arxiv-actions-top {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
 /* Daily arXiv Search box style */
 .daily-arxiv-search-box {
     position: relative;
@@ -3892,6 +3899,39 @@ mark {
     color: #999;
     pointer-events: none;
     font-size: 13px;
+}
+
+.daily-arxiv-sync-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    min-height: 34px;
+}
+
+.daily-arxiv-sync-btn:disabled {
+    cursor: not-allowed;
+    opacity: 0.65;
+}
+
+.daily-arxiv-sync-btn.is-syncing i {
+    animation: daily-arxiv-sync-spin 1s linear infinite;
+}
+
+@keyframes daily-arxiv-sync-spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+@media (max-width: 900px) {
+    .daily-arxiv-actions-top {
+        width: 100%;
+    }
+
+    .daily-arxiv-search-box {
+        flex: 1 1 260px;
+        max-width: none;
+    }
 }
 
 /* Daily arXiv filter layout */
