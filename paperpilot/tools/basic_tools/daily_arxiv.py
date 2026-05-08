@@ -40,6 +40,10 @@ DEFAULT_REPLACEMENT_CANDIDATE_LIMIT = 5
 DAILY_CATEGORY_RATIO_TOTAL = 100.0
 DAILY_CATEGORY_RATIO_TOLERANCE = 0.0001
 DEFAULT_CATEGORY_WEIGHT = 1.0
+INSTITUTION_TIER_ORDER = ["S", "A", "B", "C"]
+INSTITUTION_TIER_RANK = {
+    tier: index for index, tier in enumerate(INSTITUTION_TIER_ORDER)
+}
 ARXIV_CATEGORY_WEIGHT_OVERRIDES = {
     # High-volume AI categories get slightly lower quota weight so they do not
     # consume the whole daily budget before niche categories run.
@@ -509,6 +513,87 @@ def is_valid_daily_arxiv_summary(summary: Any) -> bool:
         return False
     without_dots = re.sub(r"[\s.。…]+", "", normalized)
     return bool(without_dots)
+
+
+def normalize_institution_match_text(text: Any) -> str:
+    if not isinstance(text, str):
+        return ""
+    normalized = text.casefold()
+    normalized = re.sub(r"[^0-9a-z]+", " ", normalized)
+    return re.sub(r"\s+", " ", normalized).strip()
+
+
+def get_institution_tier(
+    affiliation: Any, institution_tiers: Any
+) -> Optional[str]:
+    affiliation_text = normalize_institution_match_text(affiliation)
+    if not affiliation_text:
+        return None
+    tiers = compact_daily_arxiv_institution_tiers(institution_tiers)
+    for tier in INSTITUTION_TIER_ORDER:
+        for institution in tiers.get(tier, []):
+            institution_text = normalize_institution_match_text(institution)
+            if not institution_text:
+                continue
+            if (
+                affiliation_text == institution_text
+                or institution_text in affiliation_text
+                or affiliation_text in institution_text
+            ):
+                return tier
+    return None
+
+
+def get_best_institution_tier(
+    affiliations: Any, institution_tiers: Any
+) -> Optional[str]:
+    if not isinstance(affiliations, list):
+        return None
+
+    best_tier = None
+    best_rank = len(INSTITUTION_TIER_ORDER)
+    for affiliation in affiliations:
+        tier = get_institution_tier(affiliation, institution_tiers)
+        if tier is None:
+            continue
+        tier_rank = INSTITUTION_TIER_RANK[tier]
+        if tier_rank < best_rank:
+            best_rank = tier_rank
+            best_tier = tier
+    return best_tier
+
+
+def get_daily_arxiv_strategy_config(quality_config: Any) -> Dict[str, Any]:
+    normalized = normalize_quality_config(quality_config)
+    strategy_key = normalized.get("strategy", "balanced")
+    strategies = normalized.get("strategies") or {}
+    strategy_config = strategies.get(strategy_key) or strategies.get("balanced") or {}
+    return strategy_config if isinstance(strategy_config, dict) else {}
+
+
+def should_keep_paper_by_institution_tier(
+    paper: Dict[str, Any], quality_config: Any
+) -> tuple[bool, str]:
+    normalized = normalize_quality_config(quality_config)
+    strategy_config = get_daily_arxiv_strategy_config(normalized)
+    min_tier = strategy_config.get("minInstitutionTier", "B")
+    allow_unknown = bool(strategy_config.get("allowUnknownInstitutions", True))
+
+    if min_tier not in INSTITUTION_TIER_RANK:
+        min_tier = "B"
+
+    affiliations = paper.get("affiliations") or []
+    best_tier = get_best_institution_tier(
+        affiliations, normalized.get("institutionTiers", {})
+    )
+    if best_tier is None:
+        if allow_unknown:
+            return True, "institution tier unknown but allowed"
+        return False, "institution tier unknown"
+
+    if INSTITUTION_TIER_RANK[best_tier] <= INSTITUTION_TIER_RANK[min_tier]:
+        return True, f"institution tier {best_tier} satisfies minimum {min_tier}"
+    return False, f"institution tier {best_tier} below minimum {min_tier}"
 
 
 
@@ -1216,8 +1301,19 @@ class DailyArxivManager:
                     f"daily total {len(existing_daily_ids)}/{max_daily_papers}"
                 )
 
-            # Get enough papers at once (up to 500 articles) and then filter for papers with target date
+            # Get enough papers at once (up to 500 articles) and then filter for papers with target date.
+            # Institution tier filtering happens after PDF download/affiliation extraction,
+            # so collect a wider candidate pool than the immediate remaining quota.
             max_fetch = 500
+            remaining_capacity_int = int(remaining_capacity)
+            candidate_collection_limit = min(
+                max_fetch,
+                max(
+                    remaining_capacity_int,
+                    remaining_capacity_int * 10,
+                    remaining_capacity_int + 20,
+                ),
+            )
             target_date = datetime.strptime(date_str, "%Y-%m-%d").date()
             normalized_category = normalize_arxiv_category(category)
 
@@ -1262,18 +1358,16 @@ class DailyArxivManager:
                     if matched_keywords:
                         matched_keywords_by_arxiv_id[paper_tmp.arxiv_id] = matched_keywords
                     consecutive_older_count = 0  # Reset consecutive earlier date count
-                    if len(all_results) >= remaining_capacity:
+                    if len(all_results) >= candidate_collection_limit:
                         if is_fill_stage:
                             print(
-                                f"[DailyArxiv] reached daily fill limit for {date_str}: "
-                                f"{len(existing_daily_ids)} existing + {len(all_results)} new "
-                                f">= {max_daily_papers}"
+                                f"[DailyArxiv] reached candidate scan limit for {date_str}: "
+                                f"{len(all_results)} candidates for {remaining_capacity} slots"
                             )
                         else:
                             print(
-                                f"[DailyArxiv] reached quota for {date_str} {category}: "
-                                f"{category_existing_count} existing + {len(all_results)} new "
-                                f">= {category_quota}"
+                                f"[DailyArxiv] reached candidate scan limit for {date_str} {category}: "
+                                f"{len(all_results)} candidates for {remaining_capacity} slots"
                             )
                         break
                 elif paper_date and paper_date < target_date:
@@ -1353,6 +1447,12 @@ class DailyArxivManager:
 
             print(f"[DailyArxiv] Start processing {len(results)} papers...")
             for i, result in enumerate(results):
+                if len(papers) >= remaining_capacity:
+                    print(
+                        f"[DailyArxiv] reached accepted quota for {date_str} {category}: "
+                        f"{len(papers)} papers"
+                    )
+                    break
                 try:
                     print(
                         f"[DailyArxiv] processing section {i+1}/{len(results)} papers..."
@@ -1431,13 +1531,6 @@ class DailyArxivManager:
                         paper.local_pdf_path = pdf_path
                         paper.pdf_downloaded = True  # mark PDF Successfully downloaded
 
-                        # Generate thumbnails (PDFFirst half of the first page)
-                        thumbnail_path = self._generate_thumbnail(
-                            pdf_path, paper_cat_dir
-                        )
-                        if thumbnail_path:
-                            paper.thumbnail_path = thumbnail_path
-
                         # extraction mechanism,homepage and github(from PDF First page)
                         if (
                             llm_config.get("llmBaseUrl")
@@ -1465,12 +1558,45 @@ class DailyArxivManager:
                                 print(
                                     f"[DailyArxiv] Failed to extract affiliations for {paper.arxiv_id}: {e}"
                                 )
+
+                        keep_paper, tier_reason = should_keep_paper_by_institution_tier(
+                            paper.to_dict(), settings.get("qualityConfig", {})
+                        )
+                        if not keep_paper:
+                            print(
+                                f"[DailyArxiv] Skip {paper.arxiv_id} by institution tier filter: {tier_reason}"
+                            )
+                            try:
+                                if paper.local_pdf_path and os.path.exists(
+                                    paper.local_pdf_path
+                                ):
+                                    os.remove(paper.local_pdf_path)
+                            except OSError as exc:
+                                print(
+                                    f"[DailyArxiv] Failed to delete filtered PDF {paper.local_pdf_path}: {exc}"
+                                )
+                            continue
+
+                        # Generate thumbnails (PDFFirst half of the first page)
+                        thumbnail_path = self._generate_thumbnail(
+                            pdf_path, paper_cat_dir
+                        )
+                        if thumbnail_path:
+                            paper.thumbnail_path = thumbnail_path
                     else:
                         # PDF Download failed
                         paper.pdf_downloaded = False
                         print(
                             f"[DailyArxiv] PDF Download failed, will try again at next check: {paper.arxiv_id}"
                         )
+                        keep_paper, tier_reason = should_keep_paper_by_institution_tier(
+                            paper.to_dict(), settings.get("qualityConfig", {})
+                        )
+                        if not keep_paper:
+                            print(
+                                f"[DailyArxiv] Skip {paper.arxiv_id} by institution tier filter: {tier_reason}"
+                            )
+                            continue
 
                     # Extract abstracts and keywords (from abstract）
                     # NOTE: Even if PDF Download failed, you can also extract abstracts and keywords

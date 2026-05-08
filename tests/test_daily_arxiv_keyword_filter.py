@@ -1,3 +1,4 @@
+import json
 import os
 import tempfile
 import unittest
@@ -13,6 +14,7 @@ from paperpilot.tools.basic_tools.daily_arxiv import (
     build_daily_arxiv_replacement_payload,
     calculate_daily_category_quotas,
     get_arxiv_category_weight,
+    should_keep_paper_by_institution_tier,
     match_any_keyword_in_title_or_abstract,
     normalize_arxiv_category,
     normalize_arxiv_category_ratios,
@@ -111,6 +113,68 @@ class TestDailyArxivKeywordFilter(unittest.TestCase):
         self.assertEqual(payload["institution_tiers"]["A"], ["CMU"])
         self.assertEqual(payload["institution_tiers"]["C"], ["Other labs"])
         self.assertEqual(payload["candidate"]["affiliations"], ["MIT"])
+
+    def test_institution_tier_filter_respects_quality_strategy(self):
+        quality_config = {
+            "strategy": "strict",
+            "strategies": {
+                "strict": {
+                    "minInstitutionTier": "A",
+                    "allowUnknownInstitutions": False,
+                }
+            },
+            "institutionTiers": {
+                "S": ["MIT"],
+                "A": ["CMU"],
+                "B": ["Stanford"],
+                "C": ["Other reputable universities"],
+            },
+        }
+
+        keep, _reason = should_keep_paper_by_institution_tier(
+            {"affiliations": ["MIT"]}, quality_config
+        )
+        self.assertTrue(keep)
+
+        keep, reason = should_keep_paper_by_institution_tier(
+            {"affiliations": ["Stanford"]}, quality_config
+        )
+        self.assertFalse(keep)
+        self.assertIn("below minimum", reason)
+
+        keep, reason = should_keep_paper_by_institution_tier(
+            {"affiliations": ["Unknown Lab"]}, quality_config
+        )
+        self.assertFalse(keep)
+        self.assertIn("unknown", reason)
+
+    def test_balanced_institution_tier_filter_allows_unknown_but_rejects_low_tier(self):
+        quality_config = {
+            "strategy": "balanced",
+            "strategies": {
+                "balanced": {
+                    "minInstitutionTier": "B",
+                    "allowUnknownInstitutions": True,
+                }
+            },
+            "institutionTiers": {
+                "S": ["MIT"],
+                "A": ["CMU"],
+                "B": ["Stanford"],
+                "C": ["Other Lab"],
+            },
+        }
+
+        keep, _reason = should_keep_paper_by_institution_tier(
+            {"affiliations": ["Unknown Lab"]}, quality_config
+        )
+        self.assertTrue(keep)
+
+        keep, reason = should_keep_paper_by_institution_tier(
+            {"affiliations": ["Other Lab"]}, quality_config
+        )
+        self.assertFalse(keep)
+        self.assertIn("below minimum", reason)
 
     def test_system_categories_get_higher_quota_weight_than_ai_categories(self):
         self.assertGreater(
@@ -231,6 +295,116 @@ class TestDailyArxivKeywordFilter(unittest.TestCase):
 
             self.assertEqual(len(papers), 2)
             self.assertEqual(len(saved), 2)
+
+    def test_fetch_papers_filters_by_institution_tier_and_continues_candidates(self):
+        class FakeAuthor:
+            def __init__(self, name):
+                self.name = name
+
+        class FakeResult:
+            def __init__(self, index):
+                self.entry_id = f"https://arxiv.org/abs/2604.{index:05d}"
+                self.authors = [FakeAuthor("Alice")]
+                self.categories = ["cs.CV"]
+                self.primary_category = "cs.CV"
+                self.published = datetime(2026, 4, 1, 12, 0, 0)
+                self.updated = self.published
+                self.title = f"Paper {index}"
+                self.summary = "An AI paper."
+                self.pdf_url = f"https://arxiv.org/pdf/2604.{index:05d}.pdf"
+                self.comment = None
+                self.journal_ref = None
+
+        class FakeClient:
+            def results(self, _search):
+                return [FakeResult(i) for i in range(3)]
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            settings_file = os.path.join(tmpdir, "daily_arxiv_settings.json")
+            settings = {
+                "enabled": True,
+                "categories": ["cs.CV"],
+                "maxDailyPapers": 2,
+                "maxNewPapersPerCategoryPerFetch": 2,
+                "replacementCandidateLimit": 0,
+                "qualityConfig": {
+                    "strategy": "strict",
+                    "strategies": {
+                        "strict": {
+                            "minInstitutionTier": "A",
+                            "allowUnknownInstitutions": False,
+                        }
+                    },
+                    "institutionTiers": {
+                        "S": ["MIT"],
+                        "A": ["CMU"],
+                        "B": ["Stanford"],
+                        "C": [],
+                    },
+                },
+            }
+            with open(settings_file, "w", encoding="utf-8") as f:
+                json.dump(settings, f)
+
+            manager = DailyArxivManager(base_dir=tmpdir, settings_file=settings_file)
+            manager.client = FakeClient()
+            manager.set_llm_config_callback(
+                lambda: {
+                    "llmBaseUrl": "http://example.test/v1",
+                    "llmApiKey": "token",
+                    "llmModel": "test-model",
+                }
+            )
+
+            def fake_download(paper, _cat_dir, _progress):
+                path = os.path.join(tmpdir, f"{paper.arxiv_id}.pdf")
+                with open(path, "wb") as fp:
+                    fp.write(b"%PDF-1.4 fake")
+                return path
+
+            affiliations_by_id = {
+                "2604.00000": ["Unknown Lab"],
+                "2604.00001": ["MIT"],
+                "2604.00002": ["CMU"],
+            }
+
+            manager._download_pdf = fake_download
+            manager._generate_thumbnail = lambda *args, **kwargs: None
+            manager._extract_affiliations = lambda paper_path, *_args, **_kwargs: {
+                "affiliations": affiliations_by_id[
+                    os.path.basename(paper_path).replace(".pdf", "")
+                ],
+                "countries": [],
+                "homepage": None,
+                "github": None,
+            }
+
+            saved = []
+            manager._save_paper = lambda paper_dict, _cat_dir: saved.append(paper_dict)
+
+            with (
+                patch.object(PaperDAO, "get_daily_papers", return_value=[]),
+                patch.object(PaperDAO, "get_paper_by_arxiv_id", return_value=None),
+                patch(
+                    "paperpilot.tools.basic_tools.daily_arxiv.get_arxiv_announce_date",
+                    return_value=datetime(2026, 4, 2),
+                ),
+                patch(
+                    "paperpilot.tools.basic_tools.daily_arxiv.extract_summary_and_keywords_with_llm",
+                    return_value={"summary": "summary", "keywords": []},
+                ),
+            ):
+                papers = manager.fetch_papers("cs.CV", date_str="2026-04-02")
+
+            self.assertEqual(
+                [paper["arxiv_id"] for paper in papers],
+                ["2604.00001", "2604.00002"],
+            )
+            self.assertEqual(
+                [paper["arxiv_id"] for paper in saved],
+                ["2604.00001", "2604.00002"],
+            )
+            self.assertFalse(os.path.exists(os.path.join(tmpdir, "2604.00000.pdf")))
 
     def test_incremental_fetch_does_not_force_fill_unused_quota(self):
         class FakeAuthor:

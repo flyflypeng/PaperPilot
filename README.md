@@ -257,6 +257,19 @@ Configure your research interests:
 - **Max New Papers per Category per Fetch**: Limit how many new papers each configured category can add in a single sync, so repeated syncs can pick up papers released later in the day.
 - **Replacement Candidate Limit**: When a category quota is already full, screen a small number of newer candidates for possible replacement.
 
+The core paper filtering pipeline is:
+
+1. **arXiv category and date filter**: PaperPilot queries each configured category with `cat:<category>`, sorted by newest submissions, and keeps only papers that belong to the target arXiv announcement date. Already downloaded Daily ArXiv papers are skipped.
+2. **Keyword hard filter**: If **Keywords** is not empty, a paper must match at least one configured keyword in its title or abstract. Matching is case-insensitive and normalizes punctuation and whitespace.
+3. **Quota filter**: The remaining candidates must fit both the daily global budget and the per-category budget. Each sync also respects **Max New Papers per Category per Fetch**.
+4. **Institution tier hard filter**: Because arXiv metadata does not provide affiliations, PaperPilot downloads the candidate PDF first, extracts first-page affiliations through the configured LLM, then applies the selected quality strategy as a hard gate:
+   - `strict`: keep Tier S/A papers; reject Tier B/C and unknown institutions.
+   - `balanced`: keep Tier S/A/B papers and allow unknown institutions; reject Tier C.
+   - `discovery`: keep Tier S/A/B/C papers and allow unknown institutions.
+   Papers rejected by this gate are not saved, summarized, or shown in Daily ArXiv.
+5. **AI enrichment**: Accepted papers get thumbnails, affiliation/country/project-link metadata, and an LLM-generated brief summary and keyword tags when the Daily ArXiv LLM configuration is available.
+6. **Replacement screening when full**: When a category is already full, PaperPilot can evaluate a small number of newer candidates against already kept papers and replace a weaker paper only if the LLM judges the candidate clearly better.
+
 Daily ArXiv can split the daily paper budget in two ways:
 
 - **Custom category ratios**: In **arXiv Categories**, set per-category percentages when you want direct control, for example `cs.CV 60%`, `cs.AI 25%`, `cs.LG 15%`. Custom ratios must total exactly `100%`; PaperPilot will warn you if the total is above or below 100%.
