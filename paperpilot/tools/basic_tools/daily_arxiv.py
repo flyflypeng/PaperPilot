@@ -87,6 +87,48 @@ Notice:
 The summary entered now is:
 """
 
+DEFAULT_SUMMARY_PROMPT_ZH = """我会给你一篇 AI 文章的英文摘要，以及一个可选关键词列表（英文）。你需要：
+
+用中文简要总结这篇文章在解决什么问题、如何解决的，字数控制在 100-200 字。
+
+从我提供的关键词列表中挑选最能代表文章类型的关键词（英文）
+
+按如下 JSON 格式输出结果：
+
+{"summary": "这篇文章主要解决...的问题。作者提出...方法，通过...实现了...", "keywords": ["Keyword"]}
+
+注意
+
+summary 必须中文，简洁、客观。
+
+keywords 必须来自我提供的关键词列表：[{keyword_list}], 最多{max_keywords}个关键词。一定要是符合这篇文章的关键词，不能随意猜测。
+
+直接输出 JSON，不要有其他解释。
+
+现在输入的摘要是：
+"""
+
+DEFAULT_SUMMARY_PROMPT_EN = """I will give you an English abstract of an AI paper, and an optional keyword list (in English). You need to:
+
+Briefly summarize in English what problem this paper solves and how it solves it, keep it within 100-200 words.
+
+Select keywords (in English) from the keyword list I provide that best represent the type of paper.
+
+Output the result in the following JSON format:
+
+{"summary": "This paper mainly solves...problem. The authors propose...method, through...achieved...", "keywords": ["Keyword"]}
+
+Notes:
+
+summary must be in English, concise and objective.
+
+keywords must come from the keyword list I provide: [{keyword_list}], at most {max_keywords} keywords. They must be keywords that match this paper, do not guess randomly.
+
+Output JSON directly, no other explanations.
+
+Now the input abstract is:
+"""
+
 DAILY_ARXIV_REPLACEMENT_PROMPT = """You are curating a limited-size Daily arXiv reading feed.
 
 Given one new candidate paper and the papers already kept in the same arXiv category, decide whether the candidate is clearly more valuable than one existing paper and should replace it.
@@ -433,6 +475,40 @@ def match_any_keyword_in_title_or_abstract(
         if kw_norm in haystack:
             matched.append(kw)
     return matched
+
+
+def build_daily_arxiv_summary_prompt(
+    settings: Dict[str, Any], user_settings: Optional[Dict[str, Any]] = None
+) -> str:
+    """Build the Daily arXiv summary prompt using the same rules as scheduled fetch."""
+    settings = settings if isinstance(settings, dict) else {}
+    user_settings = user_settings if isinstance(user_settings, dict) else {}
+
+    keyword_list = settings.get("keywordList", []) or []
+    keyword_list = [kw.strip() for kw in keyword_list if isinstance(kw, str) and kw.strip()]
+    max_keywords = settings.get("maxKeywords", 1)
+    ai_language = user_settings.get("aiLanguage", "zh")
+
+    if ai_language and str(ai_language).lower().startswith("zh"):
+        summary_prompt = settings.get("summaryPromptZh") or DEFAULT_SUMMARY_PROMPT_ZH
+    else:
+        summary_prompt = settings.get("summaryPromptEn") or DEFAULT_SUMMARY_PROMPT_EN
+
+    if keyword_list:
+        summary_prompt = summary_prompt.replace("{keyword_list}", ", ".join(keyword_list))
+    else:
+        summary_prompt = summary_prompt.replace("{keyword_list}", "")
+    return summary_prompt.replace("{max_keywords}", str(max_keywords))
+
+
+def is_valid_daily_arxiv_summary(summary: Any) -> bool:
+    if not isinstance(summary, str):
+        return False
+    normalized = summary.strip()
+    if not normalized:
+        return False
+    without_dots = re.sub(r"[\s.。…]+", "", normalized)
+    return bool(without_dots)
 
 
 
@@ -1261,83 +1337,16 @@ class DailyArxivManager:
 
             # Get custom prompt
             affiliation_prompt = settings.get("affiliationPrompt")
-            max_keywords = settings.get("maxKeywords", 1)
 
             # Get user language preference (default to Chinese for backward compatibility)
-            ai_language = "zh"
+            user_settings = {}
             if self._get_user_settings:
                 try:
                     user_settings = self._get_user_settings()
-                    ai_language = user_settings.get("aiLanguage", "zh")
                 except Exception as e:
                     print(f"[DailyArxiv] Failed to get user settings: {e}")
 
-            # Select summary prompt based on user language
-            summary_prompt = None
-            if ai_language and ai_language.lower().startswith("zh"):
-                summary_prompt = settings.get("summaryPromptZh")
-            else:
-                summary_prompt = settings.get("summaryPromptEn")
-
-            # If no language-specific prompt found, fall back to default
-            if not summary_prompt:
-                # Use built-in default prompt based on language
-                if ai_language and ai_language.lower().startswith("zh"):
-                    # Chinese default prompt
-                    summary_prompt = """我会给你一篇 AI 文章的英文摘要，以及一个可选关键词列表（英文）。你需要：
-
-用中文简要总结这篇文章在解决什么问题、如何解决的，字数控制在 100-200 字。
-
-从我提供的关键词列表中挑选最能代表文章类型的关键词（英文）
-
-按如下 JSON 格式输出结果：
-
-{"summary": "这篇文章主要解决...的问题。作者提出...方法，通过...实现了...", "keywords": ["Keyword"]}
-
-注意
-
-summary 必须中文，简洁、客观。
-
-keywords 必须来自我提供的关键词列表：[{keyword_list}], 最多{max_keywords}个关键词。一定要是符合这篇文章的关键词，不能随意猜测。
-
-直接输出 JSON，不要有其他解释。
-
-现在输入的摘要是：
-"""
-                else:
-                    # English default prompt
-                    summary_prompt = """I will give you an English abstract of an AI paper, and an optional keyword list (in English). You need to:
-
-Briefly summarize in English what problem this paper solves and how it solves it, keep it within 100-200 words.
-
-Select keywords (in English) from the keyword list I provide that best represent the type of paper.
-
-Output the result in the following JSON format:
-
-{"summary": "This paper mainly solves...problem. The authors propose...method, through...achieved...", "keywords": ["Keyword"]}
-
-Notes:
-
-summary must be in English, concise and objective.
-
-keywords must come from the keyword list I provide: [{keyword_list}], at most {max_keywords} keywords. They must be keywords that match this paper, do not guess randomly.
-
-Output JSON directly, no other explanations.
-
-Now the input abstract is:
-"""
-
-            # Insert the keyword list and maximum number of keywords into prompt middle
-            if summary_prompt:
-                if keyword_list:
-                    keyword_list_str = ", ".join(keyword_list)
-                    summary_prompt = summary_prompt.replace(
-                        "{keyword_list}", keyword_list_str
-                    )
-                # Replace the maximum number of keywords placeholder
-                summary_prompt = summary_prompt.replace(
-                    "{max_keywords}", str(max_keywords)
-                )
+            summary_prompt = build_daily_arxiv_summary_prompt(settings, user_settings)
 
             papers = []
             skipped_count = 0
@@ -2062,14 +2071,14 @@ Now the input abstract is:
             'authors': paper_dict.get('authors'),
             'abstract': paper_dict.get('abstract'),
             'arxiv_published_date': paper_dict.get('published'),
-            'arxiv_url': paper_dict.get('pdf_url'),
+            'arxiv_url': paper_dict.get('pdf_url') or paper_dict.get('arxiv_url'),
             'arxiv_id': arxiv_id,
-            'subject': paper_dict.get('primary_category'),
+            'subject': paper_dict.get('primary_category') or paper_dict.get('subject'),
             'upload_date': datetime.now().isoformat(),
-            'file_path': paper_dict.get('local_pdf_path'),
+            'file_path': paper_dict.get('local_pdf_path') or paper_dict.get('file_path'),
             'thumbnail_path': paper_dict.get('thumbnail_path'),
             'is_daily': 1,
-            'daily_date': paper_dict.get('fetch_date'),
+            'daily_date': paper_dict.get('fetch_date') or paper_dict.get('daily_date'),
             # Store extra fields in metadata column (handled by DAO)
             'categories': paper_dict.get('categories'),
             'comment': paper_dict.get('comment'),

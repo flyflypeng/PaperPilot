@@ -12940,6 +12940,27 @@ function escapeHtml(text) {
     return div.innerHTML;
 }
 
+function isValidDailyArxivSummary(summary) {
+    if (typeof summary !== 'string') return false;
+    const normalized = summary.trim();
+    if (!normalized) return false;
+    const withoutDots = normalized.replace(/[\s.。…]+/g, '');
+    return withoutDots.length > 0;
+}
+
+function updateDailyArxivCachedPaper(arxivId, updater) {
+    if (!arxivId || typeof updater !== 'function') return;
+    Object.keys(dailyArxivPapers).forEach(cacheKey => {
+        const cachedPapers = dailyArxivPapers[cacheKey];
+        if (!Array.isArray(cachedPapers)) return;
+        cachedPapers.forEach(cachedPaper => {
+            if (cachedPaper && cachedPaper.arxiv_id === arxivId) {
+                updater(cachedPaper);
+            }
+        });
+    });
+}
+
 // Show paper details
 function showDailyArxivDetail(index) {
     // Get the list of currently displayed papers（and renderDailyArxivGrid Logic remains consistent, including merge logic）
@@ -13022,15 +13043,22 @@ function showDailyArxivDetail(index) {
     }
 
     // summary summary area（show first summary, then display abstract）
-    let summaryHtml = '';
-    if (paper.summary) {
-        summaryHtml = `
-            <div class="daily-arxiv-detail-summary">
+    const hasValidSummary = isValidDailyArxivSummary(paper.summary);
+    const summaryHtml = `
+        <div class="daily-arxiv-detail-summary ${hasValidSummary ? '' : 'empty'}">
+            <div class="daily-arxiv-detail-summary-header">
                 <h4><i class="fas fa-lightbulb"></i> Brief summary</h4>
-                <p>${escapeHtml(paper.summary)}</p>
+                <button class="btn btn-secondary btn-sm daily-arxiv-summary-generate-btn" onclick="generateBriefSummaryForPaper(${index})">
+                    <i class="fas fa-magic"></i> ${hasValidSummary ? 'Regenerate' : 'Generate'}
+                </button>
             </div>
-        `;
-    }
+            ${hasValidSummary
+            ? `<p>${escapeHtml(paper.summary)}</p>`
+            : `<div class="daily-arxiv-summary-empty-state">
+                    <p>Brief summary has not been generated yet.</p>
+                </div>`}
+        </div>
+    `;
 
     const modalHtml = `
         <div class="daily-arxiv-detail-modal" onclick="if(event.target === this) closeDailyArxivDetail()">
@@ -13232,6 +13260,68 @@ async function extractAffiliationsForPaper(paperIndex) {
         if (extractBtn) {
             extractBtn.disabled = false;
             extractBtn.innerHTML = '<i class="fas fa-magic"></i> Extract organization information';
+        }
+    }
+}
+
+async function generateBriefSummaryForPaper(paperIndex) {
+    const papers = getCurrentDailyArxivPapers();
+    const paper = papers[paperIndex];
+    if (!paper) return;
+
+    const generateBtn = document.querySelector('.daily-arxiv-summary-generate-btn');
+    if (generateBtn) {
+        generateBtn.disabled = true;
+        generateBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Generating...';
+    }
+
+    try {
+        const paperDate = paper.fetch_date || dailyArxivCurrentDate;
+        const paperCategory =
+            paper.fetch_category ||
+            (dailyArxivCurrentCategory === 'all' ? null : dailyArxivCurrentCategory);
+
+        const body = {
+            arxiv_id: paper.arxiv_id,
+            date: paperDate,
+        };
+        if (paperCategory) {
+            body.fetch_category = paperCategory;
+        }
+
+        const res = await fetch('/api/daily-arxiv/generate-summary', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(body),
+        });
+        const data = await res.json();
+
+        if (!data.success) {
+            showMessage(data.error || 'Failed to generate brief summary', 'error');
+            if (generateBtn) {
+                generateBtn.disabled = false;
+                generateBtn.innerHTML = `<i class="fas fa-magic"></i> ${isValidDailyArxivSummary(paper.summary) ? 'Regenerate' : 'Generate'}`;
+            }
+            return;
+        }
+
+        updateDailyArxivCachedPaper(paper.arxiv_id, cachedPaper => {
+            cachedPaper.summary = data.summary || '';
+            cachedPaper.keywords = data.keywords || cachedPaper.keywords || [];
+            cachedPaper.summary_extracted = true;
+        });
+
+        closeDailyArxivDetail();
+        showDailyArxivDetail(paperIndex);
+        renderDailyArxivFilterKeywords();
+        renderDailyArxivGrid();
+        showMessage('Brief summary generated', 'success');
+    } catch (err) {
+        console.error('Failed to generate brief summary:', err);
+        showMessage(err.message || 'Failed to generate brief summary, please check network and LLM API settings', 'error');
+        if (generateBtn) {
+            generateBtn.disabled = false;
+            generateBtn.innerHTML = `<i class="fas fa-magic"></i> ${isValidDailyArxivSummary(paper.summary) ? 'Regenerate' : 'Generate'}`;
         }
     }
 }

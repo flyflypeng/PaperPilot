@@ -20,10 +20,13 @@ from paperpilot.database.dao.user_data_dao import DailyArxivReadDAO, ReadingList
 from paperpilot.database.dao.settings_dao import SettingsDAO
 from paperpilot.tools.basic_tools.daily_arxiv import (
     DailyArxivManager,
+    build_daily_arxiv_summary_prompt,
     extract_affiliations_with_llm,
     extract_pdf_first_page_text,
+    extract_summary_and_keywords_with_llm,
     get_manager,
     get_today_arxiv_date,
+    is_valid_daily_arxiv_summary,
     normalize_daily_arxiv_settings,
     validate_arxiv_category_ratios,
 )
@@ -856,6 +859,113 @@ def register_daily_arxiv_routes(
 
             traceback.print_exc()
             return jsonify({"success": False, "error": f"Failed to extract: {str(exc)}"}), 500
+
+    # ========================================
+    # Generate Brief Summary
+    # ========================================
+    @app.route("/api/daily-arxiv/generate-summary", methods=["POST"])
+    def api_generate_daily_arxiv_summary():
+        """Manually generate Daily arXiv paper brief summary and keywords."""
+        try:
+            data = request.json or {}
+            arxiv_id = data.get("arxiv_id")
+            date_str = data.get("date", get_today_arxiv_date())
+            fetch_category = data.get("fetch_category")
+
+            if not arxiv_id:
+                return jsonify({"success": False, "error": "Lack arxiv_id"}), 400
+
+            llm_config = get_llm_config()
+            llm_model = (llm_config.get("llmModel") or "").strip()
+            openai_base_url = (llm_config.get("llmBaseUrl") or "").strip()
+            openai_api_key = (llm_config.get("llmApiKey") or "").strip()
+
+            if not llm_model or not openai_base_url or not openai_api_key:
+                return (
+                    jsonify(
+                        {
+                            "success": False,
+                            "error": "Please configure it in settings first LLM API（Model、Base URL、API Key）",
+                        }
+                    ),
+                    400,
+                )
+
+            papers = manager.get_papers_for_date(date_str, fetch_category)
+            paper_info = None
+            for paper in papers:
+                if paper.get("arxiv_id") == arxiv_id:
+                    paper_info = paper
+                    break
+
+            if not paper_info:
+                return jsonify({"success": False, "error": "Paper information not found"}), 404
+
+            abstract = (paper_info.get("abstract") or "").strip()
+            if not abstract:
+                return jsonify({"success": False, "error": "Paper abstract is empty"}), 400
+
+            settings = manager.get_settings()
+            user_settings = {}
+            if manager._get_user_settings:
+                try:
+                    user_settings = manager._get_user_settings() or {}
+                except Exception as exc:
+                    print(f"[DailyArxiv] Failed to get user settings: {exc}")
+
+            summary_prompt = build_daily_arxiv_summary_prompt(settings, user_settings)
+            summary_result = extract_summary_and_keywords_with_llm(
+                abstract,
+                openai_base_url,
+                openai_api_key,
+                llm_model,
+                prompt=summary_prompt,
+            )
+
+            summary = summary_result.get("summary")
+            keywords = summary_result.get("keywords", [])
+            if not is_valid_daily_arxiv_summary(summary):
+                return jsonify({"success": False, "error": "Failed to generate valid summary"}), 500
+
+            paper_info["summary"] = str(summary).strip()
+            paper_info["keywords"] = keywords if isinstance(keywords, list) else []
+            paper_info["summary_extracted"] = True
+
+            if not paper_info.get("fetch_date"):
+                paper_info["fetch_date"] = date_str
+            if not paper_info.get("fetch_category") and fetch_category:
+                paper_info["fetch_category"] = fetch_category
+
+            paper_cat_dir = None
+            if fetch_category:
+                paper_cat_dir = manager.get_category_dir(date_str, fetch_category)
+            elif paper_info.get("local_pdf_path"):
+                paper_cat_dir = os.path.dirname(paper_info["local_pdf_path"])
+
+            if paper_cat_dir:
+                safe_id = arxiv_id.replace("/", "_").replace(":", "_")
+                json_path = os.path.join(paper_cat_dir, f"{safe_id}.json")
+                if os.path.exists(json_path):
+                    with open(json_path, "w", encoding="utf-8") as f:
+                        json.dump(paper_info, f, ensure_ascii=False, indent=2)
+
+            manager._save_paper(paper_info, paper_cat_dir or "")
+
+            return jsonify(
+                {
+                    "success": True,
+                    "summary": paper_info["summary"],
+                    "keywords": paper_info["keywords"],
+                    "summary_extracted": True,
+                }
+            )
+
+        except Exception as exc:
+            print(f"Failed to generate Daily arXiv summary: {exc}")
+            import traceback
+
+            traceback.print_exc()
+            return jsonify({"success": False, "error": f"Failed to generate summary: {str(exc)}"}), 500
 
     # ========================================
     # Get Thumbnail

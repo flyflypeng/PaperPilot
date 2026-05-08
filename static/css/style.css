@@ -5071,14 +5071,32 @@ mark {
     border-left: 4px solid #f59e0b;
 }
 
+.daily-arxiv-detail-summary.empty {
+    background: #fffbeb;
+    border: 1px dashed #fbbf24;
+    border-left: 4px solid #f59e0b;
+}
+
+.daily-arxiv-detail-summary-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 12px;
+}
+
 .daily-arxiv-detail-summary h4 {
     font-size: 14px;
     font-weight: 600;
     color: #92400e;
-    margin-bottom: 12px;
+    margin: 0;
     display: flex;
     align-items: center;
     gap: 8px;
+}
+
+.daily-arxiv-summary-generate-btn {
+    flex-shrink: 0;
 }
 
 .daily-arxiv-detail-summary h4 i {
@@ -5090,6 +5108,17 @@ mark {
     line-height: 1.8;
     color: #78350f;
     margin: 0;
+}
+
+.daily-arxiv-summary-empty-state {
+    display: flex;
+    align-items: center;
+    min-height: 34px;
+}
+
+.daily-arxiv-summary-empty-state p {
+    color: #92400e;
+    opacity: 0.85;
 }
 
 .daily-arxiv-detail-abstract {
