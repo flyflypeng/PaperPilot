@@ -368,16 +368,24 @@ class TestDailyArxivKeywordFilter(unittest.TestCase):
                 "2604.00002": ["CMU"],
             }
 
+            downloaded_ids = []
             manager._download_pdf = fake_download
             manager._generate_thumbnail = lambda *args, **kwargs: None
-            manager._extract_affiliations = lambda paper_path, *_args, **_kwargs: {
-                "affiliations": affiliations_by_id[
-                    os.path.basename(paper_path).replace(".pdf", "")
-                ],
-                "countries": [],
-                "homepage": None,
-                "github": None,
-            }
+            manager._download_pdf_first_page_text = lambda paper: paper.arxiv_id
+            manager._extract_affiliations_from_first_page_text = (
+                lambda first_page_text, *_args, **_kwargs: {
+                    "affiliations": affiliations_by_id[first_page_text],
+                    "countries": [],
+                    "homepage": None,
+                    "github": None,
+                }
+            )
+
+            def tracked_download(paper, cat_dir, progress):
+                downloaded_ids.append(paper.arxiv_id)
+                return fake_download(paper, cat_dir, progress)
+
+            manager._download_pdf = tracked_download
 
             saved = []
             manager._save_paper = lambda paper_dict, _cat_dir: saved.append(paper_dict)
@@ -404,6 +412,7 @@ class TestDailyArxivKeywordFilter(unittest.TestCase):
                 [paper["arxiv_id"] for paper in saved],
                 ["2604.00001", "2604.00002"],
             )
+            self.assertEqual(downloaded_ids, ["2604.00001", "2604.00002"])
             self.assertFalse(os.path.exists(os.path.join(tmpdir, "2604.00000.pdf")))
 
     def test_incremental_fetch_does_not_force_fill_unused_quota(self):
@@ -467,6 +476,7 @@ class TestDailyArxivKeywordFilter(unittest.TestCase):
             manager._download_pdf = fake_download
             manager._generate_thumbnail = lambda *args, **kwargs: None
             manager._save_paper = fake_save
+            manager._download_pdf_first_page_text = lambda paper: ""
 
             with (
                 patch.object(PaperDAO, "get_daily_papers", side_effect=lambda _date: saved),
@@ -564,6 +574,7 @@ class TestDailyArxivKeywordFilter(unittest.TestCase):
             manager._download_pdf = fake_download
             manager._generate_thumbnail = lambda *args, **kwargs: None
             manager._save_paper = fake_save
+            manager._download_pdf_first_page_text = lambda paper: ""
 
             with (
                 patch.object(PaperDAO, "get_daily_papers", side_effect=lambda _date: saved),
