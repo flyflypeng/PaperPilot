@@ -4924,7 +4924,7 @@ async function saveAgenticSettings(silent = false) {
             updateSettingsSaveStatus('agentic-save-status', 'saved');
             // renew Daily arXiv of LLM configuration status
             if (typeof checkDailyArxivLLMConfig === 'function') {
-                await checkDailyArxivLLMConfig();
+                await checkDailyArxivLLMConfig({ notify: false });
                 // If the configuration is complete, re-render the grid to update the button state
                 if (typeof renderDailyArxivGrid === 'function') {
                     renderDailyArxivGrid();
@@ -10142,7 +10142,8 @@ async function restartDailyArxivFetch() {
 }
 
 // examine Daily arXiv LLM Configuration
-async function checkDailyArxivLLMConfig() {
+async function checkDailyArxivLLMConfig(options = {}) {
+    const notify = options.notify !== false;
     try {
         const res = await fetch('/api/daily-arxiv/check-llm-config');
         if (res.ok) {
@@ -10151,7 +10152,7 @@ async function checkDailyArxivLLMConfig() {
                 dailyArxivLLMConfigured = data.is_configured;
 
                 // examine LLM API whether failed
-                if (data.llm_api_failed) {
+                if (data.llm_api_failed && notify) {
                     // Display a permanent pop-up window with a restart button
                     const actionButton = `
                         <button class="notification-action-btn" onclick="restartDailyArxivFetch()" style="
@@ -10169,7 +10170,7 @@ async function checkDailyArxivLLMConfig() {
                         </button>
                     `;
                     showRoundedNotification('LLM API Call failed, stop Daily arXiv,Check, please LLM API set up.', 'error', true, 'daily-arxiv-api-notification', actionButton);
-                } else {
+                } else if (!data.llm_api_failed) {
                     // if API Normal, remove the pop-up window（If present, animate）
                     removeNotificationWithAnimation('daily-arxiv-api-notification');
                 }

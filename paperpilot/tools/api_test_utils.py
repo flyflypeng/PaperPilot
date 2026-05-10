@@ -22,12 +22,8 @@ def test_llm_api(model: str, base_url: str, api_key: str) -> tuple[bool, str]:
 
         client = OpenAI(api_key=api_key, base_url=base_url)
 
-        # Try to list models
-        models = client.models.list()
-        if not models.data:
-            return False, "No models available"
-
-        # Try a simple completion
+        # Try a simple completion with the configured model. Some OpenAI-compatible
+        # services support chat completions but return an empty /models list.
         response = client.chat.completions.create(
             model=model, messages=[{"role": "user", "content": "Hi"}], max_tokens=10
         )

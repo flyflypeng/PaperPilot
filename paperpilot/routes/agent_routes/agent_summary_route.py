@@ -267,6 +267,7 @@ def register_agent_summary_routes(
                     pdf_dir,
                     pdf_filename,
                     mineru_config,
+                    llm_model,
                     openai_base_url,
                     openai_api_key,
                     system_prompt,

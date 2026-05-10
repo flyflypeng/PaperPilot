@@ -33,6 +33,7 @@ def analyze_paper_task(
     pdf_dir: str,
     pdf_filename: str,
     mineru_config: dict,
+    openai_model: str,
     openai_base_url: str,
     openai_api_key: str,
     system_prompt: str,
@@ -300,17 +301,14 @@ INPUT: <MARKDOWN>"""
             base_url=openai_base_url,
         )
 
-        try:
-            models = client.models.list()
-            model = models.data[0].id if models.data else None
-            if not model:
-                raise Exception("Unable to get model list")
-        except Exception as e:  # noqa: BLE001
-            raise Exception(f"Failed to get model list: {str(e)}") from e
+        model = (openai_model or "").strip()
+        if not model:
+            raise Exception("LLM model name is not configured")
 
         # 2. Try to get the maximum length of the model (only truncate if successful)
         max_input_tokens = None
         try:
+            models = client.models.list()
             # Try to get from model information context_length / max_model_len / max_tokens
             model_info = None
             for m in models.data:

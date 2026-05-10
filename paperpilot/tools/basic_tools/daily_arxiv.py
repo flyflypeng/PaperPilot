@@ -2830,26 +2830,6 @@ def extract_affiliations_with_llm(
             base_url=openai_base_url,
         )
 
-        # Get available models
-        try:
-            models = client.models.list()
-            if model_name not in [model.id for model in models.data]:
-                print(f"[DailyArxiv] Model {model_name} does not exist")
-                return {
-                    "affiliations": [],
-                    "countries": [],
-                    "homepage": None,
-                    "github": None,
-                }
-        except Exception as e:
-            print(f"[DailyArxiv] Failed to get model list: {e}")
-            return {
-                "affiliations": [],
-                "countries": [],
-                "homepage": None,
-                "github": None,
-            }
-
         # Construct prompt words (use custom or default)
         system_prompt = prompt if prompt else AFFILIATION_EXTRACTION_PROMPT
         full_prompt = system_prompt + first_page_text
@@ -3050,16 +3030,6 @@ def extract_summary_and_keywords_with_llm(
             api_key=openai_api_key,
             base_url=openai_base_url,
         )
-
-        # Get available models
-        try:
-            models = client.models.list()
-            if model_name not in [model.id for model in models.data]:
-                print(f"[DailyArxiv] Model {model_name} does not exist")
-                return {"summary": None, "keywords": []}
-        except Exception as e:
-            print(f"[DailyArxiv] Failed to get model list: {e}")
-            return {"summary": None, "keywords": []}
 
         # Construct prompt words (use custom or default)
         system_prompt = prompt if prompt else SUMMARY_EXTRACTION_PROMPT
