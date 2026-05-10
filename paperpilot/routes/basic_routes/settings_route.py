@@ -387,9 +387,11 @@ def register_settings_routes(
                         {
                             "llmModel": (incoming_cfg.get("llmModel") or "").strip(),
                             "llmBaseUrl": (incoming_cfg.get("llmBaseUrl") or "").strip(),
-                            "llmApiKey": (incoming_cfg.get("llmApiKey") or "").strip(),
                         }
                     )
+                    incoming_api_key = (incoming_cfg.get("llmApiKey") or "").strip()
+                    if incoming_api_key:
+                        merged_llm_configs[scenario]["llmApiKey"] = incoming_api_key
 
             merged_settings["llmConfigs"] = merged_llm_configs
 

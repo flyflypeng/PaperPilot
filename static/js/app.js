@@ -4814,6 +4814,35 @@ function switchTab(tabName) {
 
 // Save translation settings
 // ========== Agentic set up（unifiedAIFunction configuration）==========
+let agenticSettingsDirty = false;
+let dailyArxivSettingsDirty = false;
+
+function updateSettingsSaveStatus(statusElId, state) {
+    const statusEl = document.getElementById(statusElId);
+    if (!statusEl) return;
+
+    statusEl.classList.remove('dirty', 'saved');
+    if (state === 'dirty') {
+        statusEl.textContent = 'Unsaved changes. Click Save settings to apply them.';
+        statusEl.classList.add('dirty');
+    } else if (state === 'saved') {
+        statusEl.textContent = 'Settings saved.';
+        statusEl.classList.add('saved');
+    } else {
+        statusEl.textContent = 'Changes are saved only when you click Save.';
+    }
+}
+
+function markAgenticSettingsDirty() {
+    agenticSettingsDirty = true;
+    updateSettingsSaveStatus('agentic-save-status', 'dirty');
+}
+
+function markDailyArxivSettingsDirty() {
+    dailyArxivSettingsDirty = true;
+    updateSettingsSaveStatus('daily-arxiv-save-status', 'dirty');
+}
+
 async function saveAgenticSettings(silent = false) {
     const translateModelEl = document.getElementById('llm-translate-model');
     const translateBaseUrlEl = document.getElementById('llm-translate-base-url');
@@ -4891,6 +4920,8 @@ async function saveAgenticSettings(silent = false) {
 
         if (response.ok && result.success) {
             console.log('[Save settings] ✅ Saved successfully');
+            agenticSettingsDirty = false;
+            updateSettingsSaveStatus('agentic-save-status', 'saved');
             // renew Daily arXiv of LLM configuration status
             if (typeof checkDailyArxivLLMConfig === 'function') {
                 await checkDailyArxivLLMConfig();
@@ -4931,9 +4962,9 @@ function debounce(func, wait) {
     };
 }
 
-// Auto save Agentic set up（Anti-shake）
+// Mark Agentic settings as unsaved after edits.
 const autoSaveAgenticSettings = debounce(() => {
-    saveAgenticSettings(true); // silent mode
+    markAgenticSettingsDirty();
 }, 500);
 
 // load Agentic set up
@@ -4970,50 +5001,85 @@ async function loadAgenticSettings() {
 
             if (translateModelEl) {
                 translateModelEl.value = translateCfg.llmModel || '';
-                translateModelEl.addEventListener('input', autoSaveAgenticSettings);
+                if (!translateModelEl.dataset.bound) {
+                    translateModelEl.dataset.bound = 'true';
+                    translateModelEl.addEventListener('input', autoSaveAgenticSettings);
+                }
             }
             if (translateBaseUrlEl) {
                 translateBaseUrlEl.value = translateCfg.llmBaseUrl || '';
-                translateBaseUrlEl.addEventListener('input', autoSaveAgenticSettings);
+                if (!translateBaseUrlEl.dataset.bound) {
+                    translateBaseUrlEl.dataset.bound = 'true';
+                    translateBaseUrlEl.addEventListener('input', autoSaveAgenticSettings);
+                }
             }
             if (translateApiKeyEl) {
                 translateApiKeyEl.value = translateCfg.llmApiKey || '';
-                translateApiKeyEl.addEventListener('input', autoSaveAgenticSettings);
+                if (!translateApiKeyEl.dataset.bound) {
+                    translateApiKeyEl.dataset.bound = 'true';
+                    translateApiKeyEl.addEventListener('input', autoSaveAgenticSettings);
+                }
             }
 
             if (interpretModelEl) {
                 interpretModelEl.value = interpretCfg.llmModel || '';
-                interpretModelEl.addEventListener('input', autoSaveAgenticSettings);
+                if (!interpretModelEl.dataset.bound) {
+                    interpretModelEl.dataset.bound = 'true';
+                    interpretModelEl.addEventListener('input', autoSaveAgenticSettings);
+                }
             }
             if (interpretBaseUrlEl) {
                 interpretBaseUrlEl.value = interpretCfg.llmBaseUrl || '';
-                interpretBaseUrlEl.addEventListener('input', autoSaveAgenticSettings);
+                if (!interpretBaseUrlEl.dataset.bound) {
+                    interpretBaseUrlEl.dataset.bound = 'true';
+                    interpretBaseUrlEl.addEventListener('input', autoSaveAgenticSettings);
+                }
             }
             if (interpretApiKeyEl) {
                 interpretApiKeyEl.value = interpretCfg.llmApiKey || '';
-                interpretApiKeyEl.addEventListener('input', autoSaveAgenticSettings);
+                if (!interpretApiKeyEl.dataset.bound) {
+                    interpretApiKeyEl.dataset.bound = 'true';
+                    interpretApiKeyEl.addEventListener('input', autoSaveAgenticSettings);
+                }
             }
 
             if (dailyArxivModelEl) {
                 dailyArxivModelEl.value = dailyArxivCfg.llmModel || '';
-                dailyArxivModelEl.addEventListener('input', autoSaveAgenticSettings);
+                if (!dailyArxivModelEl.dataset.bound) {
+                    dailyArxivModelEl.dataset.bound = 'true';
+                    dailyArxivModelEl.addEventListener('input', autoSaveAgenticSettings);
+                }
             }
             if (dailyArxivBaseUrlEl) {
                 dailyArxivBaseUrlEl.value = dailyArxivCfg.llmBaseUrl || '';
-                dailyArxivBaseUrlEl.addEventListener('input', autoSaveAgenticSettings);
+                if (!dailyArxivBaseUrlEl.dataset.bound) {
+                    dailyArxivBaseUrlEl.dataset.bound = 'true';
+                    dailyArxivBaseUrlEl.addEventListener('input', autoSaveAgenticSettings);
+                }
             }
             if (dailyArxivApiKeyEl) {
                 dailyArxivApiKeyEl.value = dailyArxivCfg.llmApiKey || '';
-                dailyArxivApiKeyEl.addEventListener('input', autoSaveAgenticSettings);
+                if (!dailyArxivApiKeyEl.dataset.bound) {
+                    dailyArxivApiKeyEl.dataset.bound = 'true';
+                    dailyArxivApiKeyEl.addEventListener('input', autoSaveAgenticSettings);
+                }
             }
             if (mineruEl) {
                 mineruEl.value = settings.mineruServerUrl || '';
-                mineruEl.addEventListener('input', autoSaveAgenticSettings);
+                if (!mineruEl.dataset.bound) {
+                    mineruEl.dataset.bound = 'true';
+                    mineruEl.addEventListener('input', autoSaveAgenticSettings);
+                }
             }
             if (mineruApiTokenEl) {
                 mineruApiTokenEl.value = settings.mineruApiToken || '';
-                mineruApiTokenEl.addEventListener('input', autoSaveAgenticSettings);
+                if (!mineruApiTokenEl.dataset.bound) {
+                    mineruApiTokenEl.dataset.bound = 'true';
+                    mineruApiTokenEl.addEventListener('input', autoSaveAgenticSettings);
+                }
             }
+            agenticSettingsDirty = false;
+            updateSettingsSaveStatus('agentic-save-status', 'idle');
 
             // Set MinerU mode radio buttons
             const mineruUseApi = settings.mineruUseApi || false;
@@ -5028,14 +5094,20 @@ async function loadAgenticSettings() {
                 }
 
                 // Add event listeners for mode change
-                localRadio.addEventListener('change', () => {
-                    toggleMineruConfigUI();
-                    autoSaveAgenticSettings();
-                });
-                apiRadio.addEventListener('change', () => {
-                    toggleMineruConfigUI();
-                    autoSaveAgenticSettings();
-                });
+                if (!localRadio.dataset.bound) {
+                    localRadio.dataset.bound = 'true';
+                    localRadio.addEventListener('change', () => {
+                        toggleMineruConfigUI();
+                        autoSaveAgenticSettings();
+                    });
+                }
+                if (!apiRadio.dataset.bound) {
+                    apiRadio.dataset.bound = 'true';
+                    apiRadio.addEventListener('change', () => {
+                        toggleMineruConfigUI();
+                        autoSaveAgenticSettings();
+                    });
+                }
 
                 // Initial UI toggle
                 toggleMineruConfigUI();
@@ -5047,18 +5119,29 @@ async function loadAgenticSettings() {
             const testDailyArxivBtn = document.getElementById('test-llm-api-dailyArxiv');
             const testMineruBtns = document.querySelectorAll('#test-mineru-btn');
 
-            if (testTranslateBtn) {
+            if (testTranslateBtn && !testTranslateBtn.dataset.bound) {
+                testTranslateBtn.dataset.bound = 'true';
                 testTranslateBtn.addEventListener('click', () => testLLMAPIByScenario('translate'));
             }
-            if (testInterpretBtn) {
+            if (testInterpretBtn && !testInterpretBtn.dataset.bound) {
+                testInterpretBtn.dataset.bound = 'true';
                 testInterpretBtn.addEventListener('click', () => testLLMAPIByScenario('interpret'));
             }
-            if (testDailyArxivBtn) {
+            if (testDailyArxivBtn && !testDailyArxivBtn.dataset.bound) {
+                testDailyArxivBtn.dataset.bound = 'true';
                 testDailyArxivBtn.addEventListener('click', () => testLLMAPIByScenario('dailyArxiv'));
+            }
+            const saveAgenticBtn = document.getElementById('save-agentic-settings');
+            if (saveAgenticBtn && !saveAgenticBtn.dataset.bound) {
+                saveAgenticBtn.dataset.bound = 'true';
+                saveAgenticBtn.addEventListener('click', () => saveAgenticSettings(false));
             }
             // Both test buttons should use the same handler
             testMineruBtns.forEach(btn => {
-                btn.addEventListener('click', testMineruAPI);
+                if (!btn.dataset.bound) {
+                    btn.dataset.bound = 'true';
+                    btn.addEventListener('click', testMineruAPI);
+                }
             });
 
             // Load AI language setting from user settings
@@ -10603,9 +10686,9 @@ async function loadPapersForCurrentDate() {
     renderDailyArxivCategoryTags();
 }
 
-// Auto save Daily arXiv set up（Anti-shake）
+// Mark Daily arXiv settings as unsaved after edits.
 const autoSaveDailyArxivSettings = debounce(() => {
-    saveDailyArxivSettings(true); // silent mode
+    markDailyArxivSettingsDirty();
 }, 500);
 
 function normalizeDailyArxivCategory(category) {
@@ -10734,31 +10817,49 @@ async function loadDailyArxivSettings() {
 
             if (enabledEl) {
                 enabledEl.checked = dailyArxivSettings.enabled === true; // Default to false
-                enabledEl.addEventListener('change', autoSaveDailyArxivSettings);
+                if (!enabledEl.dataset.bound) {
+                    enabledEl.dataset.bound = 'true';
+                    enabledEl.addEventListener('change', autoSaveDailyArxivSettings);
+                }
             }
 
             if (retentionDaysEl) {
                 retentionDaysEl.value = dailyArxivSettings.retentionDays || 7;
-                retentionDaysEl.addEventListener('change', autoSaveDailyArxivSettings);
+                if (!retentionDaysEl.dataset.bound) {
+                    retentionDaysEl.dataset.bound = 'true';
+                    retentionDaysEl.addEventListener('change', autoSaveDailyArxivSettings);
+                }
             }
             if (checkIntervalEl) {
                 checkIntervalEl.value = dailyArxivSettings.checkIntervalMinutes || 10;
-                checkIntervalEl.addEventListener('change', autoSaveDailyArxivSettings);
+                if (!checkIntervalEl.dataset.bound) {
+                    checkIntervalEl.dataset.bound = 'true';
+                    checkIntervalEl.addEventListener('change', autoSaveDailyArxivSettings);
+                }
             }
             if (maxDailyPapersEl) {
                 maxDailyPapersEl.value = dailyArxivSettings.maxDailyPapers || 50;
-                maxDailyPapersEl.addEventListener('change', autoSaveDailyArxivSettings);
+                if (!maxDailyPapersEl.dataset.bound) {
+                    maxDailyPapersEl.dataset.bound = 'true';
+                    maxDailyPapersEl.addEventListener('change', autoSaveDailyArxivSettings);
+                }
             }
             if (maxKeywordsEl) {
                 maxKeywordsEl.value = dailyArxivSettings.maxKeywords || 1;
-                maxKeywordsEl.addEventListener('change', autoSaveDailyArxivSettings);
+                if (!maxKeywordsEl.dataset.bound) {
+                    maxKeywordsEl.dataset.bound = 'true';
+                    maxKeywordsEl.addEventListener('change', autoSaveDailyArxivSettings);
+                }
             }
             if (qualityStrategyEl) {
                 qualityStrategyEl.value = dailyArxivSettings.qualityConfig.strategy || 'balanced';
-                qualityStrategyEl.addEventListener('change', () => {
-                    renderDailyArxivStrategyHelp();
-                    autoSaveDailyArxivSettings();
-                });
+                if (!qualityStrategyEl.dataset.bound) {
+                    qualityStrategyEl.dataset.bound = 'true';
+                    qualityStrategyEl.addEventListener('change', () => {
+                        renderDailyArxivStrategyHelp();
+                        autoSaveDailyArxivSettings();
+                    });
+                }
             }
 
             renderDailyArxivCategoryTags();
@@ -10769,6 +10870,13 @@ async function loadDailyArxivSettings() {
             syncDailyArxivKnownInstitutions();
             setDailyArxivEmptyState(isDailyArxivEnabled() ? 'default' : 'disabled');
             updateDailyArxivSyncButtonState();
+            const saveDailyArxivBtn = document.getElementById('save-daily-arxiv-settings');
+            if (saveDailyArxivBtn && !saveDailyArxivBtn.dataset.bound) {
+                saveDailyArxivBtn.dataset.bound = 'true';
+                saveDailyArxivBtn.addEventListener('click', () => saveDailyArxivSettings(false));
+            }
+            dailyArxivSettingsDirty = false;
+            updateSettingsSaveStatus('daily-arxiv-save-status', 'idle');
         }
 
         // Load list of known institutions
@@ -10860,6 +10968,8 @@ async function saveDailyArxivSettings(silent = false) {
             if (savedSettings && savedSettings.categoryQuotas) {
                 dailyArxivSettings.categoryQuotas = savedSettings.categoryQuotas;
             }
+            dailyArxivSettingsDirty = false;
+            updateSettingsSaveStatus('daily-arxiv-save-status', 'saved');
             if (!silent) {
                 showMessage('Daily arXiv Settings saved', 'success');
             }
@@ -10896,7 +11006,7 @@ function addDailyArxivCategory() {
     renderDailyArxivSettingsCategoryList();
     renderDailyArxivCategoryTags();
     renderDailyArxivCategoryRatioStatus();
-    // Auto save
+    // Mark settings dirty; user saves explicitly.
     autoSaveDailyArxivSettings();
 }
 
@@ -10912,7 +11022,7 @@ function addDailyArxivCategoryQuick(category) {
     renderDailyArxivSettingsCategoryList();
     renderDailyArxivCategoryTags();
     renderDailyArxivCategoryRatioStatus();
-    // Auto save
+    // Mark settings dirty; user saves explicitly.
     autoSaveDailyArxivSettings();
 }
 
@@ -10927,7 +11037,7 @@ function removeDailyArxivCategory(category) {
         renderDailyArxivSettingsCategoryList();
         renderDailyArxivCategoryTags();
         renderDailyArxivCategoryRatioStatus();
-        // Auto save
+        // Mark settings dirty; user saves explicitly.
         autoSaveDailyArxivSettings();
     }
 }
@@ -11201,7 +11311,7 @@ function addDailyArxivKeyword() {
     dailyArxivSettings.keywordList.push(keyword);
     input.value = '';
     renderDailyArxivKeywordList();
-    // Auto save
+    // Mark settings dirty; user saves explicitly.
     autoSaveDailyArxivSettings();
 }
 
@@ -11215,7 +11325,7 @@ function removeDailyArxivKeyword(keyword) {
     if (index > -1) {
         dailyArxivSettings.keywordList.splice(index, 1);
         renderDailyArxivKeywordList();
-        // Auto save
+        // Mark settings dirty; user saves explicitly.
         autoSaveDailyArxivSettings();
     }
 }

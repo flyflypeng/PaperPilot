@@ -993,6 +993,48 @@ body {
     box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
 }
 
+.setting-save-bar {
+    position: sticky;
+    bottom: 0;
+    z-index: 5;
+    margin-top: 8px;
+    padding: 14px 16px;
+    background: rgba(255, 255, 255, 0.96);
+    border: 1px solid #e5e7eb;
+    border-radius: 12px;
+    box-shadow: 0 -8px 24px rgba(15, 23, 42, 0.08);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+}
+
+.setting-save-info {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    min-width: 0;
+}
+
+.setting-save-info strong {
+    color: #1f2937;
+    font-size: 14px;
+    font-weight: 600;
+}
+
+.setting-save-info span {
+    color: #6b7280;
+    font-size: 12px;
+}
+
+.setting-save-info span.dirty {
+    color: #b45309;
+}
+
+.setting-save-info span.saved {
+    color: #047857;
+}
+
 /* Responsive design */
 @media (max-width: 1200px) {
     .stats-cards {
